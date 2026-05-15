@@ -2,17 +2,9 @@
 #include <libpq-fe.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "controllers/api_controller.h"
 
 static PGconn* db;
-
-typedef struct {
-    int id;
-    char name[256];
-    double price;
-    char begins_at[256];
-    char venue[256];
-    char img_path[256];
-} Event;
 
 // handler
 static int home_handler(struct mg_connection*, void*);
@@ -21,9 +13,6 @@ static int request_handler(struct mg_connection*, void*);
 
 // помощни функции
 static void init_db(void);
-static int get_events(struct mg_connection*, Event* events);
-static void events_to_json(Event*, int, char*, size_t);
-static int get_insert_pos(char*);
 
 int main(void) {
     init_db();
@@ -39,7 +28,9 @@ int main(void) {
 
     mg_set_request_handler(ctx, "/home", home_handler, NULL);
     mg_set_request_handler(ctx, "/events", get_events_handler, NULL);
-    mg_set_request_handler(ctx, "/api/", request_handler, NULL);
+    mg_set_request_handler(ctx, "/api/events/**", api_events, db);
+    mg_set_request_handler(ctx, "/api/events", api_events, db);
+    mg_set_request_handler(ctx, "/api/users", api_users, db);
 
     printf("Server running on port 8080\n");
     getchar();
@@ -123,68 +114,4 @@ static int request_handler(struct mg_connection* conn, void* data) {
     // if ...
 
     return 0;
-}
-
-// форматиране на данни в json
-static void events_to_json(Event* events, int count, char* out, size_t out_size) {
-
-    // {
-    //   [
-    //      "id": 0,
-    //      "name": sample,
-    //      "preview_img": "event_image.png"
-    //   ]
-    // }, ...
-
-    int pos = 0;
-    pos += snprintf(out + pos, out_size - pos,
-        "[");
-
-    for (int i = 0; i < count; i++) {
-        pos += snprintf(out + pos, out_size - pos,
-            "{ \"id\": %d,"
-            "\"name\": \"%s\","
-            "\"preview_img\": \"%s\" }",
-            events[i].id, events[i].name, events[i].img_path);
-        if (i < count - 1) {
-            pos += snprintf(out + pos, out_size - pos, ",");
-        }
-    }
-
-    snprintf(out + pos, out_size - pos, "]");
-}
-
-// sql заявка за извличане на всички събития
-static int get_events(struct mg_connection* conn, Event* events) {
-
-    const struct mg_request_info* info = mg_get_request_info(conn);
-
-    char sort[32] = { 0 };
-
-    mg_get_var(info->query_string, strlen(info->query_string ? info->query_string : ""), "sort", sort, sizeof(sort));
-
-    const char* query;
-    if (strcmp(sort, "recent") == 0)
-        query = "SELECT * FROM data.events ORDER BY begins_at ASC;";
-    else
-        query = "SELECT * FROM data.events;";
-
-    PGresult* res = PQexec(db, query);
-    if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-        PQclear(res);
-        return 0;
-    }
-
-    int count = PQntuples(res);
-    for (int i = 0; i < count; i++) {
-        events[i].id = atoi(PQgetvalue(res, i, 0));
-        strncpy(events[i].name, PQgetvalue(res, i, 1), 100);
-        strncpy(events[i].begins_at, PQgetvalue(res, i, 2), 255);
-        strncpy(events[i].venue, PQgetvalue(res, i, 3), 100);
-        strncpy(events[i].img_path, PQgetvalue(res, i, 4), 255);
-        events[i].price = atof(PQgetvalue(res, i, 5));
-    }
-
-    PQclear(res);
-    return count;
 }

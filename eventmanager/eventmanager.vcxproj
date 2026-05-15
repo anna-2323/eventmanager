@@ -137,10 +137,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\civetweb.h" />
+    <ClInclude Include="src\controllers\api_controller.h" />
+    <ClInclude Include="src\models\event.h" />
+    <ClInclude Include="src\models\user.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\civetweb.c" />
+    <ClCompile Include="src\controllers\api_controller.c" />
     <ClCompile Include="src\main.c" />
+    <ClCompile Include="src\models\event.c" />
+    <ClCompile Include="src\models\user.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\handle_form.inl" />

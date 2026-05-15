@@ -3,20 +3,52 @@ CREATE DATABASE eventmanagement WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCA
 CREATE SCHEMA data;
 
 CREATE TABLE data.events (
-    id integer NOT NULL,
-    event_name character varying(100) NOT NULL,
-    begins_at timestamp without time zone DEFAULT now() NOT NULL,
-    venue character varying(100) NOT NULL,
-    img_path character varying(255) NOT NULL,
-    price numeric(6,2) NOT NULL
+    id serial primary key,
+    title varchar(255) NOT NULL,
+    begins_at timestamp with time zone NOT NULL,
+    venue_id integer NOT NULL,
+    img_path varchar(225) DEFAULT '/res/default1.png',
+    organizer_id integer NOT NULL,
+    seats_left integer NOT NULL,
+    capacity integer NOT NULL,
+    price numeric(10,2),
+    uploaded_at timestamp with time zone DEFAULT now()
 );
 
-INSERT INTO data.events VALUES (1, 'Примерно събитие', '2026-04-16 14:47:21.50093', 'Доходно здание', 'plchldr.png', 50.00);
-INSERT INTO data.events VALUES (2, 'Примерно късно събитие', '2026-04-18 14:47:21.50093', 'Доходно здание', 'plchldr.png', 50.00);
-INSERT INTO data.events VALUES (3, 'Примерно събитие', '2026-04-16 14:47:21.50093', 'Доходно здание', 'plchldr.png', 50.00);
-INSERT INTO data.events VALUES (4, 'Примерно ранно събитие', '2026-04-14 14:47:21.50093', 'Доходно здание', 'plchldr.png', 50.00);
-INSERT INTO data.events VALUES (5, 'Примерно събитие', '2026-04-16 14:47:21.50093', 'Доходно здание', 'plchldr.png', 50.00);
-INSERT INTO data.events VALUES (6, 'Примерно събитие', '2026-04-16 14:47:21.50093', 'Доходно здание', 'plchldr.png', 50.00);
-INSERT INTO data.events VALUES (7, 'Примерно събитие', '2026-04-16 14:47:21.50093', 'Доходно здание', 'plchldr.png', 50.00);
-INSERT INTO data.events VALUES (8, 'Примерно събитие', '2026-04-16 14:47:21.50093', 'Доходно здание', 'plchldr.png', 50.00);
-INSERT INTO data.events VALUES (9, 'Примерно събитие', '2026-04-16 14:47:21.50093', 'Доходно здание', 'plchldr.png', 50.00);
+CREATE TABLE data.users (
+    id serial primary key,
+    role integer DEFAULT 2,
+    email varchar(255) NOT NULL,
+    password varchar(255) NOT NULL,
+    first_name varchar(255),
+    last_name varchar(255),
+    phone varchar(255)
+);
+
+CREATE TABLE data.venues (
+    id serial primary key,
+    city varchar(255) NOT NULL,
+    address varchar(255) NOT NULL,
+    capacity integer NOT NULL,
+    venue_name varchar(255) NOT NULL
+);
+
+ALTER TABLE ONLY data.events
+    ADD CONSTRAINT fk_organizers_events FOREIGN KEY (organizer_id) REFERENCES data.users(id);
+
+ALTER TABLE ONLY data.events
+    ADD CONSTRAINT fk_venues_events FOREIGN KEY (venue_id) REFERENCES data.venues(id);
+
+INSERT INTO data.users VALUES (2, 1, 'org', 'org', NULL, NULL, NULL);
+INSERT INTO data.users VALUES (1, 0, 'admin', 'admin', NULL, NULL, NULL);
+INSERT INTO data.users VALUES (3, 2, 'user', 'user', 'User', 'User', NULL);
+
+INSERT INTO data.venues VALUES (1, 'Русе', 'Русе Център, пл. "Свобода" 4, 7000 Русе', 650, 'Доходно здание');
+INSERT INTO data.venues VALUES (2, 'София', 'БАН IV км., бул. "Асен Йорданов" 1, 1113 София', 17906, 'Арена 8888');
+INSERT INTO data.venues VALUES (3, 'Бургас', 'Бургас Център, бул. "Демокрация" 94, 8001 Бургас', 2150, 'Летен театър');
+INSERT INTO data.venues VALUES (4, 'София', 'кв. Хладилника, бул. „Черни връх“ 100, Парадайс център, ет. 3, 1407 София', 3500, 'Sofia Event Center');
+
+INSERT INTO data.events VALUES (1, 'Театрална постановка', '2026-09-20 20:30:00+03', 1, '/res/default3.png', 2, 193, 200, 20.00, '2026-05-15 15:30:00+03');
+INSERT INTO data.events VALUES (2, 'Спортно събитие', '2026-09-25 16:00:00+03', 2, '/res/default4.png', 1, 15395, 17500, 30.00, '2026-07-10 20:44:44.609386+03');
+INSERT INTO data.events VALUES (3, 'Концерт', '2026-09-30 18:30:00+03', 3, '/res/default1.png', 1, 26, 2000, 15.00, '2026-07-10 20:44:44.609386+03');
+INSERT INTO data.events VALUES (4, 'Конференция', '2026-09-30 14:00:00+03', 4, '/res/default2.png', 1, 700, 1000, 50.00, '2026-07-10 21:07:38.663305+03');
