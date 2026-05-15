@@ -1,0 +1,17 @@
+/* Navbar */
+
+.navbar {
+    background-color: #00b89c;
+    color: #fff;
+}
+
+.navbar-hoverable:hover {
+    background-color: #00debc;
+}
+
+#search-btn {
+    background-color: #006c5c;
+}
+
+/* */
+

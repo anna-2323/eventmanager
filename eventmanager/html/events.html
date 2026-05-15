@@ -5,70 +5,54 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="color-scheme" content="light dark" />
-  <title>Document</title>
+  <title>EventMGR - събития</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/res/style.css" />
   <style>
+    .cell {
+      padding: 20px;
+      margin: 20px;
+    }
     .cell img {
-      height: 70%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .image {
+      width: 200px;
       object-fit: cover;
     }
   </style>
 </head>
 
 <body>
-  <header>
-    <nav class="navbar" role="navigation" aria-label="main navigation">
-      <div class="navbar-brand">
-        <a class="navbar-item">
-          Система за управление на събития
-        </a>
-
-        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
-          <span aria-hidden="true"></span>
-          <span aria-hidden="true"></span>
-          <span aria-hidden="true"></span>
-          <span aria-hidden="true"></span>
-        </a>
-      </div>
-
-      <div class="navbar-menu">
-        <div class="navbar-start">
-          <a class="navbar-item" href="/home">Начало</a>
-
-          <div class="navbar-item has-dropdown is-hoverable">
-            <a class="navbar-link" href="/events">
-              Всички събития
-            </a>
-
-            <div class="navbar-dropdown">
-              <a class="navbar-item">
-                Категория
-              </a>
-              <a class="navbar-item">
-                Категория
-              </a>
-            </div>
-          </div>
-        </div>
-    </nav>
+  <header id="header">
   </header>
 
   <main class="main">
     <div class="grid is-col-min-5 is-column-gap-3 is-row-gap-3" id="events">
-
     </div>
   </main>
+
+  <script type="module">
+    import { Header } from '/js/header.js';
+    document.getElementById('header').innerHTML = Header('events');
+  </script>
 
   <script>
     fetch('/api/events').then(r => r.json())
       .then(events => {
-    document.getElementById("events").innerHTML = events.map(e => `
-        <div class="cell">
-            <img src="${e.preview_img}" alt="${e.name}">
-            <p>${e.name}</p>
-        </div>
-    `).join('');
-});
+        document.getElementById("events").innerHTML = events.map(e => `
+          <a href="/events/${e.id}">
+            <div class="cell">
+                <figure class="image is-3by4">
+                  <img src="${e.img_path}" alt="${e.title}">
+                </figure>
+                <p>${e.title}</p>
+                <p>${e.price.toLocaleString('bg-BG', { style: 'currency', currency: 'BGN' })}</p>
+            </div>
+          </a>`).join('');
+      });
   </script>
 </body>
 

@@ -5,47 +5,37 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
-    <title>Document</title>
+    <title>EventMGR</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/res/style.css" />
+    <style>
+        .container {
+            margin: 0;
+            width: 100%;
+            max-width: 100% !important;
+        }
+
+        .hero {
+            background-image: url("/res/home.png");
+            background-size: cover;
+            background-position: center;
+        }
+
+        .hero-body-bg {
+            background-color: #006c5c;
+            padding: 10px;
+        }
+
+        .title,
+        .subtitle {
+            color: #fff;
+        }
+    </style>
 </head>
 
 <body>
-    <header>
-        <nav class="navbar" role="navigation" aria-label="main navigation">
-            <div class="navbar-brand">
-                <a class="navbar-item">
-                    Система за управление на събития
-                </a>
-
-                <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false"
-                    data-target="navbarBasicExample">
-                    <span aria-hidden="true"></span>
-                    <span aria-hidden="true"></span>
-                    <span aria-hidden="true"></span>
-                    <span aria-hidden="true"></span>
-                </a>
-            </div>
-
-            <div class="navbar-menu">
-                <div class="navbar-start">
-                    <a class="navbar-item" href="/home">Начало</a>
-
-                    <div class="navbar-item has-dropdown is-hoverable">
-                        <a class="navbar-link" href="/events">
-                            Всички събития
-                        </a>
-
-                        <div class="navbar-dropdown">
-                            <a class="navbar-item">
-                                Категория
-                            </a>
-                            <a class="navbar-item">
-                                Категория
-                            </a>
-                        </div>
-                    </div>
-                </div>
-        </nav>
+    <header id="header">
     </header>
 
     <main class="container">
@@ -58,6 +48,11 @@
             </div>
         </section>
     </main>
+
+    <script type="module">
+        import { Header } from '/js/header.js';
+        document.getElementById('header').innerHTML = Header();
+    </script>
 
 </body>
 

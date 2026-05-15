@@ -28,6 +28,7 @@ int main(void) {
     mg_set_request_handler(ctx, "/api/events/**", api_events, db);
     mg_set_request_handler(ctx, "/api/events", api_events, db);
     mg_set_request_handler(ctx, "/api/users", api_users, db);
+    mg_set_request_handler(ctx, "/res/**", NULL, NULL);  // статични ресурси
 
     printf("Server running on port 8080\n");
     getchar();
