@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include "controllers/api_controller.h"
 #include "controllers/html_controller.h"
+#include "session.h"
 
 static PGconn* db;
 
@@ -12,6 +13,8 @@ static void init_db(void);
 
 int main(void) {
     init_db();
+
+    session_init();
 
     const char* options[] = {
         "listening_ports", "8080",
@@ -25,9 +28,11 @@ int main(void) {
     mg_set_request_handler(ctx, "/home", home, NULL);
     mg_set_request_handler(ctx, "/events/**", events, NULL);
     mg_set_request_handler(ctx, "/events", events, NULL);
+
     mg_set_request_handler(ctx, "/api/events/**", api_events, db);
     mg_set_request_handler(ctx, "/api/events", api_events, db);
     mg_set_request_handler(ctx, "/api/users", api_users, db);
+
     mg_set_request_handler(ctx, "/res/**", NULL, NULL);  // статични ресурси
 
     printf("Server running on port 8080\n");
