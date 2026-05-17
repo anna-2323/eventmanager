@@ -3,4 +3,5 @@
 
 int home(struct mg_connection* conn, void* data);
 int events(struct mg_connection* conn, void* data);
-int event(struct mg_connection* conn, void* data);
+int login(struct mg_connection* conn, void* data);
+int signup(struct mg_connection* conn, void* data);

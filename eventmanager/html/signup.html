@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="bg" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Регистрация</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/res/style.css" />
+</head>
+
+<body>
+    <header id="header">
+    </header>
+
+    <section class="section">
+        <div class="container is-max-tablet">
+            <h1 class="title" id="event-title">Създаване на регистрация</h1>
+            <div class="box">
+                <div class="field">
+                    <label class="label">Име</label>
+                    <div class="control">
+                        <input class="input" type="text" id="first_name">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Фамилия</label>
+                    <div class="control">
+                        <input class="input" type="text" id="last_name">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Имейл</label>
+                    <div class="control">
+                        <input class="input" type="text" id="email">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Телефон (по желание)</label>
+                    <div class="control">
+                        <input class="input" type="text" id="phone">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Парола</label>
+                    <div class="control">
+                        <input class="input" type="password" id="password">
+                    </div>
+                </div>
+                <input type="checkbox" id="isOrganizer" name="isOrganizer"><label for="isOrganizer">Организатор съм</label>
+                <button class="button is-primary is-fullwidth" id="submit">Регистрация</button>
+                <p>Вече имате регистрация?<a href="/login">Вход</a></p>
+                <p class="help is-danger mt-2" id="error" style="display:none"></p>
+            </div>
+        </div>
+    </section>ю
+
+    <script type="module">
+        import { Header } from '/js/header.js';
+        document.getElementById('header').innerHTML = Header('signup');
+    </script>
+
+    <script>
+        document.getElementById('submit').addEventListener('click', function () {
+            const first_name = document.getElementById('first_name').value.trim();
+            const last_name = document.getElementById('last_name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const password = document.getElementById('password').value.trim();
+            var role = 0;
+            if (document.getElementById('isOrganizer').checked) role = 1;
+
+            if (!first_name || !last_name || !email || !password) {
+                error.textContent = 'Моля, попълнете всички задължителни полета.';
+                error.style.display = 'block';
+                return;
+            }
+
+            fetch(`/api/signup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ first_name, last_name, email, phone, password, role })
+            })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success)
+                        window.location.href = `/home`;
+                    else {
+                        error.textContent = res.error || 'Възникна грешка.';
+                        error.style.display = 'block';
+                    }
+                });
+        });
+    </script>
+</body>
+
+</html>

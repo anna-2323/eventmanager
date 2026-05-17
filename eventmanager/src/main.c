@@ -28,6 +28,8 @@ int main(void) {
     mg_set_request_handler(ctx, "/home", home, NULL);
     mg_set_request_handler(ctx, "/events/**", events, NULL);
     mg_set_request_handler(ctx, "/events", events, NULL);
+    mg_set_request_handler(ctx, "/login", login, NULL);
+    mg_set_request_handler(ctx, "/signup", signup, NULL);
 
     mg_set_request_handler(ctx, "/api/events/**", api_events, db);
     mg_set_request_handler(ctx, "/api/events", api_events, db);
