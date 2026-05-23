@@ -22,6 +22,14 @@ int events(struct mg_connection* conn, void* data) {
         return send_html(conn, "html/event.html");
 }
 
+int purchase(struct mg_connection* conn, void* data) {
+    return send_html(conn, "html/purchase.html");
+}
+
+int confirmation(struct mg_connection* conn, void* data) {
+    return send_html(conn, "html/confirmation.html");
+}
+
 int login(struct mg_connection* conn, void* data) {
     return send_html(conn, "html/login.html");
 }

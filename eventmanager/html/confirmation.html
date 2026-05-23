@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="bg" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Потвърждение</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/res/style.css" />
+</head>
+
+<body>
+    <header id="header">
+    </header>
+
+    <section class="section">
+        <div class="container is-max-tablet">
+            <div class="notification is-success" id="confirmation">
+                Зареждане...
+            </div>
+        </div>
+    </section>
+
+    <script type="module">
+        import { Header } from '/js/header.js';
+        document.getElementById('header').innerHTML = Header('events');
+    </script>
+
+    <script>
+        const ticket_id = window.location.pathname.split('/').pop();
+
+        fetch(`/api/confirmation/${ticket_id}`)
+            .then(r => r.json())
+            .then(t => {
+                document.getElementById('confirmation').innerHTML = `
+                <h1 class="title">Успешна покупка!</h1>
+                <p><strong>Билет №:</strong> ${t.id}</p>
+                <p><strong>Събитие:</strong> ${t.event_title}</p>
+                <p><strong>Име:</strong> ${t.first_name} ${t.last_name}</p>
+                <p><strong>Имейл:</strong> ${t.email}</p>
+                <p><strong>Телефон:</strong> ${t.phone}</p>
+                <p><strong>Дата на покупка:</strong> ${new Date(t.purchased_at).toLocaleString('bg-BG')}</p>
+                <a class="button is-link mt-4" href="/events">Към всички събития</a>
+            `;
+            });
+    </script>
+</body>
+
+</html>
