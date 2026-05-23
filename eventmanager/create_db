@@ -33,11 +33,28 @@ CREATE TABLE data.venues (
     venue_name varchar(255) NOT NULL
 );
 
+CREATE TABLE data.tickets (
+    id serial primary key,
+    event_id integer,
+    user_id integer,
+    first_name varchar(255) NOT NULL,
+    last_name varchar(255) NOT NULL,
+    email varchar(255) NOT NULL,
+    phone varchar(50) NOT NULL,
+    purchased_at timestamp with time zone DEFAULT now()
+);
+
 ALTER TABLE ONLY data.events
     ADD CONSTRAINT fk_organizers_events FOREIGN KEY (organizer_id) REFERENCES data.users(id);
 
 ALTER TABLE ONLY data.events
     ADD CONSTRAINT fk_venues_events FOREIGN KEY (venue_id) REFERENCES data.venues(id);
+
+ALTER TABLE ONLY data.tickets
+    ADD CONSTRAINT tickets_event_id_fkey FOREIGN KEY (event_id) REFERENCES data.events(id);
+
+ALTER TABLE ONLY data.tickets
+    ADD CONSTRAINT tickets_user_id_fkey FOREIGN KEY (user_id) REFERENCES data.users(id);
 
 INSERT INTO data.users VALUES (2, 1, 'org', 'org', NULL, NULL, NULL);
 INSERT INTO data.users VALUES (1, 0, 'admin', 'admin', NULL, NULL, NULL);
