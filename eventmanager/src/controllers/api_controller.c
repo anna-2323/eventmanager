@@ -84,6 +84,77 @@ int api_users(struct mg_connection* conn, void* data) {
 }
 
 //
+// POST /api/purchase/{event_id}
+//
+int api_purchase_ticket(struct mg_connection* conn, void* data) {
+    PGconn* db = (PGconn*)data;
+    const struct mg_request_info* info = mg_get_request_info(conn);
+
+    int event_id = atoi(info->local_uri + strlen("/api/purchase/"));
+    if (event_id <= 0) { mg_send_http_error(conn, 400, "Invalid ID"); return 400; }
+
+    char body[1024] = "";
+    mg_read(conn, body, sizeof(body) - 1);
+
+    json_error_t err;
+    json_t* req = json_loads(body, 0, &err);
+    if (!req) { mg_send_http_error(conn, 400, "Invalid JSON"); return 400; }
+
+    const char* first_name = json_string_value(json_object_get(req, "first_name"));
+    const char* last_name = json_string_value(json_object_get(req, "last_name"));
+    const char* email = json_string_value(json_object_get(req, "email"));
+    const char* phone = json_string_value(json_object_get(req, "phone"));
+
+    int ticket_id = 0;
+    int result = purchase_ticket(db, event_id, first_name, last_name, email, phone, &ticket_id);
+
+    json_t* res = json_object();
+    if (result == 1) {
+        json_object_set_new(res, "success", json_true());
+        json_object_set_new(res, "ticket_id", json_integer(ticket_id));
+    }
+    else if (result == -1) {
+        json_object_set_new(res, "success", json_false());
+        json_object_set_new(res, "error", json_string("Няма свободни места."));
+    }
+    else {
+        json_object_set_new(res, "success", json_false());
+        json_object_set_new(res, "error", json_string("Възникна грешка."));
+    }
+
+    char* json_str = json_dumps(res, JSON_COMPACT);
+    mg_send_http_ok(conn, "application/json", strlen(json_str));
+    mg_write(conn, json_str, strlen(json_str));
+
+    free(json_str);
+    json_decref(req);
+    json_decref(res);
+    return 1;
+}
+
+//
+// GET /api/confirmation/{ticket_id}
+//
+int api_confirm_ticket(struct mg_connection* conn, void* data) {
+    PGconn* db = (PGconn*)data;
+    const struct mg_request_info* info = mg_get_request_info(conn);
+
+    int ticket_id = atoi(info->local_uri + strlen("/api/confirmation/"));
+    if (ticket_id <= 0) { mg_send_http_error(conn, 400, "Invalid ID"); return 400; }
+
+    json_t* ticket = confirm_ticket(db, ticket_id);
+    if (!ticket) { mg_send_http_error(conn, 404, "Not found"); return 404; }
+
+    char* json_str = json_dumps(ticket, JSON_COMPACT);
+    mg_send_http_ok(conn, "application/json", strlen(json_str));
+    mg_write(conn, json_str, strlen(json_str));
+
+    free(json_str);
+    json_decref(ticket);
+    return 1;
+}
+
+//
 // GET /api/me
 //
 int api_me(struct mg_connection* conn, void* data) {

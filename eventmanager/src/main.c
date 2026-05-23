@@ -34,6 +34,8 @@ int main(void) {
     mg_set_request_handler(ctx, "/api/events/**", api_events, db);
     mg_set_request_handler(ctx, "/api/events", api_events, db);
     mg_set_request_handler(ctx, "/api/users", api_users, db);
+    mg_set_request_handler(ctx, "/api/purchase/**", api_purchase_ticket, db);
+    mg_set_request_handler(ctx, "/api/confirmation/**", api_confirm_ticket, db);
     mg_set_request_handler(ctx, "/api/me", api_me, db);
     mg_set_request_handler(ctx, "/api/signup", api_signup, db);
     mg_set_request_handler(ctx, "/api/login", api_login, db);
