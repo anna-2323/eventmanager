@@ -1,14 +1,81 @@
-#include "event.h"
+﻿#include "event.h"
 
-int get_all_events(PGconn* db, json_t* out) {
-	if (!db) return NULL;
-
-	char* sql =
+void get_query(const char* search, const char* sort, char** out) {
+	if (search && search[0] != '\0') {
+		*out = malloc(256);
+		strcpy(*out,
+			"SELECT e.id, e.title, e.price, e.begins_at, e.img_path, v.venue_name, v.city, e.seats_left "
+			"FROM data.events e "
+			"JOIN data.venues v ON e.venue_id = v.id "
+			"WHERE e.title ILIKE '%' || $1 || '%' OR v.venue_name ILIKE '%' || $1 || '%';");
+		return;
+	}
+	if (sort && sort[0] != '\0') {
+		if (strcmp(sort, "price_asc") == 0) {
+			*out = malloc(256);
+			strcpy(*out,
+				"SELECT e.id, e.title, e.price, e.begins_at, e.img_path, v.venue_name, v.city, e.seats_left "
+				"FROM data.events e "
+				"JOIN data.venues v ON e.venue_id = v.id "
+				"WHERE e.begins_at > NOW() "
+				"ORDER BY e.price ASC;");
+			return;
+		}
+		else if (strcmp(sort, "price_desc") == 0) {
+			*out = malloc(256);
+			strcpy(*out,
+				"SELECT e.id, e.title, e.price, e.begins_at, e.img_path, v.venue_name, v.city, e.seats_left "
+				"FROM data.events e "
+				"JOIN data.venues v ON e.venue_id = v.id "
+				"WHERE e.begins_at > NOW() "
+				"ORDER BY e.price DESC;");
+			return;
+		}
+	}
+	*out = malloc(256);
+	strcpy(*out,
 		"SELECT e.id, e.title, e.price, e.begins_at, e.img_path, v.venue_name, v.city, e.seats_left "
 		"FROM data.events e "
-		"JOIN data.venues v ON e.venue_id = v.id; ";
-	PGresult* res = PQexec(db, sql);
+		"JOIN data.venues v ON e.venue_id = v.id "
+		"WHERE e.begins_at > NOW() "
+		"ORDER BY e.begins_at ASC;");
+	return;
+}
+
+void get_event_from_query(PGresult* res, Event* e, int i) {
+	e->id = atoi(PQgetvalue(res, i, 0));
+	strncpy(e->title, PQgetvalue(res, i, 1), 100);
+	e->price = atof(PQgetvalue(res, i, 2));
+	strncpy(e->begins_at, PQgetvalue(res, i, 3), 255);
+	strncpy(e->img_path, PQgetvalue(res, i, 4), 255);
+	strncpy(e->venue.venue_name, PQgetvalue(res, i, 5), 100);
+	strncpy(e->venue.city, PQgetvalue(res, i, 6), 100);
+	e->seats_left = atoi(PQgetvalue(res, i, 7));
+}
+
+int get_events(PGconn* db, const char* search, const char* sort, json_t* out) {
+	if (!db) return NULL;
+
+	char* sql = NULL;
+	get_query(search, sort, &sql);
+
+	PGresult* res = NULL;
+	char param_str[256];
+	if (search && search[0] != '\0') {
+		snprintf(param_str, sizeof(param_str), "%s", search);
+		const char* params[1] = { param_str };
+		res = PQexecParams(db, sql, 1, NULL, params, NULL, NULL, 0);
+	}
+	else if (sort && sort[0] != '\0') {
+		snprintf(param_str, sizeof(param_str), "%s", sort);
+		const char* params[1] = { param_str };
+		res = PQexec(db, sql);
+	}
+	else
+		res = PQexec(db, sql);
+
 	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+		fprintf(stderr, "Грешка при изпъляване на заявка: %s\n", PQerrorMessage(db));
 		PQclear(res);
 		return 0;
 	}
@@ -16,15 +83,7 @@ int get_all_events(PGconn* db, json_t* out) {
 	Event e = { 0 };
 	int count = PQntuples(res);
 	for (int i = 0; i < count; i++) {
-		e.id = atoi(PQgetvalue(res, i, 0));
-		strncpy(e.title, PQgetvalue(res, i, 1), 100);
-		e.price = atof(PQgetvalue(res, i, 2));
-		strncpy(e.begins_at, PQgetvalue(res, i, 3), 255);
-		strncpy(e.img_path, PQgetvalue(res, i, 4), 255);
-		strncpy(e.venue.venue_name, PQgetvalue(res, i, 5), 100);
-		strncpy(e.venue.city, PQgetvalue(res, i, 6), 100);
-		e.seats_left = atoi(PQgetvalue(res, i, 7));
-
+		get_event_from_query(res, &e, i);
 		json_array_append_new(out, event_to_json(e));
 	}
 
@@ -36,7 +95,7 @@ json_t* get_event(PGconn* db, int id) {
 	if (!db) return NULL;
 
 	char* sql =
-		"SELECT e.title, e.price, e.begins_at, e.img_path, v.venue_name, v.city, e.seats_left "
+		"SELECT e.id, e.title, e.price, e.begins_at, e.img_path, v.venue_name, v.city, e.seats_left "
 		"FROM data.events e "
 		"JOIN data.venues v ON e.venue_id = v.id "
 		"WHERE e.id = $1;";
@@ -50,14 +109,7 @@ json_t* get_event(PGconn* db, int id) {
 	}
 
 	Event e = { 0 };
-	e.id = id;
-	strncpy(e.title, PQgetvalue(res, 0, 0), 100);
-	e.price = atof(PQgetvalue(res, 0, 1));
-	strncpy(e.begins_at, PQgetvalue(res, 0, 2), 255);
-	strncpy(e.img_path, PQgetvalue(res, 0, 3), 255);
-	strncpy(e.venue.venue_name, PQgetvalue(res, 0, 4), 100);
-	strncpy(e.venue.city, PQgetvalue(res, 0, 5), 100);
-	e.seats_left = atoi(PQgetvalue(res, 0, 6));
+	get_event_from_query(res, &e, 0);
 
 	PQclear(res);
 	return event_to_json(e);

@@ -9,13 +9,22 @@ int api_events(struct mg_connection* conn, void* data) {
     const struct mg_request_info* info = mg_get_request_info(conn);
 
     if (strcmp(info->local_uri, "/api/events") == 0) {
+        char search[256] = "";
+        char sort[256] = "";
+
+        if (info->query_string) {
+            mg_get_var(info->query_string, strlen(info->query_string), "search", search, sizeof(search));
+            mg_get_var(info->query_string, strlen(info->query_string), "sort", sort, sizeof(sort));
+        }
+
         json_t* json = json_array();
-        get_all_events((PGconn*)data, json);
+        get_events((PGconn*)data, search, sort, json);
         char* json_str = json_dumps(json, JSON_COMPACT);
 
         mg_send_http_ok(conn, "application/json", strlen(json_str));
         mg_write(conn, json_str, strlen(json_str));
         free(json_str);
+        json_decref(json);
         return 1;
     }
     else {

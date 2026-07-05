@@ -23,6 +23,6 @@ typedef struct {
 	Venue venue;
 } Event;
 
-int get_all_events(PGconn* db, json_t* out);
+int get_events(PGconn* db, const char* search, const char* sort, json_t* out);
 json_t* get_event(PGconn* db, int id);
 json_t* event_to_json(Event e);
