@@ -33,29 +33,13 @@
     <div class="grid is-col-min-5 is-column-gap-3 is-row-gap-3" id="events">
     </div>
   </main>
-
+  
   <script type="module">
-    import { Header } from '/js/header.js';
-    document.getElementById('header').innerHTML = Header('events');
+      import { header } from '/js/header.js';
+      import { showEvents } from '/js/events.js';
+      header();
+      showEvents();
   </script>
-
-  <script>
-    fetch('/api/events').then(r => r.json())
-      .then(events => {
-        document.getElementById("events").innerHTML = events.map(e => `
-          <a href="/events/${e.id}">
-            <div class="cell">
-                <figure class="image is-3by4">
-                  <img src="${e.img_path}" alt="${e.title}">
-                </figure>
-                <p>${e.title}</p>
-                <p>${e.price.toLocaleString('bg-BG', { style: 'currency', currency: 'BGN' })}</p>
-            </div>
-          </a>`).join('');
-      });
-  </script>
-
-  <script src="/js/checkProfile.js"></script>
 </body>
 
 </html>

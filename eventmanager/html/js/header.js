@@ -1,6 +1,8 @@
-// js/header.js
-export function Header() {
-    return `
+import { checkProfile } from "./checkProfile.js";
+import { search } from "./search.js";
+
+export function header() {
+  document.getElementById("header").innerHTML = `
     <nav class="navbar" role="navigation" aria-label="main navigation">
 
         <div class="navbar-brand">
@@ -72,4 +74,7 @@ export function Header() {
             </div>
         </div>
     </nav>`;
+
+  search();
+  checkProfile();
 }

@@ -47,7 +47,8 @@
                         <input class="input" type="password" id="password">
                     </div>
                 </div>
-                <input type="checkbox" id="isOrganizer" name="isOrganizer"><label for="isOrganizer">Организатор съм</label>
+                <input type="checkbox" id="isOrganizer" name="isOrganizer"><label for="isOrganizer">Организатор
+                    съм</label>
                 <button class="button is-primary is-fullwidth" id="submit">Регистрация</button>
                 <p>Вече имате регистрация?<a href="/login">Вход</a></p>
                 <p class="help is-danger mt-2" id="error" style="display:none"></p>
@@ -91,6 +92,12 @@
                     }
                 });
         });
+    </script>
+
+
+    <script type="module">
+        import { header } from '/js/header.js';
+        header();
     </script>
 </body>
 

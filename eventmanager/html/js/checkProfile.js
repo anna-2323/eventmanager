@@ -1,9 +1,10 @@
-fetch("/api/me")
-  .then((r) => r.json())
-  .then((user) => {
-    const navEnd = document.querySelector(".navbar-end");
-    if (user.logged_in) {
-      document.getElementById("login-btn").outerHTML = `
+export function checkProfile() {
+  fetch("/api/me")
+    .then((r) => r.json())
+    .then((user) => {
+      const navEnd = document.querySelector(".navbar-end");
+      if (user.logged_in) {
+        document.getElementById("login-btn").outerHTML = `
                 <div class="navbar-item has-dropdown is-hoverable">
                     <a class="navbar-link">
                         <span class="icon"><i class="fas fa-user"></i></span>
@@ -16,10 +17,11 @@ fetch("/api/me")
                     </div>
                 </div>
             `;
-      document.getElementById("logout-btn").addEventListener("click", () => {
-        fetch("/api/logout", { method: "POST" }).then(() =>
-          window.location.reload(),
-        );
-      });
-    }
-  });
+        document.getElementById("logout-btn").addEventListener("click", () => {
+          fetch("/api/logout", { method: "POST" }).then(() =>
+            window.location.reload(),
+          );
+        });
+      }
+    });
+}
