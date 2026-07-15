@@ -31,37 +31,6 @@
   justify-items: start;
 }
 
-.cell {
-  position: relative;
-  text-align: center;
-  border-radius: 10px;
-}
-
 .image {
   width: 180px;
-}
-
-.cell .event-caption {
-  padding: 5px;
-  position: absolute;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 10px;
-  border: 1px solid #dbdbdb;
-  bottom: 10px;
-  width: 160px;
-  left: 10px;
-}
-
-.cell:hover {
-  box-shadow: 0 0 10px #808080;
-  transition: 0.5s;
-}
-
-.event-caption .subtitle {
-  margin-bottom: 0;
-  font-size: 0.75rem;
-  max-width: 148px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }

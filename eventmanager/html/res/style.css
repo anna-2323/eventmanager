@@ -1,8 +1,21 @@
+:root {
+    --text-link-color: hsl(217, 71%, 53%);
+}
+
+img {
+    border-radius: 10px;
+    object-fit: cover;
+}
+
 /* Navbar */
 
 .navbar {
     background-color: #00b89c;
     color: #fff;
+}
+
+#navbar-brand-img {
+    border-radius: 0;
 }
 
 .navbar-hoverable:hover {
@@ -15,3 +28,39 @@
 
 /* */
 
+.dropdown-trigger span {
+    width: 100px;
+    color: #515660;
+    text-align: left;
+}
+
+.cell {
+  position: relative;
+  text-align: center;
+  border-radius: 10px;
+}
+
+.cell .event-caption {
+  padding: 5px;
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  border: 1px solid #dbdbdb;
+  bottom: 10px;
+  width: 160px;
+  left: 10px;
+}
+
+.cell:hover {
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  transition: 0.5s;
+}
+
+.event-caption .subtitle {
+  margin-bottom: 0;
+  font-size: 0.75rem;
+  max-width: 148px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
