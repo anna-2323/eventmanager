@@ -9,20 +9,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="/res/style.css" />
-  <style>
-    .cell {
-      padding: 20px;
-      margin: 20px;
-    }
-    .cell img {
-      height: 100%;
-      object-fit: cover;
-    }
-    .image {
-      width: 200px;
-      object-fit: cover;
-    }
-  </style>
+  <link rel="stylesheet" href="/res/events.css" />
 </head>
 
 <body>
@@ -30,15 +17,101 @@
   </header>
 
   <main class="main">
-    <div class="grid is-col-min-5 is-column-gap-3 is-row-gap-3" id="events">
+
+    <div id="events-container">
+
+      <div id="events-heading">
+        <h3 class="title is-2" id="events-title">Събития</h3>
+        <p class="subtitle is-4" id="events-subtitle">Всички събития</p>
+      </div>
+
+      <div id="events-filters">
+
+        <div class="events-filter">
+          <div class="field has-addons">
+            <div class="control has-icons-right">
+              <input class="input" type="search">
+              <span class="icon is-right">
+                <i class="fas fa-search"></i>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="events-filter dropdown is-hoverable">
+          <div class="dropdown-trigger">
+            <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
+              <span>Категория</span>
+              <span class="icon is-small">
+                <i class="fas fa-angle-down" aria-hidden="true"></i>
+              </span>
+            </button>
+          </div>
+          <div class="dropdown-menu" id="dropdown-menu" role="menu">
+            <div class="dropdown-content">
+              <a class="dropdown-item" value="concerts">Концерти</a>
+              <a class="dropdown-item" value="seminars">Семинари</a>
+              <a class="dropdown-item" value="sport">Спорт</a>
+              <a class="dropdown-item" value="theater">Театър</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="events-filter dropdown is-hoverable">
+          <div class="dropdown-trigger">
+            <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
+              <span>Град</span>
+              <span class="icon is-small">
+                <i class="fas fa-angle-down" aria-hidden="true"></i>
+              </span>
+            </button>
+          </div>
+          <div class="dropdown-menu" id="dropdown-menu" role="menu">
+            <div class="dropdown-content">
+              <a class="dropdown-item" value="burgas">Бургас</a>
+              <a class="dropdown-item" value="varna">Варна</a>
+              <a class="dropdown-item" value="plovdiv">Пловдив</a>
+              <a class="dropdown-item" value="ruse">Русе</a>
+              <a class="dropdown-item" value="sofia">София</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="events-filter dropdown is-hoverable">
+          <div class="dropdown-trigger">
+            <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
+              <span>Сортиране</span>
+              <span class="icon is-small">
+                <i class="fas fa-angle-down" aria-hidden="true"></i>
+              </span>
+            </button>
+          </div>
+          <div class="dropdown-menu" id="dropdown-menu" role="menu">
+            <div class="dropdown-content">
+              <a class="dropdown-item" value="default">Предстоящи</a>
+              <a class="dropdown-item" value="price_asc">Цена възх.</a>
+              <a class="dropdown-item" value="price_desc">Цена низх.</a>
+            </div>
+          </div>
+        </div>
+
+      <a class="button is-primary" id="btn-filters-apply">Покажи събития</a>
+
+    </div>
+
+    <div id="events-content">
+      <div class="grid is-col-min-5 is-column-gap-3 is-row-gap-3" id="events">
+      </div>
+    </div>
+
     </div>
   </main>
-  
+
   <script type="module">
-      import { header } from '/js/header.js';
-      import { showEvents } from '/js/events.js';
-      header();
-      showEvents();
+    import { header } from '/js/header.js';
+    import { showEvents } from '/js/events.js';
+    header();
+    showEvents();
   </script>
 </body>
 
