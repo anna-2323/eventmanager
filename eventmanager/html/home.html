@@ -8,30 +8,10 @@
     <title>EventMGR</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
     <link rel="stylesheet" href="/res/style.css" />
-    <style>
-        .container {
-            margin: 0;
-            width: 100%;
-            max-width: 100% !important;
-        }
-
-        .hero {
-            background-image: url("/res/home.png");
-            background-size: cover;
-            background-position: center;
-        }
-
-        .hero-body-bg {
-            background-color: #006c5c;
-            padding: 10px;
-        }
-
-        .title,
-        .subtitle {
-            color: #fff;
-        }
-    </style>
+    <link rel="stylesheet" href="/res/home.css" />
 </head>
 
 <body>
@@ -42,8 +22,16 @@
         <section class="hero is-halfheight">
             <div class="hero-body">
                 <div class="hero-body-bg">
-                    <p class="title">Система за управление на събития</p>
-                    <p class="subtitle">Организация на събития и купуване на билети</p>
+                    <p class="title is-2">Система за управление на събития</p>
+                    <p class="subtitle is-4">Организация на събития и купуване на билети</p>
+                </div>
+                <div id="event-carousel">
+                    <div class="splide">
+                        <div class="splide__track">
+                            <ul class="splide__list" id="carousel-list">
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -51,7 +39,24 @@
 
     <script type="module">
         import { header } from '/js/header.js';
+        import { getEventCard } from '/js/events.js';
         header();
+
+        // TODO: да се извеждат най-популярните събития
+        fetch('/api/events')
+            .then(r => r.json())
+            .then(events => {
+                document.querySelector('.splide__list').innerHTML = events.map(e => `
+                    <li class="splide__slide">
+                        ${getEventCard(e)}
+                    </li>
+                `).join('');
+                new Splide('.splide', {
+                    type: 'loop',
+                    perPage: 3,
+                    gap: '1rem',
+                }).mount();
+            });
     </script>
 
 </body>

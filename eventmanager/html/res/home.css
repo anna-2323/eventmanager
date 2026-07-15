@@ -1,0 +1,32 @@
+.container {
+  margin: 0;
+  width: 100%;
+  max-width: 100% !important;
+}
+
+.hero {
+  background-image: url("/res/home.png");
+  background-size: cover;
+  background-position: center;
+}
+
+.hero-body {
+    display: inline-block !important;
+}
+
+.hero-body-bg {
+  padding: 10px;
+  text-align: center;
+  width: fit-content;
+  margin: 0 auto 1rem auto;
+}
+
+.hero-body-bg .title, .hero-body-bg .subtitle {
+  color: #fff;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.splide {
+    max-width: 600px;
+    margin: 0 auto;
+}
