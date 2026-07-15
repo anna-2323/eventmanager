@@ -7,6 +7,8 @@ export function search() {
         .value.trim();
       if (query)
         window.location.href = `/events?search=${encodeURIComponent(query)}`;
+      else
+        window.location.href = `/events`;
     });
 
   // може да се потвърди и с Enter
@@ -17,6 +19,8 @@ export function search() {
         const query = this.value.trim();
         if (query)
           window.location.href = `/events?search=${encodeURIComponent(query)}`;
+        else
+          window.location.href = `/events`;
       }
     });
 }
