@@ -174,7 +174,7 @@ int api_me(struct mg_connection* conn, void* data) {
     if (s) {
         json_object_set_new(res, "logged_in", json_true());
         json_object_set_new(res, "email", json_string(s->email));
-        json_object_set_new(res, "role", json_string(s->role));
+        json_object_set_new(res, "role", json_integer(s->role));
     }
     // Ако потребителят не е влязъл
     else {
@@ -217,7 +217,7 @@ int api_login(struct mg_connection* conn, void* data) {
 
         json_object_set_new(res, "success", json_true());
         json_object_set_new(res, "email", json_string(user.email));
-        json_object_set_new(res, "role", json_string(user.role));
+        json_object_set_new(res, "role", json_integer(user.role));
     }
     else {
         mg_printf(conn, "HTTP/1.1 401 Unauthorized\r\nContent-Type: application/json\r\n\r\n");
