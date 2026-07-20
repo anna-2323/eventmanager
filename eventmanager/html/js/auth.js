@@ -1,10 +1,9 @@
 export function checkProfile() {
-  fetch("/api/me")
+  return fetch("/api/me")
     .then((r) => r.json())
     .then((user) => {
-      const navEnd = document.querySelector(".navbar-end");
       if (user.logged_in) {
-        document.getElementById("login-btn").outerHTML = `
+        document.getElementById("login-btn").innerHTML = `
                 <div class="navbar-item has-dropdown is-hoverable">
                     <a class="navbar-link">
                         <span class="icon"><i class="fas fa-user"></i></span>

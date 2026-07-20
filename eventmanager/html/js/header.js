@@ -1,4 +1,4 @@
-import { checkProfile } from "./checkProfile.js";
+import { checkProfile } from "./auth.js";
 import { search } from "./search.js";
 
 export function header() {
