@@ -32,6 +32,7 @@ int main(void) {
     mg_set_request_handler(ctx, "/confirmation/**", confirmation, NULL);
     mg_set_request_handler(ctx, "/login", login, NULL);
     mg_set_request_handler(ctx, "/signup", signup, NULL);
+    mg_set_request_handler(ctx, "/profile", profile, NULL);
 
     mg_set_request_handler(ctx, "/api/events/**", api_events, db);
     mg_set_request_handler(ctx, "/api/events", api_events, db);

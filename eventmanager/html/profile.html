@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Профил</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/res/style.css" />
+</head>
+
+<body>
+  <header id="header">
+  </header>
+
+  <main class="main" id="profile">
+    <div class="container is-max-desktop">
+      <p class="notification is-danger is-light mt-3" id="error-message" style="display:none"></p>
+      <p class="notification is-success is-light mt-3" id="success-message" style="display:none"></p>
+
+      <div class="box mb-5">
+        <h2 class="title is-3 mb-4">Лични данни</h2>
+        <div class="columns">
+          <div class="column">
+            <p class="heading">Име</p>
+            <p class="is-size-5" id="first-name"></p>
+          </div>
+          <div class="column">
+            <p class="heading"></p>
+            <p class="is-size-5" id="last-name"></p>
+          </div>
+          <div class="column">
+            <p class="heading">Имейл</p>
+            <p class="is-size-5" id="email"></p>
+          </div>
+          <div class="column">
+            <p class="heading">Телефон</p>
+            <p class="is-size-5" id="phone"></p>
+          </div>
+          <div class="column">
+            <p class="heading">Парола</p>
+            <p class="is-size-5">••••••••</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="box mb-5" id="booked-events" style="display:none;">
+        <h2 class="title is-3 mb-4">Резервирани събития</h2>
+        <p class="has-text-grey">Все още няма резервирани събития.</p>
+      </div>
+
+      <div class="box mb-5">
+        <div class="change-toggle is-flex is-justify-content-space-between is-align-items-center"
+          style="cursor:pointer">
+          <h3 class="title is-5 mb-0">Промяна на имейл</h2>
+            <span class="icon">
+              <i class="change-icon fas fa-chevron-down"></i>
+            </span>
+        </div>
+        <div class="change-form" id="change-email-form" style="display:none">
+          <hr>
+          <div class="field">
+            <label class="label">Нов имейл</label>
+            <div class="control">
+              <input class="input" type="email" id="new-email">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">Парола за потвърждение</label>
+            <div class="control">
+              <input class="input" type="password" id="email-confirm-password">
+            </div>
+          </div>
+          <button class="button is-link" id="change-email-btn">Запази</button>
+        </div>
+      </div>
+
+      <div class="box mb-5">
+        <div class="change-toggle is-flex is-justify-content-space-between is-align-items-center"
+          style="cursor:pointer">
+          <h3 class="title is-5 mb-0">Промяна на телефон</h2>
+            <span class="icon">
+              <i class="change-icon fas fa-chevron-down"></i>
+            </span>
+        </div>
+        <div class="change-form" id="change-email-form" style="display:none">
+          <hr>
+          <div class="field">
+            <label class="label">Нов телефон</label>
+            <div class="control">
+              <input class="input" type="tel" id="new-phone">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">Парола за потвърждение</label>
+            <div class="control">
+              <input class="input" type="password" id="phone-confirm-password">
+            </div>
+          </div>
+          <button class="button is-link" id="change-phone-btn">Запази</button>
+        </div>
+      </div>
+
+      <div class="box mb-5">
+        <div class="change-toggle is-flex is-justify-content-space-between is-align-items-center"
+          style="cursor:pointer">
+          <h3 class="title is-5 mb-0">Промяна на парола</h2>
+            <span class="icon">
+              <i class="change-icon fas fa-chevron-down"></i>
+            </span>
+        </div>
+        <div class="change-form" id="change-password-form" style="display:none">
+          <hr>
+          <div class="field">
+            <label class="label">Текуща парола</label>
+            <div class="control">
+              <input class="input" type="password" id="current-password">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">Нова парола</label>
+            <div class="control">
+              <input class="input" type="password" id="new-password">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">Потвърди нова парола</label>
+            <div class="control">
+              <input class="input" type="password" id="confirm-password">
+            </div>
+          </div>
+          <button class="button is-link" id="change-password-btn">Запази</button>
+        </div>
+      </div>
+
+      <button class="button is-danger" id="delete-btn">Изтрий акаунта</button>
+    </div>
+  </main>
+
+  <script type="module">
+    import { header } from '/js/header.js';
+    header();
+
+  </script>
+
+</body>
+
+</html>
