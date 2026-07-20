@@ -43,6 +43,7 @@ int main(void) {
     mg_set_request_handler(ctx, "/api/signup", api_signup, db);
     mg_set_request_handler(ctx, "/api/login", api_login, db);
     mg_set_request_handler(ctx, "/api/logout", api_logout, db);
+    mg_set_request_handler(ctx, "/api/profile/**", controller_api_profile, db);
 
     mg_set_request_handler(ctx, "/res/**", NULL, NULL);  // статични ресурси
 

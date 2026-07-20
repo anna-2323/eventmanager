@@ -318,3 +318,91 @@ int api_logout(struct mg_connection* conn, void* data) {
 
     return 1;
 }
+
+static int handle_email(PGconn* db, int user_id, json_t* req, json_t* res) {
+    const char* email = json_string_value(json_object_get(req, "email"));
+    const char* password = json_string_value(json_object_get(req, "password"));
+    if (!email || !password) {
+        json_object_set_new(res, "success", json_false());
+        json_object_set_new(res, "error", json_string("Липсват полета."));
+        return 0;
+    }
+    int result = update_email(db, user_id, password, email);
+    if (result == 1)  json_object_set_new(res, "success", json_true());
+    if (result == -1) { json_object_set_new(res, "success", json_false()); json_object_set_new(res, "error", json_string("Грешна парола.")); }
+    if (result == 0) { json_object_set_new(res, "success", json_false()); json_object_set_new(res, "error", json_string("Възникна грешка.")); }
+    return result;
+}
+
+static int handle_phone(PGconn* db, int user_id, json_t* req, json_t* res) {
+    const char* phone = json_string_value(json_object_get(req, "phone"));
+    const char* password = json_string_value(json_object_get(req, "password"));
+    if (!phone || !password) {
+        json_object_set_new(res, "success", json_false());
+        json_object_set_new(res, "error", json_string("Липсват полета."));
+        return 0;
+    }
+    int result = update_phone(db, user_id, phone, password);
+    if (result == 1)  json_object_set_new(res, "success", json_true());
+    if (result == -1) { json_object_set_new(res, "success", json_false()); json_object_set_new(res, "error", json_string("Грешна парола.")); }
+    if (result == 0) { json_object_set_new(res, "success", json_false()); json_object_set_new(res, "error", json_string("Възникна грешка.")); }
+    return result;
+}
+
+static int handle_password(PGconn* db, int user_id, json_t* req, json_t* res) {
+    const char* current = json_string_value(json_object_get(req, "current_password"));
+    const char* next = json_string_value(json_object_get(req, "new_password"));
+    if (!current || !next) {
+        json_object_set_new(res, "success", json_false());
+        json_object_set_new(res, "error", json_string("Липсват полета."));
+        return 0;
+    }
+    int result = update_password(db, user_id, current, next);
+    if (result == 1)  json_object_set_new(res, "success", json_true());
+    if (result == -1) { json_object_set_new(res, "success", json_false()); json_object_set_new(res, "error", json_string("Грешна парола.")); }
+    if (result == 0) { json_object_set_new(res, "success", json_false()); json_object_set_new(res, "error", json_string("Възникна грешка.")); }
+    return result;
+}
+
+int controller_api_profile(struct mg_connection* conn, void* cbdata) {
+    PGconn* db = (PGconn*)cbdata;
+    const struct mg_request_info* info = mg_get_request_info(conn);
+
+    if (strcmp(info->request_method, "PATCH") != 0) {
+        mg_send_http_error(conn, 405, "Method Not Allowed");
+        return 405;
+    }
+
+    if (strcmp(info->local_uri, "/api/profile/email") == 0)
+        return handle_profile_request(conn, db, handle_email);
+    if (strcmp(info->local_uri, "/api/profile/phone") == 0)
+        return handle_profile_request(conn, db, handle_phone);
+    if (strcmp(info->local_uri, "/api/profile/password") == 0)
+        return handle_profile_request(conn, db, handle_password);
+
+    mg_send_http_error(conn, 404, "Not found");
+    return 404;
+}
+
+int handle_profile_request(struct mg_connection* conn, PGconn* db, profile_handler_fn handler) {
+    Session* s = get_session(conn);
+    if (!s) { mg_send_http_error(conn, 401, "Unauthorized"); return 401; }
+
+    char body[512] = "";
+    mg_read(conn, body, sizeof(body) - 1);
+
+    json_error_t err;
+    json_t* req = json_loads(body, 0, &err);
+    if (!req) { mg_send_http_error(conn, 400, "Invalid JSON"); return 400; }
+
+    json_t* res = json_object();
+    int result = handler(db, s->user_id, req, res);
+
+    char* json_str = json_dumps(res, JSON_COMPACT);
+    mg_send_http_ok(conn, "application/json", strlen(json_str));
+    mg_write(conn, json_str, strlen(json_str));
+    free(json_str);
+    json_decref(req);
+    json_decref(res);
+    return result;
+}

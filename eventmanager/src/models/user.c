@@ -57,6 +57,8 @@ json_t* get_user(PGconn* db, int id) {
 	return user_to_json(&u);
 }
 
+
+// Използва се при вход на потребител
 int verify_user(PGconn* db, const char* email, const char* password, User* out) {
 	if (!db) return NULL;
 
@@ -82,6 +84,31 @@ int verify_user(PGconn* db, const char* email, const char* password, User* out) 
 	
 	PQclear(res);
 	return 1;
+}
+
+// Използва се ако потребителят е влязъл за редактиране на данни
+// 1 - успех, -1 - грешна парола, 0 - друга грешка
+int verify_password(PGconn* db, int user_id, const char* password) {
+	char id_str[16];
+	snprintf(id_str, sizeof(id_str), "%d", user_id);
+	const char* params[2] = { id_str, password };
+
+	PGresult* res = PQexecParams(db,
+		"SELECT id FROM data.users WHERE id = $1 AND password = $2",
+		2, NULL, params, NULL, NULL, 0);
+	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+		fprintf(stderr, "Грешка при SELECT: %s\n", PQerrorMessage(db));
+		PQclear(res);
+		return 0;
+	}
+	if (PQntuples(res) > 0) {
+		PQclear(res);
+		return 1;
+	}
+	else {
+		PQclear(res);
+		return -1;
+	}
 }
 
 json_t* add_user(PGconn* db, const char* fname, const char* lname,
@@ -133,6 +160,42 @@ json_t* add_user(PGconn* db, const char* fname, const char* lname,
 
 	PQclear(res);
 	return user_to_json(&u);
+}
+
+int update_user(PGconn* db, const char* sql, int user_id, const char* password, const char* param) {
+	int verified = verify_password(db, user_id, password);
+	if (verified <= 0) return verified;
+
+	char id_str[16];
+	snprintf(id_str, sizeof(id_str), "%d", user_id);
+	const char* params[2] = { param, id_str };
+
+	PGresult* res = PQexecParams(db, sql, 2, NULL, params, NULL, NULL, 0);
+	if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+		fprintf(stderr, "Грешка при UPDATE: %s\n", PQerrorMessage(db));
+		PQclear(res);
+		return 0;
+	}
+	PQclear(res);
+	return 1;
+}
+
+int update_password(PGconn* db, int user_id, const char* current_password,
+	const char* new_password) {
+	char sql[255] = "UPDATE data.users SET password = $1 WHERE id = $2";
+	return update_user(db, sql, user_id, current_password, new_password);;
+}
+
+int update_email(PGconn* db, int user_id, const char* password,
+	const char* email) {
+	char sql[255] = "UPDATE data.users SET email = $1 WHERE id = $2";
+	return update_user(db, sql, user_id, password, email);
+}
+
+int update_phone(PGconn* db, int user_id, const char* password,
+	const char* phone) {
+	char sql[255] = "UPDATE data.users SET phone = $1 WHERE id = $2";
+	return update_user(db, sql, user_id, password, phone);
 }
 
 json_t* user_to_json(User* u) {
