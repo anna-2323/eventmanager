@@ -1,3 +1,7 @@
+export function getUser() {
+    return fetch('/api/me').then(r => r.json());
+}
+
 export function checkProfile() {
   return fetch("/api/me")
     .then((r) => r.json())
