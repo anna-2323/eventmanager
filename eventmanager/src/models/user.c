@@ -200,6 +200,41 @@ int update_phone(PGconn* db, int user_id, const char* password,
 	return update_user(db, sql, user_id, password, phone);
 }
 
+int soft_delete_user(PGconn* db, int user_id, const char* password) {
+	int verified = verify_password(db, user_id, password);
+	if (verified != 1)
+		return verified;
+
+	char id_str[16];
+	snprintf(id_str, sizeof(id_str), "%d", user_id);
+	const char* params[1] = { id_str };
+
+	PGresult* res = PQexecParams(db,
+		"UPDATE data.users SET deleted_on = NOW() WHERE id = $1",
+		1, NULL, params, NULL, NULL, 0);
+
+	if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+		fprintf(stderr, "Грешка при изтриване: %s\n", PQerrorMessage(db));
+		PQclear(res);
+		return 0;
+	}
+
+	PQclear(res);
+	return 1;
+}
+
+void permanent_delete_users(PGconn* db) {
+	PGresult* res = PQexec(db,
+		"DELETE FROM data.users "
+		"WHERE deleted_on IS NOT NULL "
+		"AND deleted_on < NOW() - INTERVAL '30 days'");
+	if (PQresultStatus(res) != PGRES_COMMAND_OK)
+		fprintf(stderr, "Грешка при окончателно изтриване: %s\n", PQerrorMessage(db));
+	else
+		fprintf(stderr, "Окончателно изтрити %s акаунти\n", PQcmdTuples(res));
+	PQclear(res);
+}
+
 json_t* user_to_json(User* u) {
 	json_t* obj = json_object();
 	json_object_set_new(obj, "id", json_integer(u->id));

@@ -2,6 +2,7 @@
 #include <libpq-fe.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <windows.h>
 #include "controllers/api_controller.h"
 #include "controllers/html_controller.h"
 #include "session.h"
@@ -46,6 +47,8 @@ int main(void) {
     mg_set_request_handler(ctx, "/api/profile/**", controller_api_profile, db);
 
     mg_set_request_handler(ctx, "/res/**", NULL, NULL);  // статични ресурси
+
+    permanent_delete_users(db);
 
     printf("Server running on port 8080\n");
     getchar();

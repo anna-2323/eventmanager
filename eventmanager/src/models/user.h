@@ -20,3 +20,5 @@ json_t* add_user(PGconn* db, const char* fname, const char* lname, const char* e
 int update_email(PGconn* db, int user_id, const char* email, const char* password);
 int update_phone(PGconn* db, int user_id, const char* email, const char* password);
 int update_password(PGconn* db, int user_id, const char* email, const char* password);
+int soft_delete_user(PGconn* db, int user_id, const char* password);
+void permanent_delete_users(PGconn* db);
