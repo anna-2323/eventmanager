@@ -9,6 +9,7 @@ typedef struct {
 	char last_name[255];
 	char phone[255];
 	int role;
+	char deleted_on[255];
 } User;
 
 int get_all_users(PGconn* db, json_t* out);

@@ -4,7 +4,7 @@ int get_all_users(PGconn* db, json_t* out) {
 	if (!db) return NULL;
 
 	char* sql =
-		"SELECT id, email, first_name, last_name, phone, role "
+		"SELECT id, email, first_name, last_name, phone, role, deleted_on "
 		"FROM data.users; ";
 	PGresult* res = PQexec(db, sql);
 	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
@@ -21,6 +21,7 @@ int get_all_users(PGconn* db, json_t* out) {
 		strncpy(u.last_name, PQgetvalue(res, i, 3), 255);
 		strncpy(u.phone, PQgetvalue(res, i, 4), 255);
 		u.role = atoi(PQgetvalue(res, i, 5));
+		strncpy(u.deleted_on, PQgetvalue(res, i, 6), 255);
 
 		json_array_append_new(out, user_to_json(&u));
 	}
@@ -33,7 +34,7 @@ json_t* get_user(PGconn* db, int id) {
 	if (!db) return NULL;
 
 	char* sql =
-		"SELECT email, first_name, last_name, phone, role "
+		"SELECT email, first_name, last_name, phone, role, deleted_on "
 		"FROM data.users "
 		"WHERE id = $1; ";
 	char* id_str[16];
@@ -52,11 +53,11 @@ json_t* get_user(PGconn* db, int id) {
 	strncpy(u.last_name, PQgetvalue(res, 0, 2), 255);
 	strncpy(u.phone, PQgetvalue(res, 0, 3), 255);
 	u.role = atoi(PQgetvalue(res, 0, 4));
+	strncpy(u.deleted_on, PQgetvalue(res, 0, 5), 255);
 
 	PQclear(res);
 	return user_to_json(&u);
 }
-
 
 // Използва се при вход на потребител
 int verify_user(PGconn* db, const char* email, const char* password, User* out) {
@@ -65,7 +66,7 @@ int verify_user(PGconn* db, const char* email, const char* password, User* out) 
 	// TODO: хеширани пароли
 	const char* check_params[2] = { email, password };
 	PGresult* res = PQexecParams(db,
-		"SELECT id, email, first_name, last_name, role "
+		"SELECT id, email, first_name, last_name, role, deleted_on "
 		"FROM data.users "
 		"WHERE email = $1 AND password = $2; ",
 		2, NULL, check_params, NULL, NULL, 0);
@@ -81,6 +82,7 @@ int verify_user(PGconn* db, const char* email, const char* password, User* out) 
 	strncpy(out->first_name, PQgetvalue(res, 0, 2), sizeof(out->first_name) - 1);
 	strncpy(out->last_name, PQgetvalue(res, 0, 3), sizeof(out->last_name) - 1);
 	out->role = atoi(PQgetvalue(res, 0, 4));
+	strncpy(out->deleted_on, PQgetvalue(res, 0, 5), sizeof(out->deleted_on) - 1);
 	
 	PQclear(res);
 	return 1;
