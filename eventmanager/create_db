@@ -45,6 +45,12 @@ CREATE TABLE data.tickets (
     purchased_at timestamp with time zone DEFAULT now()
 );
 
+CREATE TABLE data.password_resets (
+    token      VARCHAR(128) PRIMARY KEY,
+    user_id    INT,
+    expires_at TIMESTAMPTZ DEFAULT NOW() + INTERVAL '1 hour'
+);
+
 ALTER TABLE ONLY data.events
     ADD CONSTRAINT fk_organizers_events FOREIGN KEY (organizer_id) REFERENCES data.users(id);
 
@@ -56,6 +62,9 @@ ALTER TABLE ONLY data.tickets
 
 ALTER TABLE ONLY data.tickets
     ADD CONSTRAINT tickets_user_id_fkey FOREIGN KEY (user_id) REFERENCES data.users(id);
+
+ALTER TABLE ONLY data.password_resets
+    ADD CONSTRAINT resets_user_id_fkey FOREIGN KEY (user_id) REFERENCES data.users(id);
 
 INSERT INTO data.users VALUES (2, 1, 'org', 'org', NULL, NULL, NULL, NULL);
 INSERT INTO data.users VALUES (1, 0, 'admin', 'admin', NULL, NULL, NULL, NULL);
