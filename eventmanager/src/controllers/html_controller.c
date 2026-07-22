@@ -40,3 +40,11 @@ int signup(struct mg_connection* conn, void* data) {
 int profile(struct mg_connection* conn, void* data) {
     return send_html(conn, "html/profile.html");
 }
+
+int forgot(struct mg_connection* conn, void* data) {
+    return send_html(conn, "html/forgot.html");
+}
+
+int reset(struct mg_connection* conn, void* data) {
+    return send_html(conn, "html/reset.html");
+}

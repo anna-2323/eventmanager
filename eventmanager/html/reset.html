@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Вход</title>
+    <title>Забравена парола</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="/res/style.css" />
@@ -15,49 +15,51 @@
 
     <section class="section">
         <div class="container is-max-tablet">
-            <h1 class="title" id="event-title">Вход</h1>
+            <h1 class="title" id="event-title">Възстановяване на парола</h1>
             <div class="box">
                 <div class="field">
-                    <label class="label">Имейл</label>
+                    <label class="label">Нова парола</label>
                     <div class="control">
-                        <input class="input" type="text" id="email">
+                        <input class="input" type="password" id="new-password">
                     </div>
                 </div>
                 <div class="field">
-                    <label class="label">Парола</label>
+                    <label class="label">Потвърждаване на новата парола</label>
                     <div class="control">
-                        <input class="input" type="password" id="password">
+                        <input class="input" type="password" id="confirm-password">
                     </div>
                 </div>
-                <button class="button is-primary is-fullwidth" id="submit">Вход</button>
-                <p>Нямате регистрация? <a href="/signup">Създаване на регистрация</a></p>
-                <p><a href="/forgot">Забравена парола?</a></p>
+                <button class="button is-primary is-fullwidth" id="submit">Възстановяване</button>
             </div>
             <p class="help is-danger mt-2" id="error" style="display:none"></p>
         </div>
         </div>
     </section>
 
-    <script type="module">
-        import { Header } from '/js/header.js';
-        document.getElementById('header').innerHTML = Header('events');
-    </script>
-
     <script>
-        document.getElementById('submit').addEventListener('click', function () {
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value.trim();
+        const params = new URLSearchParams(window.location.search);
+        const token  = params.get('token'); 
+        if (!token) window.location.href = '/home';
 
-            if (!email || !password) {
+        document.getElementById('submit').addEventListener('click', function () {
+            const new_password = document.getElementById('new-password').value.trim();
+            const confirm_password = document.getElementById('confirm-password').value.trim();
+
+            if (!new_password || !confirm_password) {
                 error.textContent = 'Моля, попълнете всички полета.';
                 error.style.display = 'block';
                 return;
             }
+            else if(new_password != confirm_password) {
+                error.textContent = 'Паролите не съвпадат.';
+                error.style.display = 'block';
+                return;
+            }
 
-            fetch(`/api/login`, {
+            fetch(`/api/reset`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ token, new_password })
             })
                 .then(r => r.json())
                 .then(res => {
@@ -70,7 +72,7 @@
                 });
         });
 
-        document.getElementById('password').addEventListener('keydown', function (e) {
+        document.getElementById('confirm-password').addEventListener('keydown', function (e) {
             if (e.key === 'Enter') document.getElementById('submit').click();
         });
 
