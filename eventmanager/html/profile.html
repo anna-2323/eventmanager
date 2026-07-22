@@ -137,6 +137,31 @@
 
       <button class="button is-danger" id="delete-btn">Изтрий акаунта</button>
     </div>
+
+    <div class="modal" id="delete-modal">
+      <div class="modal-background"></div>
+      <div class="modal-card">
+        <header class="modal-card-head">
+          <p class="modal-card-title">Потвърждение</p>
+          <button class="delete" id="modal-close"></button>
+        </header>
+        <section class="modal-card-body">
+          <p>Това действие е необратимо. Сигурни ли сте, че искате да изтриете акаунта си?</p>
+          <p>Всички Ваши данни ще бъдат изтрити.</p>
+          <div class="field mt-4">
+            <label class="label">Въведете паролата си за потвърждение:</label>
+            <div class="control">
+              <input class="input" type="password" id="delete-password">
+            </div>
+          </div>
+          <p class="help is-danger mt-2" id="delete-error" style="display:none"></p>
+        </section>
+        <footer class="modal-card-foot">
+          <button class="button is-danger" id="confirm-delete-btn">Изтрий</button>
+          <button class="button" id="modal-cancel">Отказ</button>
+        </footer>
+      </div>
+    </div>
   </main>
 
   <script type="module">

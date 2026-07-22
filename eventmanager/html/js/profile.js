@@ -1,17 +1,20 @@
 import { getUser } from "/js/auth.js";
 
 export function profile() {
-  getUser().then((user) => {
+  fetch('/api/me/').then((user) => {
     if (user.logged_in) {
       // Попълва се контейнера с личните данни
-      document.getElementById("first-name").innerHTML = `${user.first_name ? user.first_name : ""}`;
-      document.getElementById("last-name").innerHTML = `${user.last_name ? user.last_name : ""}`;
+      document.getElementById("first-name").innerHTML =
+        `${user.first_name ? user.first_name : ""}`;
+      document.getElementById("last-name").innerHTML =
+        `${user.last_name ? user.last_name : ""}`;
       document.getElementById("email").innerHTML = `${user.email}`;
-      document.getElementById("phone").innerHTML = `${user.phone ? user.phone : ""}`;
+      document.getElementById("phone").innerHTML =
+        `${user.phone ? user.phone : ""}`;
 
       // Контейнер за резервирани събития
       // Ще има такива само ако потребителят е с роля на клиент
-      if(user.role == 2) {
+      if (user.role == 2) {
         document.getElementById("booked-events").style = "display:block;";
       }
 
@@ -30,7 +33,7 @@ export function profile() {
         localStorage.removeItem("error_message");
       }
 
-    // Dropdown менюта
+      // Dropdown менюта
       var toggle_list = document.querySelectorAll(".change-toggle");
       var toggle_array = [...toggle_list]; // NodeList -> Array
       var form_list = document.querySelectorAll(".change-form");
@@ -54,44 +57,80 @@ export function profile() {
   });
 
   // Редактиране на имейл
-  document
-    .getElementById("change-email-btn")
-    .addEventListener("click", () => {
-      const email = document.getElementById("new-email").value;
-      const password = document.getElementById("email-confirm-password").value;
-      fetchProfilePatch(
-        JSON.stringify({ email, password }),
-        "email",
-        "Имейлът е сменен успешно."
-      );
-    });
+  document.getElementById("change-email-btn").addEventListener("click", () => {
+    const email = document.getElementById("new-email").value;
+    const password = document.getElementById("email-confirm-password").value;
+    fetchProfilePatch(
+      JSON.stringify({ email, password }),
+      "email",
+      "Имейлът е сменен успешно.",
+    );
+  });
 
   // Редактиране на телефон
-  document
-    .getElementById("change-phone-btn")
-    .addEventListener("click", () => {
-      const phone = document.getElementById("new-phone").value;
-      const password = document.getElementById("phone-confirm-password").value;
-      fetchProfilePatch(
-        JSON.stringify({ phone, password }),
-        "phone",
-        "Телефонът е сменен успешно."
-      );
-    });
+  document.getElementById("change-phone-btn").addEventListener("click", () => {
+    const phone = document.getElementById("new-phone").value;
+    const password = document.getElementById("phone-confirm-password").value;
+    fetchProfilePatch(
+      JSON.stringify({ phone, password }),
+      "phone",
+      "Телефонът е сменен успешно.",
+    );
+  });
 
   // Редактиране на парола
   document
     .getElementById("change-password-btn")
     .addEventListener("click", () => {
-      const current_password = document.getElementById("current-password").value;
+      const current_password =
+        document.getElementById("current-password").value;
       const new_password = document.getElementById("new-password").value;
       fetchProfilePatch(
         JSON.stringify({ current_password, new_password }),
         "password",
-        "Паролата е сменена успешно."
+        "Паролата е сменена успешно.",
       );
     });
 
+  // Modal за изтриване на профил
+  let modal = document.getElementById("delete-modal");
+
+  function openModal() {
+    if (!modal.classList.contains("is-active"))
+      modal.classList.add("is-active");
+  }
+
+  function closeModal() {
+    if (modal.classList.contains("is-active"))
+      modal.classList.remove("is-active");
+  }
+
+  document.getElementById("delete-btn").addEventListener("click", () => {
+    openModal();
+  });
+
+  (
+    document.querySelectorAll(
+      ".modal-background, #modal-close, #modal-cancel",
+    ) || []
+  ).forEach((x) => {
+    x.addEventListener("click", () => {
+      closeModal();
+    });
+  });
+
+  document
+    .getElementById("confirm-delete-btn")
+    .addEventListener("click", () => {
+      const password = document.getElementById("delete-password").value;
+      deleteAccount(JSON.stringify({ password }));
+    });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeModal();
+    }
+  });
 }
 
 function fetchProfilePatch(json, path, message) {
@@ -100,8 +139,8 @@ function fetchProfilePatch(json, path, message) {
     headers: { "Content-Type": "application/json" },
     body: json,
   })
-  .then(r => r.json())
-  .then((res) => {
+    .then((r) => r.json())
+    .then((res) => {
       if (res.success) {
         localStorage.setItem("success_message", message);
         window.location.reload();
@@ -110,6 +149,38 @@ function fetchProfilePatch(json, path, message) {
         window.location.reload();
       }
       window.location.reload();
+    })
+    .catch((err) => console.error("fetch error:", err));
+}
+
+function deleteAccount(json) {
+  const password = document.getElementById("delete-password").value;
+  const error = document.getElementById("delete-error");
+
+  if (!password) {
+    error.textContent = "Моля, въведете паролата си.";
+    error.style.display = "block";
+    return;
+  }
+
+  fetch(`/api/profile/delete`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: json,
   })
-  .catch(err => console.error('fetch error:', err));
+    .then((r) => r.json())
+    .then((res) => {
+      if (res.success) {
+        localStorage.setItem("success_message", "Акаунтът е изтрит.");
+        window.location.href = "/home";
+      } else {
+        localStorage.setItem("error_message", res.error || "Възникна грешка.");
+        window.location.reload();
+      }
+    })
+    .catch(() => {
+      const error = document.getElementById("delete-error");
+      error.textContent = "Възникна грешка.";
+      error.style.display = "block";
+    });
 }
