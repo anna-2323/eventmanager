@@ -31,6 +31,16 @@ void get_query(const char* search, const char* sort, char** out) {
 				"ORDER BY e.price DESC;");
 			return;
 		}
+		else if (strcmp(sort, "recent") == 0) {
+			*out = malloc(256);
+			strcpy(*out,
+				"SELECT e.id, e.title, e.price, e.begins_at, e.img_path, v.venue_name, v.city, e.seats_left "
+				"FROM data.events e "
+				"JOIN data.venues v ON e.venue_id = v.id "
+				"WHERE e.begins_at > NOW() "
+				"ORDER BY e.id DESC;");
+			return;
+		}
 	}
 	*out = malloc(256);
 	strcpy(*out,

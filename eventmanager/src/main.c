@@ -36,6 +36,8 @@ int main(void) {
     mg_set_request_handler(ctx, "/profile", profile, NULL);
     mg_set_request_handler(ctx, "/forgot", forgot, NULL);
     mg_set_request_handler(ctx, "/reset", reset, NULL);
+    mg_set_request_handler(ctx, "/admin", admin, NULL);
+    mg_set_request_handler(ctx, "/admin/**", admin, NULL);
 
     mg_set_request_handler(ctx, "/api/events/**", api_events, db);
     mg_set_request_handler(ctx, "/api/events", api_events, db);

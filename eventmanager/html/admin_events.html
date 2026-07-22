@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Контролен панел</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/res/style.css" />
+</head>
+
+<body>
+    <header id="header">
+    </header>
+
+    <main id="main" class="main is-max-tablet">
+        <div class="container">
+            <h1 class="title mt-4">Управление на събития</h1>
+            <table class="table is-fullwidth is-striped is-hoverable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Име</th>
+                        <th>Време</th>
+                        <th>Локация</th>
+                        <th>Останали места</th>
+                    </tr>
+                </thead>
+                <tbody id="events-table">
+                    <tr>
+                        <td colspan="5">Зареждане...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script type="module">
+        import { header } from '/js/header.js';
+        header();
+    </script>
+
+    <script>
+        fetch('/api/me')
+            .then(r => r.json())
+            .then(user => {
+                if (!user.logged_in || user.role !== 0) {
+                    document.getElementById('main').innerHTML = `
+                    <section class="section">
+                        <div class="container has-text-centered">
+                            <h1 class="title has-text-danger">Нямате права за достъп до тази страница</h1>
+                            <a class="button is-link" href="/home">Начало</a>
+                        </div>
+                    </section>`;
+                    return;
+                }
+
+                fetch('/api/events?sort=recent')
+                    .then(r => r.json())
+                    .then(events => {
+                        console.log(events);
+                        document.getElementById('events-table').innerHTML = events.map(e => `
+                            <tr>
+                                <td>${e.id}</td>
+                                <td>${e.title}</td>
+                                <td>${new Date(e.begins_at).toLocaleString('bg-BG')}</td>
+                                <td>${e.venue_name}, ${e.city}</td>
+                                <td>${e.seats_left}</td>
+                            </tr>
+                        `).join('');
+                    });
+            });
+    </script>
+</body>
+
+</html>

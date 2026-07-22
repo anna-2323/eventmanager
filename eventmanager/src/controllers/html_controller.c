@@ -48,3 +48,13 @@ int forgot(struct mg_connection* conn, void* data) {
 int reset(struct mg_connection* conn, void* data) {
     return send_html(conn, "html/reset.html");
 }
+
+int admin(struct mg_connection* conn, void* data) {
+    const struct mg_request_info* info = mg_get_request_info(conn);
+    if (strcmp(info->local_uri, "/admin") == 0)
+        return send_html(conn, "html/admin.html");
+    if (strcmp(info->local_uri, "/admin/users") == 0)
+        return send_html(conn, "html/admin_users.html");
+    if (strcmp(info->local_uri, "/admin/events") == 0)
+        return send_html(conn, "html/admin_events.html");
+}
