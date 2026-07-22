@@ -46,11 +46,14 @@ int main(void) {
     mg_set_request_handler(ctx, "/api/signup", api_signup, db);
     mg_set_request_handler(ctx, "/api/login", api_login, db);
     mg_set_request_handler(ctx, "/api/logout", api_logout, db);
+    mg_set_request_handler(ctx, "/api/forgot", api_forgot, db);
+    mg_set_request_handler(ctx, "/api/reset", api_reset_password, db);
     mg_set_request_handler(ctx, "/api/profile/**", controller_api_profile, db);
 
     mg_set_request_handler(ctx, "/res/**", NULL, NULL);  // статични ресурси
 
     permanent_delete_users(db);
+    delete_tokens(db);
 
     printf("Server running on port 8080\n");
     getchar();

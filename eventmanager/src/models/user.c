@@ -1,4 +1,7 @@
 ﻿#include "user.h"
+#include <windows.h>
+#include <bcrypt.h>
+#pragma comment(lib, "bcrypt.lib")
 
 int get_all_users(PGconn* db, json_t* out) {
 	if (!db) return NULL;
@@ -106,6 +109,29 @@ int verify_password(PGconn* db, int user_id, const char* password) {
 	if (PQntuples(res) > 0) {
 		PQclear(res);
 		return 1;
+	}
+	else {
+		PQclear(res);
+		return -1;
+	}
+}
+
+// Използва се ако потребителят иска да възстанови парола
+// id - успех, -1 - грешна парола, 0 - друга грешка
+int verify_email(PGconn* db, const char* email) {
+	const char* params[1] = { email };
+	PGresult* res = PQexecParams(db,
+		"SELECT id FROM data.users WHERE email = $1",
+		1, NULL, params, NULL, NULL, 0);
+	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+		fprintf(stderr, "Грешка при SELECT: %s\n", PQerrorMessage(db));
+		PQclear(res);
+		return 0;
+	}
+	if (PQntuples(res) > 0) {
+		int id = atoi(PQgetvalue(res, 0, 0));
+		PQclear(res);
+		return id;
 	}
 	else {
 		PQclear(res);
@@ -233,6 +259,90 @@ void permanent_delete_users(PGconn* db) {
 	else
 		fprintf(stderr, "Окончателно изтрити %s акаунти\n", PQcmdTuples(res));
 	PQclear(res);
+}
+
+char* create_reset_token(PGconn* db, int user_id) {
+	char* token = malloc(65);
+	const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+	// Осигурява случайно генериране на токени
+	unsigned char randomBytes[64];
+	if (BCryptGenRandom(NULL, randomBytes, sizeof(randomBytes),
+		BCRYPT_USE_SYSTEM_PREFERRED_RNG) != 0) {
+		return 1;
+	}
+
+	for (int i = 0; i < 64; i++) {
+		token[i] = charset[randomBytes[i] % (sizeof(charset) - 1)];
+	}
+
+	token[64] = '\0';
+
+	char id_str[16];
+	snprintf(id_str, sizeof(id_str), "%d", user_id);
+	const char* params[2] = { token, id_str };
+	PGresult* res = PQexecParams(db,
+		"INSERT INTO data.password_resets (token, user_id) VALUES ($1, $2)",
+		2, NULL, params, NULL, NULL, 0);
+
+	if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+		PQclear(res);
+		free(token);
+		return NULL;
+	}
+	PQclear(res);
+	return token;
+}
+
+int validate_reset_token(PGconn* db, const char* token) {
+	const char* params[1] = { token };
+	PGresult* res = PQexecParams(db,
+		"SELECT user_id FROM data.password_resets "
+		"WHERE token = $1 AND expires_at > NOW()",
+		1, NULL, params, NULL, NULL, 0);
+
+	if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0) {
+		PQclear(res);
+		return -1;
+	}
+
+	int user_id = atoi(PQgetvalue(res, 0, 0));
+	PQclear(res);
+	return user_id;
+}
+
+int reset_password(PGconn* db, const char* token, const char* new_password) {
+	int user_id = validate_reset_token(db, token);
+	if (user_id < 0) return -1;
+
+	PQexec(db, "BEGIN");
+
+	// Смяна на парола
+	char id_str[16];
+	snprintf(id_str, sizeof(id_str), "%d", user_id);
+	const char* params[2] = { new_password, id_str };
+	PGresult* res = PQexecParams(db,
+		"UPDATE data.users SET password = $1 WHERE id = $2",
+		2, NULL, params, NULL, NULL, 0);
+
+	if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+		PQclear(res); PQexec(db, "ROLLBACK"); return 0;
+	}
+	PQclear(res);
+
+	// Изтриване на токен
+	const char* del_params[1] = { token };
+	res = PQexecParams(db,
+		"DELETE FROM data.password_resets WHERE token = $1",
+		1, NULL, del_params, NULL, NULL, 0);
+	PQclear(res);
+
+	PQexec(db, "COMMIT");
+	return 1;
+}
+
+int delete_tokens(PGconn* db) {
+	PQexec(db, "DELETE FROM data.password_resets WHERE expires_at < NOW()");
 }
 
 json_t* user_to_json(User* u) {

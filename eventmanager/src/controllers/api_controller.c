@@ -1,5 +1,6 @@
 ﻿#include "api_controller.h"
 #include "../models/ticket.h"
+#include "../email.h"
 
 //
 //  GET /api/events
@@ -418,4 +419,72 @@ int handle_profile_request(struct mg_connection* conn, PGconn* db, profile_handl
     json_decref(req);
     json_decref(res);
     return result;
+}
+
+int api_forgot(struct mg_connection* conn, void* data) {
+    char body[512] = "";
+    mg_read(conn, body, sizeof(body) - 1);
+
+    json_error_t err;
+    json_t* req = json_loads(body, 0, &err);
+    const char* email = json_string_value(json_object_get(req, "email"));
+
+    json_t* res = json_object();
+    json_object_set_new(res, "success", json_true());
+    json_object_set_new(res, "message", json_string("Ако имейлът е регистриран, ще получите линк за смяна на паролата."));
+    
+    int user_id = verify_email((PGconn*)data, email);
+    if (user_id > 0) {
+        char* token = create_reset_token((PGconn*)data, user_id);
+        if (token) {
+            char link[512];
+            snprintf(link, sizeof(link),
+                "<p>Може да смените паролата си като <a href='http://localhost:8080/reset?token=%s'>натиснете тук.</а></p>", token);
+            send_email(email, "Забравена парола", link);
+            free(token);
+        }
+    }
+
+    json_decref(req);
+    char* json_str = json_dumps(res, JSON_COMPACT);
+    mg_send_http_ok(conn, "application/json", strlen(json_str));
+    mg_write(conn, json_str, strlen(json_str));
+    free(json_str);
+    json_decref(res);
+    return 1;
+}
+
+int api_reset_password(struct mg_connection* conn, void* cbdata) {
+    PGconn* db = (PGconn*)cbdata;
+    char body[512] = "";
+    mg_read(conn, body, sizeof(body) - 1);
+
+    json_error_t err;
+    json_t* req = json_loads(body, 0, &err);
+    const char* token = json_string_value(json_object_get(req, "token"));
+    const char* new_password = json_string_value(json_object_get(req, "new_password"));
+
+    json_t* res = json_object();
+    int result = reset_password(db, token, new_password);
+
+    if (result == 1) {
+        json_object_set_new(res, "success", json_true());
+    }
+    else if (result == -1) {
+        json_object_set_new(res, "success", json_false());
+        json_object_set_new(res, "error",
+            json_string("Линкът е невалиден или изтекъл."));
+    }
+    else {
+        json_object_set_new(res, "success", json_false());
+        json_object_set_new(res, "error", json_string("Възникна грешка."));
+    }
+
+    json_decref(req);
+    char* json_str = json_dumps(res, JSON_COMPACT);
+    mg_send_http_ok(conn, "application/json", strlen(json_str));
+    mg_write(conn, json_str, strlen(json_str));
+    free(json_str);
+    json_decref(res);
+    return 1;
 }
