@@ -1,7 +1,7 @@
 import { getUser } from "/js/auth.js";
 
 export function profile() {
-  fetch('/api/me/').then((user) => {
+  getUser().then((user) => {
     if (user.logged_in) {
       // Попълва се контейнера с личните данни
       document.getElementById("first-name").innerHTML =
@@ -171,8 +171,9 @@ function deleteAccount(json) {
     .then((r) => r.json())
     .then((res) => {
       if (res.success) {
-        localStorage.setItem("success_message", "Акаунтът е изтрит.");
-        window.location.href = "/home";
+        fetch("/api/logout", { method: "POST" }).then(() =>
+          window.location.href = "/home"
+        );
       } else {
         localStorage.setItem("error_message", res.error || "Възникна грешка.");
         window.location.reload();
