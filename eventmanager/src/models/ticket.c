@@ -1,6 +1,7 @@
 ﻿#include "ticket.h"
 #include <string.h>
 #include <stdlib.h>
+#include "../util.h"
 
 int purchase_ticket(PGconn* db, int event_id, const char* first_name,
     const char* last_name, const char* email, const char* phone, int* ticket_id_out) {
@@ -65,9 +66,11 @@ json_t* confirm_ticket(PGconn* db, int ticket_id) {
         "JOIN data.events e ON t.event_id = e.id "
         "WHERE t.id = $1",
         1, NULL, params, NULL, NULL, 0);
+    CHECK_QUERY(res, db, NULL);
 
-    if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0) {
-        PQclear(res); return NULL;
+    if (PQntuples(res) == 0) {
+        PQclear(res);
+        return NULL;
     }
 
     json_t* obj = json_object();
