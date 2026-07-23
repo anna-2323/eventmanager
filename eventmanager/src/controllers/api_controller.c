@@ -2,9 +2,32 @@
 #include "../models/ticket.h"
 #include "../email.h"
 
-//
-//  GET /api/events
-//
+// Помощна функция, обобщаваща действията при получаване на JSON
+json_t* get_json(struct mg_connection* conn) {
+    char body[1024] = "";
+    mg_read(conn, body, sizeof(body) - 1);
+
+    json_error_t err;
+    json_t* req = json_loads(body, 0, &err);
+    if (!req) { mg_send_http_error(conn, 400, "Invalid JSON"); return NULL; }
+}
+
+// Помощна функция, обобщаваща действията при изпращане на JSON
+int send_json(struct mg_connection* conn, json_t* json) {
+    if (!json) {
+        mg_send_http_error(conn, 404, "Not found");
+        return 404;
+    }
+
+    char* json_str = json_dumps(json, JSON_COMPACT);
+    mg_send_http_ok(conn, "application/json", strlen(json_str));
+    mg_write(conn, json_str, strlen(json_str));
+    free(json_str);
+    json_decref(json);
+    return 1;
+}
+
+// GET /api/events
 int api_events(struct mg_connection* conn, void* data) {
     const struct mg_request_info* info = mg_get_request_info(conn);
 
@@ -19,13 +42,7 @@ int api_events(struct mg_connection* conn, void* data) {
 
         json_t* json = json_array();
         get_events((PGconn*)data, search, sort, json);
-        char* json_str = json_dumps(json, JSON_COMPACT);
-
-        mg_send_http_ok(conn, "application/json", strlen(json_str));
-        mg_write(conn, json_str, strlen(json_str));
-        free(json_str);
-        json_decref(json);
-        return 1;
+        return send_json(conn, json);
     }
     else {
         const char* id_str = info->local_uri + strlen("/api/events/");
@@ -36,36 +53,20 @@ int api_events(struct mg_connection* conn, void* data) {
         }
 
         json_t* json = get_event((PGconn*)data, id);
-        if (!json) {
-            mg_send_http_error(conn, 404, "Not found");
-            return 404;
-        }
-        char* json_str = json_dumps(json, JSON_COMPACT);
-
-        mg_send_http_ok(conn, "application/json", strlen(json_str));
-        mg_write(conn, json_str, strlen(json_str));
-        free(json_str);
-        return 1;
+        return send_json(conn, json);
     }
 
     return 0;
 }
 
-//
-//  GET /api/users
-//
+// GET /api/users
 int api_users(struct mg_connection* conn, void* data) {
     const struct mg_request_info* info = mg_get_request_info(conn);
 
     if (strcmp(info->local_uri, "/api/users") == 0) {
         json_t* json = json_array();
         get_all_users((PGconn*)data, json);
-        char* json_str = json_dumps(json, JSON_COMPACT);
-
-        mg_send_http_ok(conn, "application/json", strlen(json_str));
-        mg_write(conn, json_str, strlen(json_str));
-        free(json_str);
-        return 1;
+        return send_json(conn, json);
     }
     else {
         const char* id_str = info->local_uri + strlen("/api/users/");
@@ -74,27 +75,14 @@ int api_users(struct mg_connection* conn, void* data) {
             mg_send_http_error(conn, 404, "Not found");
             return 404;
         }
-
         json_t* json = get_user((PGconn*)data, id);
-        if (!json) {
-            mg_send_http_error(conn, 404, "Not found");
-            return 404;
-        }
-        char* json_str = json_dumps(json, JSON_COMPACT);
-
-        mg_send_http_ok(conn, "application/json", strlen(json_str));
-        mg_write(conn, json_str, strlen(json_str));
-        free(json_str);
-        return 1;
-
+        return send_json(conn, json);
     }
 
     return 0;
 }
 
-//
 // POST /api/purchase/{event_id}
-//
 int api_purchase_ticket(struct mg_connection* conn, void* data) {
     PGconn* db = (PGconn*)data;
     const struct mg_request_info* info = mg_get_request_info(conn);
@@ -131,19 +119,11 @@ int api_purchase_ticket(struct mg_connection* conn, void* data) {
         json_object_set_new(res, "error", json_string("Възникна грешка."));
     }
 
-    char* json_str = json_dumps(res, JSON_COMPACT);
-    mg_send_http_ok(conn, "application/json", strlen(json_str));
-    mg_write(conn, json_str, strlen(json_str));
-
-    free(json_str);
     json_decref(req);
-    json_decref(res);
-    return 1;
+    return send_json(conn, res);
 }
 
-//
 // GET /api/confirmation/{ticket_id}
-//
 int api_confirm_ticket(struct mg_connection* conn, void* data) {
     PGconn* db = (PGconn*)data;
     const struct mg_request_info* info = mg_get_request_info(conn);
@@ -154,18 +134,10 @@ int api_confirm_ticket(struct mg_connection* conn, void* data) {
     json_t* ticket = confirm_ticket(db, ticket_id);
     if (!ticket) { mg_send_http_error(conn, 404, "Not found"); return 404; }
 
-    char* json_str = json_dumps(ticket, JSON_COMPACT);
-    mg_send_http_ok(conn, "application/json", strlen(json_str));
-    mg_write(conn, json_str, strlen(json_str));
-
-    free(json_str);
-    json_decref(ticket);
-    return 1;
+    return send_json(conn, ticket);
 }
 
-//
 // GET /api/me
-//
 int api_me(struct mg_connection* conn, void* data) {
     Session* s = get_session(conn);
     json_t* res = json_object();
@@ -181,24 +153,13 @@ int api_me(struct mg_connection* conn, void* data) {
         json_object_set_new(res, "logged_in", json_false());
     }
 
-    char* json_str = json_dumps(res, JSON_COMPACT);
-    mg_send_http_ok(conn, "application/json", strlen(json_str));
-    mg_write(conn, json_str, strlen(json_str));
-
-    free(json_str);
-    json_decref(res);
-    return 1;
+    return send_json(conn, res);
 }
 
-//
 // POST /api/login
-//
 int api_login(struct mg_connection* conn, void* data) {
-    char body[512] = "";
-    mg_read(conn, body, sizeof(body) - 1);
-
-    json_error_t err;
-    json_t* req = json_loads(body, 0, &err);
+    json_t* req = get_json(conn);
+    if (!req) return 400;
     const char* email = json_string_value(json_object_get(req, "email"));
     const char* password = json_string_value(json_object_get(req, "password"));
 
@@ -225,27 +186,13 @@ int api_login(struct mg_connection* conn, void* data) {
         json_object_set_new(res, "error", json_string("Невалиден имейл или парола."));
     }
 
-    char* json_str = json_dumps(res, JSON_COMPACT);
-    mg_write(conn, json_str, strlen(json_str));
-    free(json_str);
-    json_decref(req);
-    json_decref(res);
-    return 1;
+    return send_json(conn, res);
 }
 
-//
 // POST /api/signup
-//
 int api_signup(struct mg_connection* conn, void* data) {
-    char body[1024] = "";
-    mg_read(conn, body, sizeof(body) - 1);
-
-    json_error_t err;
-    json_t* req = json_loads(body, 0, &err);
-    if (!req) {
-        mg_send_http_error(conn, 400, "Invalid JSON");
-        return 400;
-    }
+    json_t* req = get_json(conn);
+    if (!req) return 400;
 
     const char* fname = json_string_value(json_object_get(req, "first_name"));
     const char* lname = json_string_value(json_object_get(req, "last_name"));
@@ -293,18 +240,11 @@ int api_signup(struct mg_connection* conn, void* data) {
         s->token);
 
     json_object_set_new(res, "success", json_true());
-    char* json_str = json_dumps(res, JSON_COMPACT);
-    mg_write(conn, json_str, strlen(json_str));
-
-    free(json_str);
-    json_decref(res);
     json_decref(user);
-    return 200;
+    return send_json(conn, res);
 }
 
-//
 // GET /api/logout
-//
 int api_logout(struct mg_connection* conn, void* data) {
     Session* s = get_session(conn);
     if (s) session_delete(s->token);
@@ -376,14 +316,10 @@ static int handle_delete(PGconn* db, Session* s, json_t* req, json_t* res) {
     return result;
 }
 
-int controller_api_profile(struct mg_connection* conn, void* cbdata) {
+// PATCH/DELETE /api/profile/{field}
+int api_profile(struct mg_connection* conn, void* cbdata) {
     PGconn* db = (PGconn*)cbdata;
     const struct mg_request_info* info = mg_get_request_info(conn);
-
-   /* if (strcmp(info->request_method, "PATCH") != 0) {
-        mg_send_http_error(conn, 405, "Method Not Allowed");
-        return 405;
-    }*/
 
     if (strcmp(info->local_uri, "/api/profile/email") == 0)
         return handle_profile_request(conn, db, handle_email);
@@ -402,31 +338,21 @@ int handle_profile_request(struct mg_connection* conn, PGconn* db, profile_handl
     Session* s = get_session(conn);
     if (!s) { mg_send_http_error(conn, 401, "Unauthorized"); return 401; }
 
-    char body[512] = "";
-    mg_read(conn, body, sizeof(body) - 1);
-
-    json_error_t err;
-    json_t* req = json_loads(body, 0, &err);
-    if (!req) { mg_send_http_error(conn, 400, "Invalid JSON"); return 400; }
+    json_t* req = get_json(conn);
+    if (!req) return 400;
 
     json_t* res = json_object();
     int result = handler(db, s, req, res);
 
-    char* json_str = json_dumps(res, JSON_COMPACT);
-    mg_send_http_ok(conn, "application/json", strlen(json_str));
-    mg_write(conn, json_str, strlen(json_str));
-    free(json_str);
     json_decref(req);
-    json_decref(res);
+    return send_json(conn, res);
     return result;
 }
 
+// POST /api/forgot
 int api_forgot(struct mg_connection* conn, void* data) {
-    char body[512] = "";
-    mg_read(conn, body, sizeof(body) - 1);
-
-    json_error_t err;
-    json_t* req = json_loads(body, 0, &err);
+    json_t* req = get_json(conn);
+    if (!req) return 400;
     const char* email = json_string_value(json_object_get(req, "email"));
 
     json_t* res = json_object();
@@ -446,24 +372,18 @@ int api_forgot(struct mg_connection* conn, void* data) {
     }
 
     json_decref(req);
-    char* json_str = json_dumps(res, JSON_COMPACT);
-    mg_send_http_ok(conn, "application/json", strlen(json_str));
-    mg_write(conn, json_str, strlen(json_str));
-    free(json_str);
-    json_decref(res);
+    return send_json(conn, res);
     return 1;
 }
 
+// POST /api/reset
 int api_reset_password(struct mg_connection* conn, void* cbdata) {
-    PGconn* db = (PGconn*)cbdata;
-    char body[512] = "";
-    mg_read(conn, body, sizeof(body) - 1);
-
-    json_error_t err;
-    json_t* req = json_loads(body, 0, &err);
+    json_t* req = get_json(conn);
+    if (!req) return 400;
     const char* token = json_string_value(json_object_get(req, "token"));
     const char* new_password = json_string_value(json_object_get(req, "new_password"));
 
+    PGconn* db = (PGconn*)cbdata;
     json_t* res = json_object();
     int result = reset_password(db, token, new_password);
 
@@ -481,10 +401,6 @@ int api_reset_password(struct mg_connection* conn, void* cbdata) {
     }
 
     json_decref(req);
-    char* json_str = json_dumps(res, JSON_COMPACT);
-    mg_send_http_ok(conn, "application/json", strlen(json_str));
-    mg_write(conn, json_str, strlen(json_str));
-    free(json_str);
-    json_decref(res);
+    return send_json(conn, res);
     return 1;
 }

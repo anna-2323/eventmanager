@@ -11,6 +11,7 @@ static PGconn* db;
 
 // помощни функции
 static void init_db(void);
+void set_handlers(struct mg_context*);
 
 int main(void) {
     init_db();
@@ -25,34 +26,8 @@ int main(void) {
 
     struct mg_callbacks callbacks = { 0 };
     struct mg_context* ctx = mg_start(&callbacks, NULL, options);
-
-    mg_set_request_handler(ctx, "/home", home, NULL);
-    mg_set_request_handler(ctx, "/events/**", events, NULL);
-    mg_set_request_handler(ctx, "/events", events, NULL);
-    mg_set_request_handler(ctx, "/purchase/**", purchase, NULL);
-    mg_set_request_handler(ctx, "/confirmation/**", confirmation, NULL);
-    mg_set_request_handler(ctx, "/login", login, NULL);
-    mg_set_request_handler(ctx, "/signup", signup, NULL);
-    mg_set_request_handler(ctx, "/profile", profile, NULL);
-    mg_set_request_handler(ctx, "/forgot", forgot, NULL);
-    mg_set_request_handler(ctx, "/reset", reset, NULL);
-    mg_set_request_handler(ctx, "/admin", admin, NULL);
-    mg_set_request_handler(ctx, "/admin/**", admin, NULL);
-
-    mg_set_request_handler(ctx, "/api/events/**", api_events, db);
-    mg_set_request_handler(ctx, "/api/events", api_events, db);
-    mg_set_request_handler(ctx, "/api/users", api_users, db);
-    mg_set_request_handler(ctx, "/api/purchase/**", api_purchase_ticket, db);
-    mg_set_request_handler(ctx, "/api/confirmation/**", api_confirm_ticket, db);
-    mg_set_request_handler(ctx, "/api/me", api_me, db);
-    mg_set_request_handler(ctx, "/api/signup", api_signup, db);
-    mg_set_request_handler(ctx, "/api/login", api_login, db);
-    mg_set_request_handler(ctx, "/api/logout", api_logout, db);
-    mg_set_request_handler(ctx, "/api/forgot", api_forgot, db);
-    mg_set_request_handler(ctx, "/api/reset", api_reset_password, db);
-    mg_set_request_handler(ctx, "/api/profile/**", controller_api_profile, db);
-
     mg_set_request_handler(ctx, "/res/**", NULL, NULL);  // статични ресурси
+    set_handlers(ctx);
 
     permanent_delete_users(db);
     delete_tokens(db);
@@ -66,4 +41,32 @@ int main(void) {
 
 static void init_db(void) {
     db = PQconnectdb("host=localhost dbname=eventmanagement user=postgres password=secret");
+}
+
+void set_handlers(struct mg_context* ctx) {
+    mg_set_request_handler(ctx, "/home", html_controller, NULL);
+    mg_set_request_handler(ctx, "/events/**", html_controller, NULL);
+    mg_set_request_handler(ctx, "/events", html_controller, NULL);
+    mg_set_request_handler(ctx, "/purchase/**", html_controller, NULL);
+    mg_set_request_handler(ctx, "/confirmation/**", html_controller, NULL);
+    mg_set_request_handler(ctx, "/login", html_controller, NULL);
+    mg_set_request_handler(ctx, "/signup", html_controller, NULL);
+    mg_set_request_handler(ctx, "/profile", html_controller, NULL);
+    mg_set_request_handler(ctx, "/forgot", html_controller, NULL);
+    mg_set_request_handler(ctx, "/reset", html_controller, NULL);
+    mg_set_request_handler(ctx, "/admin", html_controller, NULL);
+    mg_set_request_handler(ctx, "/admin/**", html_controller, NULL);
+
+    mg_set_request_handler(ctx, "/api/events/**", api_events, db);
+    mg_set_request_handler(ctx, "/api/events", api_events, db);
+    mg_set_request_handler(ctx, "/api/users", api_users, db);
+    mg_set_request_handler(ctx, "/api/purchase/**", api_purchase_ticket, db);
+    mg_set_request_handler(ctx, "/api/confirmation/**", api_confirm_ticket, db);
+    mg_set_request_handler(ctx, "/api/me", api_me, db);
+    mg_set_request_handler(ctx, "/api/signup", api_signup, db);
+    mg_set_request_handler(ctx, "/api/login", api_login, db);
+    mg_set_request_handler(ctx, "/api/logout", api_logout, db);
+    mg_set_request_handler(ctx, "/api/forgot", api_forgot, db);
+    mg_set_request_handler(ctx, "/api/reset", api_reset_password, db);
+    mg_set_request_handler(ctx, "/api/profile/**", api_profile, db);
 }
