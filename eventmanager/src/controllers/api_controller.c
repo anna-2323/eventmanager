@@ -146,6 +146,9 @@ int api_me(struct mg_connection* conn, void* data) {
     if (s) {
         json_object_set_new(res, "logged_in", json_true());
         json_object_set_new(res, "email", json_string(s->email));
+        json_object_set_new(res, "first_name", json_string(s->first_name));
+        json_object_set_new(res, "last_name", json_string(s->last_name));
+        json_object_set_new(res, "phone", json_string(s->phone));
         json_object_set_new(res, "role", json_integer(s->role));
     }
     // Ако потребителят не е влязъл
@@ -169,7 +172,7 @@ int api_login(struct mg_connection* conn, void* data) {
     json_t* res = json_object();
     if (ok > 0) {
         // Създава се бисквитка
-        Session* s = session_create(user.id, user.email, user.role);
+        Session* s = session_create(user.id, user.email, user.first_name, user.last_name, user.phone, user.role);
         mg_printf(conn,
             "HTTP/1.1 200 OK\r\n"
             "Content-Type: application/json\r\n"
@@ -178,6 +181,9 @@ int api_login(struct mg_connection* conn, void* data) {
 
         json_object_set_new(res, "success", json_true());
         json_object_set_new(res, "email", json_string(user.email));
+        json_object_set_new(res, "phone", json_string(user.phone));
+        json_object_set_new(res, "first_name", json_string(user.first_name));
+        json_object_set_new(res, "last_name", json_string(user.last_name));
         json_object_set_new(res, "role", json_integer(user.role));
     }
     else {
@@ -227,12 +233,16 @@ int api_signup(struct mg_connection* conn, void* data) {
     const char* u_fname = json_string_value(json_object_get(user, "fname"));
     const char* u_lname = json_string_value(json_object_get(user, "lname"));
     const char* u_email = json_string_value(json_object_get(user, "email"));
+    const char* u_phone = json_string_value(json_object_get(user, "phone"));
+    if (u_phone == NULL) {
+        u_phone = "";
+    }
     int u_role = json_integer_value(json_object_get(user, "role"));
     int u_id = json_integer_value(json_object_get(user, "id"));
     char role_str[8];
     snprintf(role_str, sizeof(role_str), "%d", u_role);
 
-    Session* s = session_create(u_id, u_email, role_str);
+    Session* s = session_create(u_id, u_email, u_fname, u_lname, u_phone, role_str);
     mg_printf(conn,
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: application/json\r\n"

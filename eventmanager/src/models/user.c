@@ -68,7 +68,7 @@ int verify_user(PGconn* db, const char* email, const char* password, User* out) 
 	// TODO: хеширани пароли
 	const char* check_params[2] = { email, password };
 	PGresult* res = PQexecParams(db,
-		"SELECT id, email, first_name, last_name, role, deleted_on "
+		"SELECT id, email, first_name, last_name, phone, role, deleted_on "
 		"FROM data.users "
 		"WHERE email = $1 AND password = $2; ",
 		2, NULL, check_params, NULL, NULL, 0);
@@ -83,8 +83,9 @@ int verify_user(PGconn* db, const char* email, const char* password, User* out) 
 	strncpy(out->email, PQgetvalue(res, 0, 1), sizeof(out->email) - 1);
 	strncpy(out->first_name, PQgetvalue(res, 0, 2), sizeof(out->first_name) - 1);
 	strncpy(out->last_name, PQgetvalue(res, 0, 3), sizeof(out->last_name) - 1);
-	out->role = atoi(PQgetvalue(res, 0, 4));
-	strncpy(out->deleted_on, PQgetvalue(res, 0, 5), sizeof(out->deleted_on) - 1);
+	strncpy(out->phone, PQgetvalue(res, 0, 4), sizeof(out->phone) - 1);
+	out->role = atoi(PQgetvalue(res, 0, 5));
+	strncpy(out->deleted_on, PQgetvalue(res, 0, 6), sizeof(out->deleted_on) - 1);
 	
 	PQclear(res);
 	return 1;

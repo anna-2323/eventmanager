@@ -17,7 +17,7 @@ static void generate_token(char* out) {
     out[TOKEN_LEN] = '\0';
 }
 
-Session* session_create(int user_id, const char* email, int role) {
+Session* session_create(int user_id, const char* email, const char* first_name, const char* last_name, const char* phone, int role) {
     for (int i = 0; i < SESSION_MAX; i++) {
         if (sessions[i].token[0] == '\0') {
 
@@ -25,6 +25,9 @@ Session* session_create(int user_id, const char* email, int role) {
 
             sessions[i].user_id = user_id;
             strncpy_s(sessions[i].email, sizeof(sessions[i].email) - 1, email, sizeof(sessions[i].email) - 1);
+            strncpy_s(sessions[i].phone, sizeof(sessions[i].phone) - 1, phone, sizeof(sessions[i].phone) - 1);
+            strncpy_s(sessions[i].first_name, sizeof(sessions[i].first_name) - 1, first_name, sizeof(sessions[i].first_name) - 1);
+            strncpy_s(sessions[i].last_name, sizeof(sessions[i].last_name) - 1, last_name , sizeof(sessions[i].last_name) - 1);
             sessions[i].role = role;
             sessions[i].expires = time(NULL) + 86400;  // изтича след 24 часа
 
