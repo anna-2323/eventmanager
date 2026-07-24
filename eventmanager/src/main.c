@@ -21,6 +21,7 @@ int main(void) {
     const char* options[] = {
         "listening_ports", "8080",
         "document_root", ".\\html",
+        "num_threads", "1",
         NULL
     };
 
