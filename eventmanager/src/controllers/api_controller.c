@@ -59,6 +59,22 @@ int api_events(struct mg_connection* conn, void* data) {
     return 0;
 }
 
+// GET /api/events/layout/{id}
+int api_event_layout(struct mg_connection* conn, void* data) {
+    PGconn* db = (PGconn*)data;
+    const struct mg_request_info* info = mg_get_request_info(conn);
+
+    const char* id_str = info->local_uri + strlen("/api/events/layout/");
+    int id = atoi(id_str);
+    if (id <= 0) {
+        mg_send_http_error(conn, 404, "Not found");
+        return 404;
+    }
+
+    json_t* json = get_event_layout((PGconn*)data, id);
+    return send_json(conn, json);
+}
+
 // GET /api/users
 int api_users(struct mg_connection* conn, void* data) {
     const struct mg_request_info* info = mg_get_request_info(conn);
@@ -90,20 +106,40 @@ int api_purchase_ticket(struct mg_connection* conn, void* data) {
     int event_id = atoi(info->local_uri + strlen("/api/purchase/"));
     if (event_id <= 0) { mg_send_http_error(conn, 400, "Invalid ID"); return 400; }
 
-    char body[1024] = "";
-    mg_read(conn, body, sizeof(body) - 1);
+    json_t* req = get_json(conn);
 
-    json_error_t err;
-    json_t* req = json_loads(body, 0, &err);
-    if (!req) { mg_send_http_error(conn, 400, "Invalid JSON"); return 400; }
+    TicketData ticket = { 0 };
+    ticket.event_id = event_id;
 
-    const char* first_name = json_string_value(json_object_get(req, "first_name"));
-    const char* last_name = json_string_value(json_object_get(req, "last_name"));
-    const char* email = json_string_value(json_object_get(req, "email"));
-    const char* phone = json_string_value(json_object_get(req, "phone"));
+    Session* s = get_session(conn);
+    if (s)
+        ticket.user_id = s->user_id;
+    else
+        ticket.user_id = -1;
+    free(s);
 
-    int ticket_id = 0;
-    int result = purchase_ticket(db, event_id, first_name, last_name, email, phone, &ticket_id);
+    json_t* sector = json_object_get(req, "sector_id");
+
+    printf("exists: %s\n", sector ? "yes" : "no");
+    printf("is integer: %s\n", json_is_integer(sector) ? "yes" : "no");
+
+    if (sector) {
+        printf("integer value: %lld\n", json_integer_value(sector));
+    }
+
+    ticket.sector_id = json_integer_value(json_object_get(req, "sector_id"));
+    strncpy(ticket.first_name, 
+        json_string_value(json_object_get(req, "first_name")), sizeof(ticket.first_name) - 1);
+    strncpy(ticket.last_name, 
+        json_string_value(json_object_get(req, "last_name")), sizeof(ticket.last_name) - 1);
+    strncpy(ticket.email, 
+        json_string_value(json_object_get(req, "email")), sizeof(ticket.email) - 1);
+    strncpy(ticket.phone, 
+        json_string_value(json_object_get(req, "phone")), sizeof(ticket.phone) - 1);
+        
+
+    int ticket_id;
+    int result = purchase_ticket(db, ticket, &ticket_id);
 
     json_t* res = json_object();
     if (result == 1) {
@@ -119,6 +155,7 @@ int api_purchase_ticket(struct mg_connection* conn, void* data) {
         json_object_set_new(res, "error", json_string("Възникна грешка."));
     }
 
+
     json_decref(req);
     return send_json(conn, res);
 }
@@ -131,8 +168,10 @@ int api_confirm_ticket(struct mg_connection* conn, void* data) {
     int ticket_id = atoi(info->local_uri + strlen("/api/confirmation/"));
     if (ticket_id <= 0) { mg_send_http_error(conn, 400, "Invalid ID"); return 400; }
 
-    json_t* ticket = confirm_ticket(db, ticket_id);
+    json_t* ticket = get_ticket(db, ticket_id);
     if (!ticket) { mg_send_http_error(conn, 404, "Not found"); return 404; }
+
+    printf("%s\n", json_dumps(ticket, JSON_INDENT(2)));
 
     return send_json(conn, ticket);
 }
@@ -230,19 +269,9 @@ int api_signup(struct mg_connection* conn, void* data) {
     }
 
     // Създаване на бисквитка за новия потребител
-    const char* u_fname = json_string_value(json_object_get(user, "fname"));
-    const char* u_lname = json_string_value(json_object_get(user, "lname"));
-    const char* u_email = json_string_value(json_object_get(user, "email"));
-    const char* u_phone = json_string_value(json_object_get(user, "phone"));
-    if (u_phone == NULL) {
-        u_phone = "";
-    }
-    int u_role = json_integer_value(json_object_get(user, "role"));
-    int u_id = json_integer_value(json_object_get(user, "id"));
     char role_str[8];
-    snprintf(role_str, sizeof(role_str), "%d", u_role);
-
-    Session* s = session_create(u_id, u_email, u_fname, u_lname, u_phone, role_str);
+    snprintf(role_str, sizeof(role_str), "%d", role);
+    Session* s = session_create(json_integer(json_object_get(user, "id")), email, fname, lname, phone, role_str);
     mg_printf(conn,
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: application/json\r\n"

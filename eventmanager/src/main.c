@@ -36,6 +36,7 @@ int main(void) {
     printf("Server running on port 8080\n");
     getchar();
 
+
     mg_stop(ctx);
     return 0;
 }
@@ -58,6 +59,7 @@ void set_handlers(struct mg_context* ctx) {
     mg_set_request_handler(ctx, "/admin", html_controller, NULL);
     mg_set_request_handler(ctx, "/admin/**", html_controller, NULL);
 
+    mg_set_request_handler(ctx, "/api/events/layout", api_event_layout, db);
     mg_set_request_handler(ctx, "/api/events/**", api_events, db);
     mg_set_request_handler(ctx, "/api/events", api_events, db);
     mg_set_request_handler(ctx, "/api/users", api_users, db);

@@ -5,6 +5,7 @@
 #include "../session.h"
 
 int api_events(struct mg_connection* conn, void* data);
+int api_event_layout(struct mg_connection* conn, void* data);
 int api_users(struct mg_connection* conn, void* data);
 int api_purchase_ticket(struct mg_connection* conn, void* data);
 int api_confirm_ticket(struct mg_connection* conn, void* data);
