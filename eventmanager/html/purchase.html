@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="/res/style.css" />
+    <link rel="stylesheet" href="/res/purchase.css" />
 </head>
 
 <body>
@@ -42,17 +43,27 @@
                         <input class="input" type="tel" id="phone">
                     </div>
                 </div>
+                <div id="event-layout-field" style="display:none;">
+                    <svg id="seat-map">
+                    </svg>
+                    <div id="sector-summary" style="visibility:hidden;">
+                      <div id="sector-id-input"></div>
+                      <p>Избран сектор: <strong id="summary-name"></strong></p>
+                      <p><span id="summary-price"></span><span id="summary-available"></span> останали места</p>
+                    </div>
+                </div>
                 <button class="button is-primary is-fullwidth" id="submit">Потвърди покупката</button>
                 <p class="help is-danger mt-2" id="error" style="display:none"></p>
             </div>
         </div>
     </section>
     <script type="module">
-        import { Header } from '/js/header.js';
-        document.getElementById('header').innerHTML = Header('events');
+        import { header } from '/js/header.js';
+        header();
     </script>
 
-    <script>
+    <script type="module">
+        import { loadSeatMap } from '/js/svg.js';
         const id = window.location.pathname.split('/').pop();
 
         // Данни за събитието
@@ -62,14 +73,18 @@
                 document.getElementById('event-title').textContent = e.title;
             });
 
+        loadSeatMap(id);
+
         document.getElementById('submit').addEventListener('click', function () {
             const first_name = document.getElementById('first_name').value.trim();
             const last_name = document.getElementById('last_name').value.trim();
             const email = document.getElementById('email').value.trim();
             const phone = document.getElementById('phone').value.trim();
+            const sector_id = parseInt(document.getElementById("sector-id-input").dataset.sectorId);
+
             const error = document.getElementById('error');
 
-            if (!first_name || !last_name || !email || !phone) {
+            if (!first_name || !last_name || !email || !phone || !sector_id) {
                 error.textContent = 'Моля попълнете всички полета.';
                 error.style.display = 'block';
                 return;
@@ -78,7 +93,7 @@
             fetch(`/api/purchase/${id}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ first_name, last_name, email, phone })
+                body: JSON.stringify({ sector_id, first_name, last_name, email, phone })
             })
                 .then(r => r.json())
                 .then(res => {

@@ -139,7 +139,7 @@ int api_purchase_ticket(struct mg_connection* conn, void* data) {
         
 
     int ticket_id;
-    int result = purchase_ticket(db, ticket, &ticket_id);
+    int result = purchase_ticket(db, &ticket, &ticket_id);
 
     json_t* res = json_object();
     if (result == 1) {
