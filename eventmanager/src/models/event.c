@@ -5,50 +5,80 @@ void get_query(const char* search, const char* sort, char** out) {
 	if (search && search[0] != '\0') {
 		*out = malloc(256);
 		strcpy(*out,
-			"SELECT e.id, e.title, e.price, e.begins_at, e.img_path, v.venue_name, v.city, e.seats_left "
+			"SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
+			"MIN(ls.price) AS price, "
+			"SUM(ls.capacity) - COUNT(t.id) AS seats_left "
 			"FROM data.events e "
 			"JOIN data.venues v ON e.venue_id = v.id "
-			"WHERE e.title ILIKE '%' || $1 || '%' OR v.venue_name ILIKE '%' || $1 || '%';");
+			"JOIN data.layouts l ON e.layout_id = l.id "
+			"JOIN data.layout_sectors ls ON ls.layout_id = l.id "
+			"LEFT JOIN data.tickets t ON t.event_id = e.id AND t.sector_id = ls.id "
+			"WHERE e.title ILIKE '%' || $1 || '%' OR v.venue_name ILIKE '%' || $1 || '%' "
+			"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city;");
 		return;
 	}
 	if (sort && sort[0] != '\0') {
 		if (strcmp(sort, "price_asc") == 0) {
 			*out = malloc(256);
 			strcpy(*out,
-				"SELECT e.id, e.title, e.price, e.begins_at, e.img_path, v.venue_name, v.city, e.seats_left "
+				"SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
+				"MIN(ls.price) AS price, "
+				"SUM(ls.capacity) - COUNT(t.id) AS seats_left "
 				"FROM data.events e "
 				"JOIN data.venues v ON e.venue_id = v.id "
+				"JOIN data.layouts l ON e.layout_id = l.id "
+				"JOIN data.layout_sectors ls ON ls.layout_id = l.id "
+				"LEFT JOIN data.tickets t ON t.event_id = e.id AND t.sector_id = ls.id "
 				"WHERE e.begins_at > NOW() "
+				"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city "
 				"ORDER BY e.price ASC;");
 			return;
 		}
 		else if (strcmp(sort, "price_desc") == 0) {
 			*out = malloc(256);
 			strcpy(*out,
-				"SELECT e.id, e.title, e.price, e.begins_at, e.img_path, v.venue_name, v.city, e.seats_left "
+				"SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
+				"MIN(ls.price) AS price, "
+				"SUM(ls.capacity) - COUNT(t.id) AS seats_left "
 				"FROM data.events e "
 				"JOIN data.venues v ON e.venue_id = v.id "
+				"JOIN data.layouts l ON e.layout_id = l.id "
+				"JOIN data.layout_sectors ls ON ls.layout_id = l.id "
+				"LEFT JOIN data.tickets t ON t.event_id = e.id AND t.sector_id = ls.id "
 				"WHERE e.begins_at > NOW() "
+				"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city "
 				"ORDER BY e.price DESC;");
 			return;
 		}
 		else if (strcmp(sort, "recent") == 0) {
 			*out = malloc(256);
 			strcpy(*out,
-				"SELECT e.id, e.title, e.price, e.begins_at, e.img_path, v.venue_name, v.city, e.seats_left "
+				"SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
+				"MIN(ls.price) AS price, "
+				"SUM(ls.capacity) - COUNT(t.id) AS seats_left "
 				"FROM data.events e "
 				"JOIN data.venues v ON e.venue_id = v.id "
+				"JOIN data.layouts l ON e.layout_id = l.id "
+				"JOIN data.layout_sectors ls ON ls.layout_id = l.id "
+				"LEFT JOIN data.tickets t ON t.event_id = e.id AND t.sector_id = ls.id "
 				"WHERE e.begins_at > NOW() "
+				"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city "
 				"ORDER BY e.id DESC;");
 			return;
 		}
 	}
 	*out = malloc(256);
 	strcpy(*out,
-		"SELECT e.id, e.title, e.price, e.begins_at, e.img_path, v.venue_name, v.city, e.seats_left "
+		"SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
+		"MIN(ls.price) AS price, "
+		"SUM(ls.capacity) - COUNT(t.id) AS seats_left "
 		"FROM data.events e "
 		"JOIN data.venues v ON e.venue_id = v.id "
+		"JOIN data.layouts l ON e.layout_id = l.id "
+		"JOIN data.layout_sectors ls ON ls.layout_id = l.id "
+		"LEFT JOIN data.tickets t ON t.event_id = e.id AND t.sector_id = ls.id "
 		"WHERE e.begins_at > NOW() "
+		"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city "
 		"ORDER BY e.begins_at ASC;");
 	return;
 }
@@ -56,11 +86,11 @@ void get_query(const char* search, const char* sort, char** out) {
 void get_event_from_query(PGresult* res, Event* e, int i) {
 	e->id = atoi(PQgetvalue(res, i, 0));
 	strncpy(e->title, PQgetvalue(res, i, 1), 100);
-	e->price = atof(PQgetvalue(res, i, 2));
-	strncpy(e->begins_at, PQgetvalue(res, i, 3), 255);
-	strncpy(e->img_path, PQgetvalue(res, i, 4), 255);
-	strncpy(e->venue.venue_name, PQgetvalue(res, i, 5), 100);
-	strncpy(e->venue.city, PQgetvalue(res, i, 6), 100);
+	strncpy(e->begins_at, PQgetvalue(res, i, 2), 255);
+	strncpy(e->img_path, PQgetvalue(res, i, 3), 255);
+	strncpy(e->venue.venue_name, PQgetvalue(res, i, 4), 100);
+	strncpy(e->venue.city, PQgetvalue(res, i, 5), 100);
+	e->price = atof(PQgetvalue(res, i, 6));
 	e->seats_left = atoi(PQgetvalue(res, i, 7));
 }
 
@@ -102,10 +132,16 @@ json_t* get_event(PGconn* db, int id) {
 	CHECK_DB(db, NULL);
 
 	char* sql =
-		"SELECT e.id, e.title, e.price, e.begins_at, e.img_path, v.venue_name, v.city, e.seats_left "
+		"SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
+		"MIN(ls.price) AS price, "
+		"SUM(ls.capacity) - COUNT(t.id) AS seats_left "
 		"FROM data.events e "
 		"JOIN data.venues v ON e.venue_id = v.id "
-		"WHERE e.id = $1;";
+		"JOIN data.layouts l ON e.layout_id = l.id "
+		"JOIN data.layout_sectors ls ON ls.layout_id = l.id "
+		"LEFT JOIN data.tickets t ON t.event_id = e.id AND t.sector_id = ls.id "
+		"WHERE e.id = $1 "
+		"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city; ";
 	char id_str[16];
 	snprintf(id_str, sizeof(id_str), "%d", id);
 	const char* params[1] = { id_str };

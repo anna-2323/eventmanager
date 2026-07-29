@@ -9,9 +9,6 @@ CREATE TABLE data.events (
     venue_id integer NOT NULL,
     img_path varchar(225) DEFAULT '/res/default1.png',
     organizer_id integer NOT NULL,
-    seats_left integer NOT NULL,
-    capacity integer NOT NULL,
-    price numeric(10,2),
     uploaded_at timestamp with time zone DEFAULT now()
 );
 
@@ -30,14 +27,45 @@ CREATE TABLE data.venues (
     id serial primary key,
     city varchar(255) NOT NULL,
     address varchar(255) NOT NULL,
+    venue_name varchar(255) NOT NULL,
+    has_sectors boolean DEFAULT false
+);
+
+CREATE TABLE data.layouts (
+    id serial primary key,
+    venue_id integer,
+    layout_id integer,
+    name character varying(100),
+    svg_viewbox character varying(50) DEFAULT '0 0 800 600'::character varying,
+    background_svg text,
+    UNIQUE (venue_id, layout_id)
+);
+
+CREATE TABLE data.sectors (
+    id serial primary key,
+    venue_id integer NOT NULL,
+    name character varying(100),
+    display_order integer DEFAULT 1,
+    svg_path text,
+    color character varying(7),
+    UNIQUE (venue_id, name)
+);
+
+CREATE TABLE data.layout_sectors (
+    id serial primary key,
+    layout_id integer NOT NULL,
+    sector_id integer NOT NULL,
     capacity integer NOT NULL,
-    venue_name varchar(255) NOT NULL
+    price numeric(10,2) DEFAULT 0 NOT NULL,
+    CONSTRAINT layout_sectors_capacity_check CHECK ((capacity > 0)),
+    UNIQUE (layout_id, sector_id)
 );
 
 CREATE TABLE data.tickets (
     id serial primary key,
     event_id integer,
     user_id integer,
+    sector_id integer,
     first_name varchar(255) NOT NULL,
     last_name varchar(255) NOT NULL,
     email varchar(255) NOT NULL,
@@ -56,6 +84,9 @@ ALTER TABLE ONLY data.events
 
 ALTER TABLE ONLY data.events
     ADD CONSTRAINT fk_venues_events FOREIGN KEY (venue_id) REFERENCES data.venues(id);
+    
+ALTER TABLE ONLY data.events
+    ADD CONSTRAINT events_layout_id_fkey FOREIGN KEY (layout_id) REFERENCES data.layouts(id);
 
 ALTER TABLE ONLY data.tickets
     ADD CONSTRAINT tickets_event_id_fkey FOREIGN KEY (event_id) REFERENCES data.events(id);
@@ -63,19 +94,175 @@ ALTER TABLE ONLY data.tickets
 ALTER TABLE ONLY data.tickets
     ADD CONSTRAINT tickets_user_id_fkey FOREIGN KEY (user_id) REFERENCES data.users(id);
 
+ALTER TABLE ONLY data.tickets
+    ADD CONSTRAINT tickets_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES data.layout_sectors(id);
+
 ALTER TABLE ONLY data.password_resets
     ADD CONSTRAINT resets_user_id_fkey FOREIGN KEY (user_id) REFERENCES data.users(id);
+
+ALTER TABLE ONLY data.layouts
+    ADD CONSTRAINT venue_layouts_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES data.venues(id);
+
+ALTER TABLE ONLY data.sectors
+    ADD CONSTRAINT sectors_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES data.venues(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY data.layout_sectors
+    ADD CONSTRAINT layout_sectors_layout_id_fkey FOREIGN KEY (layout_id) REFERENCES data.layouts(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY data.layout_sectors
+    ADD CONSTRAINT layout_sectors_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES data.sectors(id) ON DELETE CASCADE;
+
 
 INSERT INTO data.users VALUES (2, 1, 'org', 'org', NULL, NULL, NULL, NULL);
 INSERT INTO data.users VALUES (1, 0, 'admin', 'admin', NULL, NULL, NULL, NULL);
 INSERT INTO data.users VALUES (3, 2, 'user', 'user', 'User', 'User', NULL, NULL);
 
-INSERT INTO data.venues VALUES (1, 'Русе', 'Русе Център, пл. "Свобода" 4, 7000 Русе', 650, 'Доходно здание');
-INSERT INTO data.venues VALUES (2, 'София', 'БАН IV км., бул. "Асен Йорданов" 1, 1113 София', 17906, 'Арена 8888');
-INSERT INTO data.venues VALUES (3, 'Бургас', 'Бургас Център, бул. "Демокрация" 94, 8001 Бургас', 2150, 'Летен театър');
-INSERT INTO data.venues VALUES (4, 'София', 'кв. Хладилника, бул. „Черни връх“ 100, Парадайс център, ет. 3, 1407 София', 3500, 'Sofia Event Center');
+INSERT INTO data.venues VALUES (1, 'Русе', 'Русе Център, пл. "Свобода" 4, 7000 Русе', 'Доходно здание', true);
+INSERT INTO data.venues VALUES (2, 'София', 'БАН IV км., бул. "Асен Йорданов" 1, 1113 София', 'Арена 8888', true);
+INSERT INTO data.venues VALUES (3, 'Бургас', 'Бургас Център, бул. "Демокрация" 94, 8001 Бургас', 'Летен театър', false);
+INSERT INTO data.venues VALUES (4, 'София', 'кв. Хладилника, бул. „Черни връх“ 100, Парадайс център, ет. 3, 1407 София', 'Sofia Event Center', false);
 
-INSERT INTO data.events VALUES (1, 'Театрална постановка', '2026-09-20 20:30:00+03', 1, '/res/default3.png', 2, 193, 200, 20.00, '2026-05-15 15:30:00+03');
-INSERT INTO data.events VALUES (2, 'Спортно събитие', '2026-09-25 16:00:00+03', 2, '/res/default4.png', 1, 15395, 17500, 30.00, '2026-07-10 20:44:44.609386+03');
-INSERT INTO data.events VALUES (3, 'Концерт', '2026-09-30 18:30:00+03', 3, '/res/default1.png', 1, 26, 2000, 15.00, '2026-07-10 20:44:44.609386+03');
-INSERT INTO data.events VALUES (4, 'Конференция', '2026-09-30 14:00:00+03', 4, '/res/default2.png', 1, 700, 1000, 50.00, '2026-07-10 21:07:38.663305+03');
+INSERT INTO data.events VALUES (5, 'Състезание', '2026-09-21 09:00:00+03', 2, '/res/default4.png', 2, '2026-07-15 18:44:39.623176+03', 2);
+INSERT INTO data.events VALUES (4, 'Конференция', '2026-09-30 14:00:00+03', 4, '/res/default2.png', 1, '2026-07-10 21:07:38.663305+03', 4);
+INSERT INTO data.events VALUES (3, 'Концерт', '2026-09-30 18:30:00+03', 3, '/res/default1.png', 1, '2026-07-10 20:44:44.609386+03', 3);
+INSERT INTO data.events VALUES (2, 'Спортно събитие', '2026-09-25 16:00:00+03', 2, '/res/default4.png', 1, '2026-07-10 20:44:44.609386+03', 2);
+INSERT INTO data.events VALUES (6, 'Концерт 2', '2026-09-01 22:00:00+03', 2, '/res/default1.png', 2, '2026-07-15 19:29:13.738298+03', 2);
+INSERT INTO data.events VALUES (1, 'Театрална постановка', '2026-09-20 20:30:00+03', 1, '/res/default3.png', 2, '2026-05-15 15:30:00+03', 1);
+
+INSERT INTO data.layouts VALUES (2, 2, 1, 'Арена 8888 - спорт', '0 90 800 600', '<rect id="Stage" x="199" y="242" width="197" height="308" fill="#CECECE"/>');
+INSERT INTO data.layouts VALUES (3, 3, 1, 'N/A', NULL, NULL);
+INSERT INTO data.layouts VALUES (4, 4, 1, 'N/A', NULL, NULL);
+INSERT INTO data.layouts VALUES (1, 1, 1, '"Голяма зала"', '0 90 800 600', '<rect id="Stage" x="213" y="498" width="174" height="61" fill="#D9D9D9"/>');
+
+INSERT INTO data.sectors VALUES (2, 2, 'VIP', 0, 'M90.5 322.5V469.5H66.5V322.5H90.5Z', '#F0E442');
+INSERT INTO data.sectors VALUES (3, 2, 'A.1.1', 1, 'M136 280V258H168V280H136Z', '#E69F00');
+INSERT INTO data.sectors VALUES (4, 2, 'A.1.2', 1, 'M168 338H136V284H168V338Z', '#E69F00');
+INSERT INTO data.sectors VALUES (5, 2, 'A.1.3', 1, 'M168 395H136V341H168V395Z', '#E69F00');
+INSERT INTO data.sectors VALUES (6, 2, 'A.1.4', 1, 'M168 453H136V399H168V453Z', '#E69F00');
+INSERT INTO data.sectors VALUES (7, 2, 'A.1.5', 1, 'M168 511H136V457H168V511Z', '#E69F00');
+INSERT INTO data.sectors VALUES (8, 2, 'A.1.6', 1, 'M136 537V515H168V537H136Z', '#E69F00');
+INSERT INTO data.sectors VALUES (10, 2, 'B.1.2', 1, 'M229 604L229 572L298 572L298 604L229 604Z', '#0072B2');
+INSERT INTO data.sectors VALUES (11, 2, 'B.1.3', 1, 'M303 604L303 571L372 571L372 604L303 604Z', '#0072B2');
+INSERT INTO data.sectors VALUES (12, 2, 'B.1.4', 1, 'M377 571L398 571L398 604L377 604L377 571Z', '#0072B2');
+INSERT INTO data.sectors VALUES (13, 2, 'C.1.1', 1, 'M465 537V515H433V537H465Z', '#CC79A7');
+INSERT INTO data.sectors VALUES (15, 2, 'C.1.3', 1, 'M433 453H465V399H433V453Z', '#CC79A7');
+INSERT INTO data.sectors VALUES (16, 2, 'C.1.4', 1, 'M433 395H465V341H433V395Z', '#CC79A7');
+INSERT INTO data.sectors VALUES (17, 2, 'C.1.5', 1, 'M433 338H465V284H433V338Z', '#CC79A7');
+INSERT INTO data.sectors VALUES (18, 2, 'C.1.6', 1, 'M465 280V258H433V280H465Z', '#CC79A7');
+INSERT INTO data.sectors VALUES (14, 2, 'C.1.2', 1, 'M433 510H465V456H433V510Z', '#CC79A7');
+INSERT INTO data.sectors VALUES (9, 2, 'B.1.1', 1, 'M204 572L225 572L225 604L204 604L204 572Z', '#0072B2');
+INSERT INTO data.sectors VALUES (19, 2, 'D.1.1', 1, 'M377 227L398 227L398 195L377 195L377 227Z', '#009E73');
+INSERT INTO data.sectors VALUES (20, 2, 'D.1.2', 1, 'M303 195L303 227L372 227L372 195L303 195Z', '#009E73');
+INSERT INTO data.sectors VALUES (21, 2, 'D.1.3', 1, 'M229 194L229 227L298 227L298 194L229 194Z', '#009E73');
+INSERT INTO data.sectors VALUES (22, 2, 'D.1.4', 1, 'M203 227L224 227L224 194L203 194L203 227Z', '#009E73');
+INSERT INTO data.sectors VALUES (23, 2, 'D.2.1', 1, 'M377 134L421 134L394.522 188L377 188L377 134Z', '#009E73');
+INSERT INTO data.sectors VALUES (24, 2, 'D.2.2', 1, 'M303 134L303 188L372 188L372 134L303 134Z', '#009E73');
+INSERT INTO data.sectors VALUES (25, 2, 'D.2.3', 1, 'M229 134L229 188L298 188L298 134L229 134Z', '#009E73');
+INSERT INTO data.sectors VALUES (26, 2, 'D.2.4', 1, 'M224 134L180 134L206.478 188L224 188L224 134Z', '#009E73');
+INSERT INTO data.sectors VALUES (27, 2, 'D.2.5', 1, 'M468.659 242L522 234.848L475.038 186L445 216.987L468.659 242Z', '#009E73');
+INSERT INTO data.sectors VALUES (28, 2, 'D.2.6', 1, 'M418 189.419L424.897 134L472 182.792L442.12 214L418 189.419Z', '#009E73');
+INSERT INTO data.sectors VALUES (29, 2, 'D.2.7', 1, 'M183 189.419L176.103 134L129 182.792L158.88 214L183 189.419Z', '#009E73');
+INSERT INTO data.sectors VALUES (30, 2, 'D.2.8', 1, 'M132.341 242L79 234.848L125.962 186L156 216.987L132.341 242Z', '#009E73');
+INSERT INTO data.sectors VALUES (31, 2, 'A.2.1', 1, 'M79 280V239L130 263.673V280H79Z', '#E69F00');
+INSERT INTO data.sectors VALUES (32, 2, 'A.2.2', 1, 'M130 284H79V312.588H99.9328V338H130V284Z', '#E69F00');
+INSERT INTO data.sectors VALUES (33, 2, 'A.2.3', 1, 'M130 395H99V341H130V395Z', '#E69F00');
+INSERT INTO data.sectors VALUES (34, 2, 'A.2.4', 1, 'M130 453H99V399H130V453Z', '#E69F00');
+INSERT INTO data.sectors VALUES (37, 2, 'A.3.1', 1, 'M10 249V279H56V249H10Z', '#E69F00');
+INSERT INTO data.sectors VALUES (38, 2, 'A.3.2', 1, 'M10 284H56V338H10V284Z', '#E69F00');
+INSERT INTO data.sectors VALUES (39, 2, 'A.3.3', 1, 'M10 341H56V395H10V341Z', '#E69F00');
+INSERT INTO data.sectors VALUES (40, 2, 'A.3.4', 1, 'M10 399H56V453H10V399Z', '#E69F00');
+INSERT INTO data.sectors VALUES (41, 2, 'A.3.5', 1, 'M10 457H56V511H10V457Z', '#E69F00');
+INSERT INTO data.sectors VALUES (42, 2, 'A.3.6', 1, 'M10 515V545H56V515H10Z', '#E69F00');
+INSERT INTO data.sectors VALUES (43, 2, 'C.2.1', 1, 'M522 517V557L471 532.929V517H522Z', '#CC79A7');
+INSERT INTO data.sectors VALUES (44, 2, 'C.2.2', 1, 'M471 511H522V457H471V511Z', '#CC79A7');
+INSERT INTO data.sectors VALUES (45, 2, 'C.2.3', 1, 'M471 453H522V399H471V453Z', '#CC79A7');
+INSERT INTO data.sectors VALUES (46, 2, 'C.2.4', 1, 'M471 395H522V341H471V395Z', '#CC79A7');
+INSERT INTO data.sectors VALUES (47, 2, 'C.2.5', 1, 'M471 338H522V284H471V338Z', '#CC79A7');
+INSERT INTO data.sectors VALUES (48, 2, 'C.2.6', 1, 'M522 280V239L471 263.673V280H522Z', '#CC79A7');
+INSERT INTO data.sectors VALUES (49, 2, 'C.3.1', 1, 'M591 515V545H545V515H591Z', '#CC79A7');
+INSERT INTO data.sectors VALUES (50, 2, 'C.3.2', 1, 'M591 457H545V511H591V457Z', '#CC79A7');
+INSERT INTO data.sectors VALUES (51, 2, 'C.3.3', 1, 'M591 399H545V453H591V399Z', '#CC79A7');
+INSERT INTO data.sectors VALUES (52, 2, 'C.3.4', 1, 'M591 341H545V395H591V341Z', '#CC79A7');
+INSERT INTO data.sectors VALUES (53, 2, 'C.3.5', 1, 'M591 284H545V338H591V284Z', '#CC79A7');
+INSERT INTO data.sectors VALUES (54, 2, 'C.3.6', 1, 'M591 249V279H545V249H591Z', '#CC79A7');
+INSERT INTO data.sectors VALUES (35, 2, 'A.2.5', 1, 'M130 511H79V482.412H99.9328V457H130V511Z', '#E69F00');
+INSERT INTO data.sectors VALUES (36, 2, 'A.2.6', 1, 'M79 517V557L130 532.929V517H79Z', '#E69F00');
+INSERT INTO data.sectors VALUES (55, 2, 'B.2.1', 1, 'M224 665L180 665L206.478 611L224 611L224 665Z', '#0072B2');
+INSERT INTO data.sectors VALUES (56, 2, 'B.2.2', 1, 'M229 665L229 611L298 611L298 665L229 665Z', '#0072B2');
+INSERT INTO data.sectors VALUES (57, 2, 'B.2.3', 1, 'M303 665L303 611L372 611L372 665L303 665Z', '#0072B2');
+INSERT INTO data.sectors VALUES (58, 2, 'B.2.4', 1, 'M377 665L421 665L394.522 611L377 611L377 665Z', '#0072B2');
+INSERT INTO data.sectors VALUES (59, 2, 'B.2.5', 1, 'M132.341 557L79 564.152L125.962 613L156 582.013L132.341 557Z', '#0072B2');
+INSERT INTO data.sectors VALUES (60, 2, 'B.2.6', 1, 'M183 609.581L176.103 665L129 616.208L158.88 585L183 609.581Z', '#0072B2');
+INSERT INTO data.sectors VALUES (61, 2, 'B.2.7', 1, 'M418 609.581L424.897 665L472 616.208L442.12 585L418 609.581Z', '#0072B2');
+INSERT INTO data.sectors VALUES (62, 2, 'B.2.8', 1, 'M468.659 557L522 564.152L475.038 613L445 582.013L468.659 557Z', '#0072B2');
+INSERT INTO data.sectors VALUES (65, 3, 'N/A', 1, NULL, NULL);
+INSERT INTO data.sectors VALUES (66, 4, 'N/A', 1, NULL, NULL);
+INSERT INTO data.sectors VALUES (67, 1, 'Балкон', 1, 'M167 225V167H432V225H167Z', '#E69F00');
+INSERT INTO data.sectors VALUES (68, 1, 'Партер', 1, 'M159 371V272H440V371L381.5 472.325H217.5L159 371Z', '#0072B2');
+
+
+INSERT INTO data.layout_sectors VALUES (1, 2, 2, 150, 200.00);
+INSERT INTO data.layout_sectors VALUES (2, 2, 3, 60, 80.00);
+INSERT INTO data.layout_sectors VALUES (3, 2, 4, 250, 80.00);
+INSERT INTO data.layout_sectors VALUES (4, 2, 5, 250, 80.00);
+INSERT INTO data.layout_sectors VALUES (5, 2, 6, 250, 80.00);
+INSERT INTO data.layout_sectors VALUES (6, 2, 7, 250, 80.00);
+INSERT INTO data.layout_sectors VALUES (7, 2, 8, 60, 80.00);
+INSERT INTO data.layout_sectors VALUES (8, 2, 9, 60, 80.00);
+INSERT INTO data.layout_sectors VALUES (9, 2, 10, 250, 80.00);
+INSERT INTO data.layout_sectors VALUES (10, 2, 11, 250, 80.00);
+INSERT INTO data.layout_sectors VALUES (11, 2, 12, 60, 80.00);
+INSERT INTO data.layout_sectors VALUES (12, 2, 13, 60, 70.00);
+INSERT INTO data.layout_sectors VALUES (13, 2, 14, 250, 70.00);
+INSERT INTO data.layout_sectors VALUES (14, 2, 15, 250, 70.00);
+INSERT INTO data.layout_sectors VALUES (15, 2, 16, 250, 70.00);
+INSERT INTO data.layout_sectors VALUES (16, 2, 17, 250, 70.00);
+INSERT INTO data.layout_sectors VALUES (17, 2, 18, 60, 70.00);
+INSERT INTO data.layout_sectors VALUES (18, 2, 19, 60, 80.00);
+INSERT INTO data.layout_sectors VALUES (19, 2, 20, 250, 80.00);
+INSERT INTO data.layout_sectors VALUES (20, 2, 21, 250, 80.00);
+INSERT INTO data.layout_sectors VALUES (21, 2, 22, 60, 80.00);
+INSERT INTO data.layout_sectors VALUES (22, 2, 23, 75, 80.00);
+INSERT INTO data.layout_sectors VALUES (23, 2, 24, 200, 80.00);
+INSERT INTO data.layout_sectors VALUES (24, 2, 25, 200, 80.00);
+INSERT INTO data.layout_sectors VALUES (25, 2, 26, 75, 80.00);
+INSERT INTO data.layout_sectors VALUES (26, 2, 27, 200, 80.00);
+INSERT INTO data.layout_sectors VALUES (27, 2, 28, 200, 80.00);
+INSERT INTO data.layout_sectors VALUES (28, 2, 29, 200, 80.00);
+INSERT INTO data.layout_sectors VALUES (29, 2, 30, 200, 80.00);
+INSERT INTO data.layout_sectors VALUES (30, 2, 31, 75, 80.00);
+INSERT INTO data.layout_sectors VALUES (31, 2, 32, 200, 80.00);
+INSERT INTO data.layout_sectors VALUES (32, 2, 33, 200, 80.00);
+INSERT INTO data.layout_sectors VALUES (33, 2, 34, 200, 80.00);
+INSERT INTO data.layout_sectors VALUES (34, 2, 35, 200, 80.00);
+INSERT INTO data.layout_sectors VALUES (35, 2, 36, 75, 80.00);
+INSERT INTO data.layout_sectors VALUES (36, 2, 37, 125, 70.00);
+INSERT INTO data.layout_sectors VALUES (37, 2, 38, 250, 70.00);
+INSERT INTO data.layout_sectors VALUES (38, 2, 39, 250, 70.00);
+INSERT INTO data.layout_sectors VALUES (39, 2, 40, 250, 70.00);
+INSERT INTO data.layout_sectors VALUES (40, 2, 41, 250, 70.00);
+INSERT INTO data.layout_sectors VALUES (41, 2, 42, 125, 70.00);
+INSERT INTO data.layout_sectors VALUES (42, 2, 43, 75, 80.00);
+INSERT INTO data.layout_sectors VALUES (43, 2, 44, 200, 80.00);
+INSERT INTO data.layout_sectors VALUES (44, 2, 45, 200, 80.00);
+INSERT INTO data.layout_sectors VALUES (45, 2, 46, 200, 80.00);
+INSERT INTO data.layout_sectors VALUES (46, 2, 47, 200, 80.00);
+INSERT INTO data.layout_sectors VALUES (47, 2, 48, 75, 80.00);
+INSERT INTO data.layout_sectors VALUES (48, 2, 49, 125, 70.00);
+INSERT INTO data.layout_sectors VALUES (49, 2, 50, 250, 70.00);
+INSERT INTO data.layout_sectors VALUES (50, 2, 51, 250, 70.00);
+INSERT INTO data.layout_sectors VALUES (51, 2, 52, 250, 70.00);
+INSERT INTO data.layout_sectors VALUES (52, 2, 53, 250, 70.00);
+INSERT INTO data.layout_sectors VALUES (53, 2, 54, 125, 70.00);
+INSERT INTO data.layout_sectors VALUES (54, 2, 55, 75, 70.00);
+INSERT INTO data.layout_sectors VALUES (55, 2, 56, 200, 70.00);
+INSERT INTO data.layout_sectors VALUES (56, 2, 57, 200, 70.00);
+INSERT INTO data.layout_sectors VALUES (57, 2, 58, 75, 70.00);
+INSERT INTO data.layout_sectors VALUES (58, 2, 59, 200, 70.00);
+INSERT INTO data.layout_sectors VALUES (59, 2, 60, 200, 70.00);
+INSERT INTO data.layout_sectors VALUES (60, 2, 61, 200, 70.00);
+INSERT INTO data.layout_sectors VALUES (61, 2, 62, 200, 70.00);
+INSERT INTO data.layout_sectors VALUES (64, 3, 65, 2150, 15.00);
+INSERT INTO data.layout_sectors VALUES (66, 4, 66, 3500, 50.00);
+INSERT INTO data.layout_sectors VALUES (67, 1, 67, 450, 30.00);
+INSERT INTO data.layout_sectors VALUES (68, 1, 68, 200, 20.00);
