@@ -1,6 +1,7 @@
 ﻿#include "api_controller.h"
 #include "../models/ticket.h"
-#include "../email.h"
+#include "../email.h"'
+#include "../ticket_pdf.h"
 
 // Помощна функция, обобщаваща действията при получаване на JSON
 json_t* get_json(struct mg_connection* conn) {
@@ -135,8 +136,8 @@ int api_purchase_ticket(struct mg_connection* conn, void* data) {
     strncpy(ticket.email, 
         json_string_value(json_object_get(req, "email")), sizeof(ticket.email) - 1);
     strncpy(ticket.phone, 
-        json_string_value(json_object_get(req, "phone")), sizeof(ticket.phone) - 1);
-        
+        json_string_value(json_object_get(req, "phone")), sizeof(ticket.phone) - 1); 
+
 
     int ticket_id;
     int result = purchase_ticket(db, &ticket, &ticket_id);
@@ -171,8 +172,40 @@ int api_confirm_ticket(struct mg_connection* conn, void* data) {
     json_t* ticket = get_ticket(db, ticket_id);
     if (!ticket) { mg_send_http_error(conn, 404, "Not found"); return 404; }
 
-    printf("%s\n", json_dumps(ticket, JSON_INDENT(2)));
+    const char* token = json_string_value(json_object_get(ticket, "token"));
+    char pdf_path[128];
+    snprintf(pdf_path, sizeof(pdf_path), "tickets/ticket_%s.pdf", token);
 
+    // Проверка има ли вече генериран PDF билет
+    FILE* check = fopen(pdf_path, "rb");
+    if (check) {
+        fclose(check);
+    }
+    else {
+        char html_path[128];
+
+        if (generate_ticket_html(db, ticket_id, html_path) != 0) {
+            mg_send_http_error(conn, 404, "Ticket not found");
+            remove(html_path);
+            return 404;
+        }
+        if (start_pdf_process(token) != 0) {
+            mg_send_http_error(conn, 500, "Failed to generate PDF");
+            remove(html_path);
+            return 500;
+        }
+
+        const char* to = json_string_value(json_object_get(ticket, "email"));
+        char buf[128];
+        snprintf(buf, sizeof(buf), "Билет за %s", json_string_value(json_object_get(ticket, "event_name")));
+        const char* subject = buf;
+
+        send_ticket_email(to, subject, "Вашият билет е прикачен тук.", token);
+
+        remove(html_path);
+
+    }
+    printf("%s\n", json_dumps(ticket, JSON_INDENT(2)));
     return send_json(conn, ticket);
 }
 
@@ -405,7 +438,7 @@ int api_forgot(struct mg_connection* conn, void* data) {
             char link[512];
             snprintf(link, sizeof(link),
                 "<p>Може да смените паролата си като <a href='http://localhost:8080/reset?token=%s'>натиснете тук.</а></p>", token);
-            send_email(email, "Забравена парола", link);
+            send_forgot_email(email, "Забравена парола", link);
             free(token);
         }
     }
