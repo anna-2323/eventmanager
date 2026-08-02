@@ -70,7 +70,8 @@ CREATE TABLE data.tickets (
     last_name varchar(255) NOT NULL,
     email varchar(255) NOT NULL,
     phone varchar(50) NOT NULL,
-    purchased_at timestamp with time zone DEFAULT now()
+    purchased_at timestamp with time zone DEFAULT now(),
+    access_token UUID NOT NULL DEFAULT gen_random_uuid()
 );
 
 CREATE TABLE data.password_resets (
