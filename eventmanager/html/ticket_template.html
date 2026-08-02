@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: sans-serif; padding: 40px; }
+    .ticket { border: 2px solid #333; padding: 20px; max-width: 500px; }
+    h1 { margin: 0 0 4px 0; }
+    .info { color: #555; margin-bottom: 16px; }
+    .sector { font-weight: bold; color: #2c3e50; }
+  </style>
+</head>
+<body>
+  <div class="ticket">
+    <h1>{{EVENT_TITLE}}</h1>
+    <div class="info">{{BEGINS_AT}} - {{VENUE_NAME}}, {{CITY}}</div>
+    <p>{{ADDRESS}}</p>
+    <p class="sector">{{SECTOR_NAME}}</p>
+    <hr>
+    <p>{{FIRST_NAME}} {{LAST_NAME}}</p>
+    <p>{{EMAIL}} - {{PHONE}}</p>
+  </div>
+</body>
+</html>
