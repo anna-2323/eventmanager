@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../util.h"
 #include "view.h"
 
 static char* load_file(const char* path) {
@@ -18,7 +19,7 @@ static char* load_file(const char* path) {
 }
 
 char* view_render(const char* path) {
-    char* tmpl = load_file(path);
+    char* tmpl = read_file_to_string(path);
     if (!tmpl) return _strdup("<h1>Шаблонът не е намерен</h1>");
     return tmpl;
 }

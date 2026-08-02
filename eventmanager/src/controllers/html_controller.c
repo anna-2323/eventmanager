@@ -43,3 +43,4 @@ int html_controller(struct mg_connection* conn, void* data) {
     if (strcmp(uri, "/admin/events") == 0)
         return send_html(conn, "html/admin_events.html");
 }
+

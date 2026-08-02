@@ -1,4 +1,6 @@
 #pragma once
+#include <stdio.h>
+#include <stdlib.h>
 
 #define CHECK_DB(db, ret) \
     if ((db) == NULL) { \
@@ -12,3 +14,6 @@
         PQclear(res); \
         return 0; \
     }
+
+char* read_file_to_string(const char* path);
+int write_string_to_file(const char* path, const char* content);
