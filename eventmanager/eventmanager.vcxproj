@@ -111,7 +111,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NO_SSL</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NO_SSL;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -126,7 +126,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NO_SSL</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NO_SSL;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -138,15 +138,28 @@
   <ItemGroup>
     <ClInclude Include="include\civetweb.h" />
     <ClInclude Include="src\controllers\api_controller.h" />
+    <ClInclude Include="src\controllers\html_controller.h" />
+    <ClInclude Include="src\email.h" />
     <ClInclude Include="src\models\event.h" />
+    <ClInclude Include="src\models\ticket.h" />
     <ClInclude Include="src\models\user.h" />
+    <ClInclude Include="src\session.h" />
+    <ClInclude Include="src\view.h" />
+    <ClInclude Include="util.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\civetweb.c" />
     <ClCompile Include="src\controllers\api_controller.c" />
+    <ClCompile Include="src\controllers\html_controller.c" />
+    <ClCompile Include="src\email.c" />
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\models\event.c" />
+    <ClCompile Include="src\models\ticket.c" />
     <ClCompile Include="src\models\user.c" />
+    <ClCompile Include="src\session.c" />
+    <ClCompile Include="src\ticket_pdf.h" />
+    <ClCompile Include="src\view.c" />
+    <ClCompile Include="util.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\handle_form.inl" />

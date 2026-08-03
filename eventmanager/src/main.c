@@ -1,9 +1,13 @@
 ﻿#include "civetweb.h"
 #include <libpq-fe.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
-#include "controllers/api_controller.h"
+
+#include "controllers/event_api_controller.h"
+#include "controllers/user_api_controller.h"
+#include "controllers/ticket_api_controller.h"
 #include "controllers/html_controller.h"
 #include "session.h"
 
