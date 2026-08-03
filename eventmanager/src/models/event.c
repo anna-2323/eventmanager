@@ -3,9 +3,7 @@
 
 void get_query(const char* search, const char* sort, char** out) {
 	if (search && search[0] != '\0') {
-		*out = malloc(256);
-		strcpy(*out,
-			"SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
+		const char* query = "SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
 			"MIN(ls.price) AS price, "
 			"SUM(ls.capacity) - COUNT(t.id) AS seats_left "
 			"FROM data.events e "
@@ -14,14 +12,14 @@ void get_query(const char* search, const char* sort, char** out) {
 			"JOIN data.layout_sectors ls ON ls.layout_id = l.id "
 			"LEFT JOIN data.tickets t ON t.event_id = e.id AND t.sector_id = ls.id "
 			"WHERE e.title ILIKE '%' || $1 || '%' OR v.venue_name ILIKE '%' || $1 || '%' "
-			"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city;");
+			"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city;";
+		*out = malloc(strlen(query) + 1);
+		strcpy(*out, query);
 		return;
 	}
 	if (sort && sort[0] != '\0') {
 		if (strcmp(sort, "price_asc") == 0) {
-			*out = malloc(256);
-			strcpy(*out,
-				"SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
+			const char* query = "SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
 				"MIN(ls.price) AS price, "
 				"SUM(ls.capacity) - COUNT(t.id) AS seats_left "
 				"FROM data.events e "
@@ -31,13 +29,13 @@ void get_query(const char* search, const char* sort, char** out) {
 				"LEFT JOIN data.tickets t ON t.event_id = e.id AND t.sector_id = ls.id "
 				"WHERE e.begins_at > NOW() "
 				"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city "
-				"ORDER BY e.price ASC;");
+				"ORDER BY e.price ASC;";
+			*out = malloc(strlen(query) + 1);
+			strcpy(*out, query);
 			return;
 		}
 		else if (strcmp(sort, "price_desc") == 0) {
-			*out = malloc(256);
-			strcpy(*out,
-				"SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
+			const char* query = "SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
 				"MIN(ls.price) AS price, "
 				"SUM(ls.capacity) - COUNT(t.id) AS seats_left "
 				"FROM data.events e "
@@ -47,13 +45,13 @@ void get_query(const char* search, const char* sort, char** out) {
 				"LEFT JOIN data.tickets t ON t.event_id = e.id AND t.sector_id = ls.id "
 				"WHERE e.begins_at > NOW() "
 				"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city "
-				"ORDER BY e.price DESC;");
+				"ORDER BY e.price DESC;";
+			*out = malloc(strlen(query) + 1);
+			strcpy(*out, query);
 			return;
 		}
 		else if (strcmp(sort, "recent") == 0) {
-			*out = malloc(256);
-			strcpy(*out,
-				"SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
+			const char* query = "SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
 				"MIN(ls.price) AS price, "
 				"SUM(ls.capacity) - COUNT(t.id) AS seats_left "
 				"FROM data.events e "
@@ -63,13 +61,13 @@ void get_query(const char* search, const char* sort, char** out) {
 				"LEFT JOIN data.tickets t ON t.event_id = e.id AND t.sector_id = ls.id "
 				"WHERE e.begins_at > NOW() "
 				"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city "
-				"ORDER BY e.id DESC;");
+				"ORDER BY e.id DESC;";
+			*out = malloc(strlen(query) + 1);
+			strcpy(*out, query);
 			return;
 		}
 	}
-	*out = malloc(256);
-	strcpy(*out,
-		"SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
+	const char* query = "SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
 		"MIN(ls.price) AS price, "
 		"SUM(ls.capacity) - COUNT(t.id) AS seats_left "
 		"FROM data.events e "
@@ -79,7 +77,9 @@ void get_query(const char* search, const char* sort, char** out) {
 		"LEFT JOIN data.tickets t ON t.event_id = e.id AND t.sector_id = ls.id "
 		"WHERE e.begins_at > NOW() "
 		"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city "
-		"ORDER BY e.begins_at ASC;");
+		"ORDER BY e.begins_at ASC;";
+	*out = malloc(strlen(query) + 1);
+	strcpy(*out, query);
 	return;
 }
 
