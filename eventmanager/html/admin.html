@@ -29,28 +29,7 @@
         <a class="button is-primary" href="/admin/events">Управление на събития</a>
     </main>
 
-    <script type="module">
-        import { header } from '/js/header.js';
-        header();
-    </script>
-    
-    <script>
-        fetch('/api/me')
-            .then(r => r.json())
-            .then(user => {
-                if (!user.logged_in || user.role !== 0) {
-                    document.getElementById('main').innerHTML = `
-                    <section class="section">
-                        <div class="container has-text-centered">
-                            <h1 class="title has-text-danger">Нямате права за достъп до тази страница</h1>
-                            <a class="button is-link" href="/home">Начало</a>
-                        </div>
-                    </section>`;
-                    return;
-                }
-            });
-    </script>
-
+    <script src="/js/pages/admin.js" type="module"></script>
 </body>
 
 </html>

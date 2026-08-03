@@ -38,49 +38,7 @@
         </div>
     </section>
 
-    <script type="module">
-        import { Header } from '/js/header.js';
-        document.getElementById('header').innerHTML = Header('events');
-    </script>
-
-    <script>
-        document.getElementById('submit').addEventListener('click', function () {
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value.trim();
-
-            if (!email || !password) {
-                error.textContent = 'Моля, попълнете всички полета.';
-                error.style.display = 'block';
-                return;
-            }
-
-            fetch(`/api/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            })
-                .then(r => r.json())
-                .then(res => {
-                    if (res.success)
-                        window.location.href = `/home`;
-                    else {
-                        error.textContent = res.error || 'Възникна грешка.';
-                        error.style.display = 'block';
-                    }
-                });
-        });
-
-        document.getElementById('password').addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') document.getElementById('submit').click();
-        });
-
-    </script>
-
-
-    <script type="module">
-        import { header } from '/js/header.js';
-        header();
-    </script>
+    <script src="/js/pages/login.js" type="module"></script>
 </body>
 
 </html>

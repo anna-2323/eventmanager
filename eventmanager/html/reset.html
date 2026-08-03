@@ -36,53 +36,7 @@
         </div>
     </section>
 
-    <script>
-        const params = new URLSearchParams(window.location.search);
-        const token  = params.get('token'); 
-        if (!token) window.location.href = '/home';
-
-        document.getElementById('submit').addEventListener('click', function () {
-            const new_password = document.getElementById('new-password').value.trim();
-            const confirm_password = document.getElementById('confirm-password').value.trim();
-
-            if (!new_password || !confirm_password) {
-                error.textContent = 'Моля, попълнете всички полета.';
-                error.style.display = 'block';
-                return;
-            }
-            else if(new_password != confirm_password) {
-                error.textContent = 'Паролите не съвпадат.';
-                error.style.display = 'block';
-                return;
-            }
-
-            fetch(`/api/reset`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, new_password })
-            })
-                .then(r => r.json())
-                .then(res => {
-                    if (res.success)
-                        window.location.href = `/home`;
-                    else {
-                        error.textContent = res.error || 'Възникна грешка.';
-                        error.style.display = 'block';
-                    }
-                });
-        });
-
-        document.getElementById('confirm-password').addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') document.getElementById('submit').click();
-        });
-
-    </script>
-
-
-    <script type="module">
-        import { header } from '/js/header.js';
-        header();
-    </script>
+    <script src="/js/pages/reset.js" type="module"></script>
 </body>
 
 </html>

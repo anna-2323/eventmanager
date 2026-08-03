@@ -1,8 +1,9 @@
+import { $ } from "../core/dom.js";
 import { checkProfile } from "./auth.js";
 import { search } from "./search.js";
 
 export function header() {
-  document.getElementById("header").innerHTML = `
+  $("#header").innerHTML = `
     <nav class="navbar" role="navigation" aria-label="main navigation">
 
         <div class="navbar-brand">

@@ -31,43 +31,7 @@
         </div>
     </section>
 
-    <script>
-        document.getElementById('submit').addEventListener('click', function () {
-            const email = document.getElementById('email').value.trim();
-
-            if (!email) {
-                error.textContent = 'Моля, попълнете полето.';
-                error.style.display = 'block';
-                return;
-            }
-
-            fetch(`/api/forgot`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
-            })
-                .then(r => r.json())
-                .then(res => {
-                    if (res.success)
-                        window.location.href = `/home`;
-                    else {
-                        error.textContent = res.error || 'Възникна грешка.';
-                        error.style.display = 'block';
-                    }
-                });
-        });
-
-        document.getElementById('email').addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') document.getElementById('submit').click();
-        });
-
-    </script>
-
-
-    <script type="module">
-        import { header } from '/js/header.js';
-        header();
-    </script>
+    <script src="/js/pages/forgot.js" type="module"></script>
 </body>
 
 </html>

@@ -21,29 +21,7 @@
         </div>
     </section>
 
-    <script type="module">
-        import { header } from '/js/header.js';
-        header();
-    </script>
-
-    <script>
-        const ticket_id = window.location.pathname.split('/').pop();
-
-        fetch(`/api/confirmation/${ticket_id}`)
-            .then(r => r.json())
-            .then(t => {
-                document.getElementById('confirmation').innerHTML = `
-                <h1 class="title">Успешна покупка!</h1>
-                <p>Билет № ${t.id}</p>
-                <p><strong>${t.event_name}</strong></p>
-                <p>Дата: <i>${new Date(t.begins_at).toLocaleString('bg-BG')}</i></p>
-                <p>Адрес: <i>${t.venue_name}, ${t.venue_address}</i></p>
-                ${t.sector ? `<p>Сектор: <i>${t.sector}</i></p>` : ''}
-                <p>Имена: <i>${t.first_name} ${t.last_name}</i></p>
-                <a class="button is-link mt-4" href="/events">Към всички събития</a>
-            `;
-            });
-    </script>
+    <script src="/js/pages/confirmation.js" type="module"></script>
 </body>
 
 </html>

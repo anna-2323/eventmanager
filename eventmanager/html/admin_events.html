@@ -37,42 +37,7 @@
         </div>
     </main>
 
-    <script type="module">
-        import { header } from '/js/header.js';
-        header();
-    </script>
-
-    <script>
-        fetch('/api/me')
-            .then(r => r.json())
-            .then(user => {
-                if (!user.logged_in || user.role !== 0) {
-                    document.getElementById('main').innerHTML = `
-                    <section class="section">
-                        <div class="container has-text-centered">
-                            <h1 class="title has-text-danger">Нямате права за достъп до тази страница</h1>
-                            <a class="button is-link" href="/home">Начало</a>
-                        </div>
-                    </section>`;
-                    return;
-                }
-
-                fetch('/api/events?sort=recent')
-                    .then(r => r.json())
-                    .then(events => {
-                        console.log(events);
-                        document.getElementById('events-table').innerHTML = events.map(e => `
-                            <tr>
-                                <td>${e.id}</td>
-                                <td>${e.title}</td>
-                                <td>${new Date(e.begins_at).toLocaleString('bg-BG')}</td>
-                                <td>${e.venue_name}, ${e.city}</td>
-                                <td>${e.seats_left}</td>
-                            </tr>
-                        `).join('');
-                    });
-            });
-    </script>
+    <script src="/js/pages/admin_events.js" type="module"></script>
 </body>
 
 </html>

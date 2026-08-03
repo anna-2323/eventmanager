@@ -37,28 +37,7 @@
         </section>
     </main>
 
-    <script type="module">
-        import { header } from '/js/header.js';
-        import { getEventCard } from '/js/events.js';
-        header();
-
-        // TODO: да се извеждат най-популярните събития
-        fetch('/api/events')
-            .then(r => r.json())
-            .then(events => {
-                document.querySelector('.splide__list').innerHTML = events.map(e => `
-                    <li class="splide__slide">
-                        ${getEventCard(e)}
-                    </li>
-                `).join('');
-                new Splide('.splide', {
-                    type: 'loop',
-                    perPage: 3,
-                    gap: '1rem',
-                }).mount();
-            });
-    </script>
-
+    <script src="/js/pages/home.js" type="module"></script>
 </body>
 
 </html>
