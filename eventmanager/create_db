@@ -114,11 +114,6 @@ ALTER TABLE ONLY data.layout_sectors
 ALTER TABLE ONLY data.layout_sectors
     ADD CONSTRAINT layout_sectors_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES data.sectors(id) ON DELETE CASCADE;
 
-
-INSERT INTO data.users VALUES (2, 1, 'org', 'org', NULL, NULL, NULL, NULL);
-INSERT INTO data.users VALUES (1, 0, 'admin', 'admin', NULL, NULL, NULL, NULL);
-INSERT INTO data.users VALUES (3, 2, 'user', 'user', 'User', 'User', NULL, NULL);
-
 INSERT INTO data.venues VALUES (1, 'Русе', 'Русе Център, пл. "Свобода" 4, 7000 Русе', 'Доходно здание', true);
 INSERT INTO data.venues VALUES (2, 'София', 'БАН IV км., бул. "Асен Йорданов" 1, 1113 София', 'Арена 8888', true);
 INSERT INTO data.venues VALUES (3, 'Бургас', 'Бургас Център, бул. "Демокрация" 94, 8001 Бургас', 'Летен театър', false);
