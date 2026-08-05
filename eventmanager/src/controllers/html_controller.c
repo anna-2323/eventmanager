@@ -40,7 +40,19 @@ int html_controller(struct mg_connection* conn, void* data) {
         return send_html(conn, "html/admin.html");
     if (strcmp(uri, "/admin/users") == 0)
         return send_html(conn, "html/admin_users.html");
+    if (strncmp(uri, "/admin/users/", 13) == 0) {
+        char* end;
+        long user_id = strtol(uri + 13, &end, 10);
+        if (*end == '\0')
+            return send_html(conn, "html/admin_user.html");
+    }
     if (strcmp(uri, "/admin/events") == 0)
         return send_html(conn, "html/admin_events.html");
+    if (strncmp(uri, "/admin/events/", 13) == 0) {
+        char* end;
+        long event_id = strtol(uri + 13, &end, 10);
+        if (*end == '\0')
+            return send_html(conn, "html/admin_event.html");
+    }
 }
 

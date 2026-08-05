@@ -75,5 +75,5 @@ void set_handlers(struct mg_context* ctx) {
     mg_set_request_handler(ctx, "/api/logout", api_logout, db);
     mg_set_request_handler(ctx, "/api/forgot", api_forgot, db);
     mg_set_request_handler(ctx, "/api/reset", api_reset_password, db);
-    mg_set_request_handler(ctx, "/api/profile/**", api_profile, db);
+    mg_set_request_handler(ctx, "/api/profile", api_profile, db);
 }

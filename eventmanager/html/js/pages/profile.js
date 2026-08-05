@@ -60,7 +60,6 @@ $("#change-email-btn").addEventListener("click", () => {
   const password = $("#email-confirm-password").value;
   fetchProfilePatch(
     { email, password },
-    "email",
     "Имейлът е сменен успешно.",
   );
 });
@@ -71,7 +70,6 @@ $("#change-phone-btn").addEventListener("click", () => {
   const password = $("#phone-confirm-password").value;
   fetchProfilePatch(
     { phone, password },
-    "phone",
     "Телефонът е сменен успешно.",
   );
 });
@@ -82,7 +80,6 @@ $("#change-password-btn").addEventListener("click", () => {
   const new_password = $("#new-password").value;
   fetchProfilePatch(
     { current_password, new_password },
-    "password",
     "Паролата е сменена успешно.",
   );
 });
@@ -119,8 +116,8 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-function fetchProfilePatch(json, path, message) {
-  api.users.updateProfile(json, path);
+async function fetchProfilePatch(json, path, message) {
+  const res = await api.users.edit(json);
   if (res.success) {
     localStorage.setItem("success_message", message);
     window.location.reload();
@@ -141,7 +138,7 @@ async function deleteAccount() {
     return;
   }
 
-  const res = await api.users.deleteProfile({ password });
+  const res = await api.users.delete({ password });
   if (res.success) {
     api.auth.logout();
     window.location.href = "/home";
