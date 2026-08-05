@@ -1,5 +1,5 @@
 import { api } from "../core/api.js";
-import { $, show } from "../core/dom.js";
+import { $, show, toPrice } from "../core/dom.js";
 
 export async function loadSeatMap(eventId) {
   const data = await api.events.getSeatMap(eventId);
@@ -52,7 +52,7 @@ function selectSector(sector, sectorPath) {
 
   $("#summary-name").textContent = sector.name;
   $("#summary-price").textContent =
-    `${sector.price.toLocaleString("bg-BG", { style: "currency", currency: "EUR" })}, `;
+    `${toPrice(sector.price)}, `;
   $("#summary-available").textContent = sector.available;
   $("#sector-summary").style.visibility = "visible";
 }

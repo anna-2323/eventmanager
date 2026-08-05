@@ -1,5 +1,5 @@
 import { api } from "../core/api.js";
-import { $ } from "../core/dom.js";
+import { $, toDatetime, toPrice } from "../core/dom.js";
 import { header } from "../components/header.js";
 
 header();
@@ -24,12 +24,11 @@ $("#event").innerHTML = `<div class="box">
                 <p class="is-size-6 has-text-grey mb-3">
                     <span class="icon-text">
                         <span class="icon"><i class="fas fa-clock"></i></span>
-                        <span>${new Date(e.begins_at).toLocaleString("bg-BG")}</span>
+                        <span>${toDatetime(e.begins_at)}</span>
                     </span>
                 </p>
                 <p class="is-size-4 has-text-weight-bold has-text-primary mb-4">
-                    ${e.price.toLocaleString("bg-BG", { style: "currency", currency: "BGN" })}
-                </p>
+                    ${toPrice(e.price)}</p>
                 ${
                   e.seats_left > 0
                     ? `<a class="button is-primary" href="/purchase/${e.id}">Купи билет</a>`
