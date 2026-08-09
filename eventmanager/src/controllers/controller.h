@@ -10,3 +10,4 @@
 json_t* get_json(struct mg_connection* conn);
 int send_json(struct mg_connection* conn, json_t* json);
 int check_role(struct mg_connection* conn, int role);
+void set_result(json_t* res, int result);

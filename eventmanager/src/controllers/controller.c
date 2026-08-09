@@ -32,7 +32,19 @@ int send_json(struct mg_connection* conn, json_t* json) {
 
 int check_role(struct mg_connection* conn, int role) {
     Session* s = get_session(conn);
-    if (s->role == role)
+    if (s && s->role == role)
         return 1;
     return 0;
+}
+
+void set_result(json_t* res, int result)
+{
+    if (result == 1) {
+        json_object_set_new(res, "success", json_true());
+    }
+    else {
+        json_object_set_new(res, "success", json_false());
+        json_object_set_new(res, "error", 
+            json_string("Възникна грешка."));
+    }
 }

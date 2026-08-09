@@ -4,3 +4,4 @@
 
 int api_events(struct mg_connection* conn, void* data);
 int api_event_layout(struct mg_connection* conn, void* data);
+int api_admin_events(struct mg_connection* conn, void* data);
