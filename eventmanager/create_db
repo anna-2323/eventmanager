@@ -9,7 +9,8 @@ CREATE TABLE data.events (
     venue_id integer NOT NULL,
     img_path varchar(225) DEFAULT '/res/default1.png',
     organizer_id integer NOT NULL,
-    uploaded_at timestamp with time zone DEFAULT now()
+    uploaded_at timestamp with time zone DEFAULT now(),
+    verified BOOLEAN DEFAULT false
 );
 
 CREATE TABLE data.users (
@@ -21,7 +22,8 @@ CREATE TABLE data.users (
     first_name varchar(255),
     last_name varchar(255),
     phone varchar(255),
-    deleted_on timestamp with time zone
+    deleted_on timestamp with time zone,
+    active DEFAULT true
 );
 
 CREATE TABLE data.venues (

@@ -6,7 +6,7 @@
 #include <openssl/rand.h>
 #include <openssl/evp.h>
 
-int hash_password(const char* pass, const unsigned char* salt, const unsigned char* hash) {
+static int hash_password(const char* pass, const unsigned char* salt, const unsigned char* hash) {
 	return PKCS5_PBKDF2_HMAC(
 		pass,
 		strlen(pass),
@@ -19,7 +19,7 @@ int hash_password(const char* pass, const unsigned char* salt, const unsigned ch
 	);
 }
 
-int check_password(const char* stored_hash, const char* salt, int hash_len, int salt_len, const char* password) {
+static int check_password(const char* stored_hash, const char* salt, int hash_len, int salt_len, const char* password) {
 	unsigned char computed_hash[32];
 	hash_password(password, salt, computed_hash);
 	// CRYPTO_memcp вместо memcp за защита на хешираната парола 
@@ -59,7 +59,7 @@ json_t* get_user(PGconn* db, int id) {
 	CHECK_DB(db, NULL);
 
 	char* sql =
-		"SELECT email, first_name, last_name, phone, role, deleted_on "
+		"SELECT email, first_name, last_name, phone, role, deleted_on, active::int "
 		"FROM data.users "
 		"WHERE id = $1; ";
 	char* id_str[16];
@@ -80,6 +80,7 @@ json_t* get_user(PGconn* db, int id) {
 	strncpy(u.phone, PQgetvalue(res, 0, 3), 255);
 	u.role = atoi(PQgetvalue(res, 0, 4));
 	strncpy(u.deleted_on, PQgetvalue(res, 0, 5), 255);
+	u.active = atoi(PQgetvalue(res, 0, 6));
 
 	PQclear(res);
 	return user_to_json(&u);
@@ -230,21 +231,41 @@ json_t* add_user(PGconn* db, const char* fname, const char* lname,
 	return user_to_json(&u);
 }
 
-int update_user(PGconn* db, const char* sql, int user_id, const char* password, const char* param) {
+int update_user(PGconn* db, const char* sql, int user_id, const char* param) {
 	CHECK_DB(db, 0);
-
-	int verified = verify_password(db, user_id, password);
-	if (verified <= 0) return verified;
 
 	char id_str[16];
 	snprintf(id_str, sizeof(id_str), "%d", user_id);
 	const char* params[2] = { param, id_str };
 
 	PGresult* res = PQexecParams(db, sql, 2, NULL, params, NULL, NULL, 0);
-	CHECK_QUERY(res, db, 0);
+	CHECK_UPDATE_QUERY(res, db, 0);
 
 	PQclear(res);
 	return 1;
+}
+
+int admin_update_email(PGconn* db, int user_id, const char* email) {
+	char sql[255] = "UPDATE data.users SET email = $1 WHERE id = $2";
+	return update_user(db, sql, user_id, email);
+}
+
+int admin_update_phone(PGconn* db, int user_id, const char* phone) {
+	char sql[255] = "UPDATE data.users SET phone = $1 WHERE id = $2";
+	return update_user(db, sql, user_id, phone);
+}
+
+int admin_update_role(PGconn* db, int user_id, const char* role) {
+	char sql[255] = "UPDATE data.users SET role = $1 WHERE id = $2";
+	return update_user(db, sql, user_id, role);
+}
+
+int admin_update_name(PGconn* db, int user_id, const char* first_name, const char* last_name) {
+	char sql1[255] = "UPDATE data.users SET first_name = $1 WHERE id = $2";
+	int res = update_user(db, sql1, user_id, first_name);
+	if (!res) return res;
+	char sql2[255] = "UPDATE data.users SET last_name = $1 WHERE id = $2";
+	return update_user(db, sql2, user_id, last_name);
 }
 
 // Не може да се използва общия update_user в случай на паролата
@@ -268,7 +289,7 @@ int update_password(PGconn* db, int user_id, const char* current_password,
 	char sql[255] = "UPDATE data.users SET password_hash = $1, salt = $2 WHERE id = $3";
 	// 1 = двоична стойност
 	PGresult* res = PQexecParams(db, sql, 3, NULL, params, lenghts, formats, 0);
-	CHECK_QUERY(res, db, 0);
+	CHECK_UPDATE_QUERY(res, db, 0);
 
 	PQclear(res);
 	return 1;
@@ -277,13 +298,21 @@ int update_password(PGconn* db, int user_id, const char* current_password,
 int update_email(PGconn* db, int user_id, const char* password,
 	const char* email) {
 	char sql[255] = "UPDATE data.users SET email = $1 WHERE id = $2";
-	return update_user(db, sql, user_id, password, email);
+
+	int verified = verify_password(db, user_id, password);
+	if (!verified) return verified;
+
+	return update_user(db, sql, user_id, email);
 }
 
 int update_phone(PGconn* db, int user_id, const char* password,
 	const char* phone) {
 	char sql[255] = "UPDATE data.users SET phone = $1 WHERE id = $2";
-	return update_user(db, sql, user_id, password, phone);
+
+	int verified = verify_password(db, user_id, password);
+	if (!verified) return verified;
+
+	return update_user(db, sql, user_id, phone);
 }
 
 int soft_delete_user(PGconn* db, int user_id, const char* password) {
@@ -300,8 +329,55 @@ int soft_delete_user(PGconn* db, int user_id, const char* password) {
 	PGresult* res = PQexecParams(db,
 		"UPDATE data.users SET deleted_on = NOW() WHERE id = $1",
 		1, NULL, params, NULL, NULL, 0);
-	CHECK_QUERY(res, db, 0);
+	CHECK_UPDATE_QUERY(res, db, 0);
 
+	PQclear(res);
+	return 1;
+}
+
+int deactivate_user(PGconn* db, int user_id) {
+	CHECK_DB(db, 0);
+
+	char id_str[16];
+	snprintf(id_str, sizeof(id_str), "%d", user_id);
+	const char* params[1] = { id_str };
+	
+	PGresult* res = PQexecParams(db,
+		"UPDATE data.users SET active = FALSE WHERE id = $1",
+		1, NULL, params, NULL, NULL, 0);
+	CHECK_UPDATE_QUERY(res, db, 0);
+
+	PQclear(res);
+	return 1;
+}
+
+int activate_user(PGconn* db, int user_id) {
+	CHECK_DB(db, 0);
+
+	char id_str[16];
+	snprintf(id_str, sizeof(id_str), "%d", user_id);
+	const char* params[1] = { id_str };
+
+	PGresult* res = PQexecParams(db,
+		"UPDATE data.users SET active = TRUE WHERE id = $1",
+		1, NULL, params, NULL, NULL, 0);
+	CHECK_UPDATE_QUERY(res, db, 0);
+
+	PQclear(res);
+	return 1;
+}
+
+int delete_user(PGconn* db, int user_id) {
+	CHECK_DB(db, 0);
+
+	char id_str[16];
+	snprintf(id_str, sizeof(id_str), "%d", user_id);
+	const char* params[1] = { id_str };
+
+	char sql[255] = "DELETE FROM data.users "
+		"WHERE id = $1 ";
+	PGresult* res = PQexecParams(db, sql, 1, NULL, params, NULL, NULL, 0);
+	CHECK_UPDATE_QUERY(res, db, 0);
 	PQclear(res);
 	return 1;
 }
@@ -428,5 +504,7 @@ json_t* user_to_json(User* u) {
 	json_object_set_new(obj, "last_name", json_string(u->last_name));
 	json_object_set_new(obj, "phone", json_string(u->phone));
 	json_object_set_new(obj, "role", json_integer(u->role));
+	json_object_set_new(obj, "deleted_on", json_string(u->deleted_on));
+	json_object_set_new(obj, "active", json_integer(u->active));
 	return obj;
 }
