@@ -6,7 +6,7 @@ async function request(path = {}, options = {}) {
     ...options,
     credentials: 'include',
   });
-  if (!res.ok) throw new Error(`API error ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw new Error(`${await res.text()}`);
   return res.status === 204 ? null : res.json();
 }
 
@@ -43,12 +43,15 @@ export const api = {
     users: {
       list: () => request('/admin/users'),
       get: (id) => request(`/admin/users/${id}`),
-      // edit: (id, data) => request(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-      // delete: (id) => request(`/admin/users/${id}`, { method: 'DELETE' })
+      events: (id) => request(`/admin/users/${id}/events`),
+      edit: (id, data) => request(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+      delete: (id) => request(`/admin/users/${id}`, { method: 'DELETE' })
     },
     events: {
       list: () => request('/admin/events'),
-      // get: (id) => request(`/admin/events/${id}`)
+      get: (id) => request(`/admin/events/${id}`),
+      edit: (id, data) => request(`/admin/events/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+      delete: (id) => request(`/admin/events/${id}`, { method: 'DELETE' })
     },
   },
 };

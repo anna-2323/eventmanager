@@ -19,22 +19,20 @@ export function userCard(u) {
                                 <td id="user-phone">${u.phone}</td>
                             </tr>
                             <tr><th>Роля</th>
-                                <td><span id="user-role" class="tag is-warning">
-                                        ${u.role == 2 ? "Потребител" : u.role == 1 ? "Организатор" : "Администратор"}
-                                    </span>
+                                <td>
+                                    ${u.role == 2 ? "Потребител" : u.role == 1 ? "Организатор" : "Администратор"}
                                 </td>
                             </tr>
                             <tr><th>Статус</th>
-                                <td><span id="user-status" class="tag is-success">
-                                        ${u.active ? "Активен" : "Деактивиран"}
-                                    </span>
+                                <td>
+                                    ${u.active ? "Активен" : "Деактивиран"}
                                 </td>
                             </tr>
                             <tr>
                                 <th>За изтриване</th>
-                                <td><span id="user-delete" class="tag is-light">
-                                        ${u.deleted_on ? `${toDate(u.deleted_on)}` : "Не"}
-                                    </span>
+                                <td>${u.deleted_on ?
+                                            `<span style='color:#ff6685;'>${toDate(u.deleted_on)}</span>` :
+                                            "Не"}
                                 </td>
                             </tr>
                         </tbody>

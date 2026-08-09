@@ -1,0 +1,7 @@
+#users-table tr.to-delete td {
+    color: rgb(133, 0, 0);
+}
+
+.sortable:hover {
+    cursor: pointer;
+}
