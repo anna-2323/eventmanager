@@ -23,8 +23,8 @@ export const api = {
   events: {
     list: (params) => request('/events' + toQuery(params)),
     get: (id) => request(`/events/${id}`),
-    getSeatMap: (id) => request(`/events/layout/${id}`),
-    // create: (data) => request('/events', { method: 'POST', body: JSON.stringify(data) }),
+    getSeatMap: (id) => request(`/events/seatmap/${id}`),
+    create: (data) => request('/events', { method: 'POST', body: JSON.stringify(data) }),
     // edit: (id, data) => request(`/events/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     // delete: (id) => request(`/events/${id}`, { method: 'DELETE' })
   },

@@ -10,6 +10,7 @@ export async function loadSeatMap(eventId) {
     return;
   }
 
+  show($("#event-layout-label"));
   show($("#event-layout-field"));
 
   const svg = $("#seat-map");

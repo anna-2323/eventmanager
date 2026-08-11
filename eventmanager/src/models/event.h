@@ -26,7 +26,7 @@ typedef struct {
 
 int get_events(PGconn* db, const char* search, const char* sort, json_t* out);
 json_t* get_event(PGconn* db, int id);
-json_t* get_event_layout(PGconn* db, int id);
+json_t* get_event_seatmap(PGconn* db, int id);
 json_t* get_user_events(PGconn* db, int id);
 
 int admin_update_title(PGconn* db, int id, const char* title);

@@ -32,16 +32,8 @@ CREATE TABLE data.venues (
     address varchar(255) NOT NULL,
     venue_name varchar(255) NOT NULL,
     has_sectors boolean DEFAULT false
-);
-
-CREATE TABLE data.layouts (
-    id serial primary key,
-    venue_id integer,
-    layout_id integer,
-    name character varying(100),
-    svg_viewbox character varying(50) DEFAULT '0 0 800 600'::character varying,
     background_svg text,
-    UNIQUE (venue_id, layout_id)
+    viewbox varchar(50)
 );
 
 CREATE TABLE data.sectors (
@@ -54,14 +46,24 @@ CREATE TABLE data.sectors (
     UNIQUE (venue_id, name)
 );
 
-CREATE TABLE data.layout_sectors (
-    id serial primary key,
-    layout_id integer NOT NULL,
-    sector_id integer NOT NULL,
-    capacity integer NOT NULL,
-    price numeric(10,2) DEFAULT 0 NOT NULL,
-    CONSTRAINT layout_sectors_capacity_check CHECK ((capacity > 0)),
-    UNIQUE (layout_id, sector_id)
+CREATE TABLE data.event_sectors (
+    event_id   INTEGER NOT NULL,
+    sector_id  INTEGER NOT NULL,
+    price      NUMERIC(10, 2) NOT NULL,
+    capacity   INTEGER NOT NULL,
+
+    PRIMARY KEY (event_id, sector_id),
+
+    FOREIGN KEY (event_id)
+        REFERENCES data.events(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (sector_id)
+        REFERENCES data.sectors(id)
+        ON DELETE RESTRICT,
+
+    CHECK (price >= 0),
+    CHECK (capacity > 0)
 );
 
 CREATE TABLE data.tickets (
@@ -104,9 +106,6 @@ ALTER TABLE ONLY data.tickets
 ALTER TABLE ONLY data.password_resets
     ADD CONSTRAINT resets_user_id_fkey FOREIGN KEY (user_id) REFERENCES data.users(id);
 
-ALTER TABLE ONLY data.layouts
-    ADD CONSTRAINT venue_layouts_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES data.venues(id);
-
 ALTER TABLE ONLY data.sectors
     ADD CONSTRAINT sectors_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES data.venues(id) ON DELETE CASCADE;
 
@@ -116,8 +115,8 @@ ALTER TABLE ONLY data.layout_sectors
 ALTER TABLE ONLY data.layout_sectors
     ADD CONSTRAINT layout_sectors_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES data.sectors(id) ON DELETE CASCADE;
 
-INSERT INTO data.venues VALUES (1, 'Русе', 'Русе Център, пл. "Свобода" 4, 7000 Русе', 'Доходно здание', true);
-INSERT INTO data.venues VALUES (2, 'София', 'БАН IV км., бул. "Асен Йорданов" 1, 1113 София', 'Арена 8888', true);
+INSERT INTO data.venues VALUES (1, 'Русе', 'Русе Център, пл. "Свобода" 4, 7000 Русе', 'Доходно здание', true, '<rect id="Stage" x="213" y="498" width="174" height="61" fill="#D9D9D9"/>', '100 100 500 500');
+INSERT INTO data.venues VALUES (2, 'София', 'БАН IV км., бул. "Асен Йорданов" 1, 1113 София', 'Арена 8888', true, '<rect id="Stage" x="199" y="242" width="197" height="308" fill="#CECECE"/>', '-25 75 650 650');
 INSERT INTO data.venues VALUES (3, 'Бургас', 'Бургас Център, бул. "Демокрация" 94, 8001 Бургас', 'Летен театър', false);
 INSERT INTO data.venues VALUES (4, 'София', 'кв. Хладилника, бул. „Черни връх“ 100, Парадайс център, ет. 3, 1407 София', 'Sofia Event Center', false);
 
@@ -127,11 +126,6 @@ INSERT INTO data.events VALUES (3, 'Концерт', '2026-09-30 18:30:00+03', 3
 INSERT INTO data.events VALUES (2, 'Спортно събитие', '2026-09-25 16:00:00+03', 2, '/res/default4.png', 1, '2026-07-10 20:44:44.609386+03', 2);
 INSERT INTO data.events VALUES (6, 'Концерт 2', '2026-09-01 22:00:00+03', 2, '/res/default1.png', 2, '2026-07-15 19:29:13.738298+03', 2);
 INSERT INTO data.events VALUES (1, 'Театрална постановка', '2026-09-20 20:30:00+03', 1, '/res/default3.png', 2, '2026-05-15 15:30:00+03', 1);
-
-INSERT INTO data.layouts VALUES (2, 2, 1, 'Арена 8888 - спорт', '0 90 800 600', '<rect id="Stage" x="199" y="242" width="197" height="308" fill="#CECECE"/>');
-INSERT INTO data.layouts VALUES (3, 3, 1, 'N/A', NULL, NULL);
-INSERT INTO data.layouts VALUES (4, 4, 1, 'N/A', NULL, NULL);
-INSERT INTO data.layouts VALUES (1, 1, 1, '"Голяма зала"', '0 90 800 600', '<rect id="Stage" x="213" y="498" width="174" height="61" fill="#D9D9D9"/>');
 
 INSERT INTO data.sectors VALUES (2, 2, 'VIP', 0, 'M90.5 322.5V469.5H66.5V322.5H90.5Z', '#F0E442');
 INSERT INTO data.sectors VALUES (3, 2, 'A.1.1', 1, 'M136 280V258H168V280H136Z', '#E69F00');
@@ -199,69 +193,71 @@ INSERT INTO data.sectors VALUES (66, 4, 'N/A', 1, NULL, NULL);
 INSERT INTO data.sectors VALUES (67, 1, 'Балкон', 1, 'M167 225V167H432V225H167Z', '#E69F00');
 INSERT INTO data.sectors VALUES (68, 1, 'Партер', 1, 'M159 371V272H440V371L381.5 472.325H217.5L159 371Z', '#0072B2');
 
+INSERT INTO data.event_sectors VALUES (3, 65, 15.00, 2150);
+INSERT INTO data.event_sectors VALUES (5, 65, 20.00, 2150);
+INSERT INTO data.event_sectors VALUES (7, 65, 25.00, 2100);
+INSERT INTO data.event_sectors VALUES (1, 67, 30.00, 450);
+INSERT INTO data.event_sectors VALUES (1, 68, 20.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 44, 80.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 45, 80.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 46, 80.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 47, 80.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 48, 80.00, 75);
+INSERT INTO data.event_sectors VALUES (2, 49, 70.00, 125);
+INSERT INTO data.event_sectors VALUES (2, 50, 70.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 51, 70.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 52, 70.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 53, 70.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 54, 70.00, 125);
+INSERT INTO data.event_sectors VALUES (2, 55, 70.00, 75);
+INSERT INTO data.event_sectors VALUES (2, 56, 70.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 57, 70.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 58, 70.00, 75);
+INSERT INTO data.event_sectors VALUES (2, 59, 70.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 60, 70.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 61, 70.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 62, 70.00, 200);
+INSERT INTO data.event_sectors VALUES (4, 66, 50.00, 3500);
+INSERT INTO data.event_sectors VALUES (2, 2, 200.00, 150);
+INSERT INTO data.event_sectors VALUES (2, 3, 80.00, 60);
+INSERT INTO data.event_sectors VALUES (2, 4, 80.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 5, 80.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 6, 80.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 7, 80.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 8, 80.00, 60);
+INSERT INTO data.event_sectors VALUES (2, 9, 80.00, 60);
+INSERT INTO data.event_sectors VALUES (2, 10, 80.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 11, 80.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 12, 80.00, 60);
+INSERT INTO data.event_sectors VALUES (2, 13, 70.00, 60);
+INSERT INTO data.event_sectors VALUES (2, 14, 70.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 15, 70.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 16, 70.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 17, 70.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 18, 70.00, 60);
+INSERT INTO data.event_sectors VALUES (2, 19, 80.00, 60);
+INSERT INTO data.event_sectors VALUES (2, 20, 80.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 21, 80.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 22, 80.00, 60);
+INSERT INTO data.event_sectors VALUES (2, 23, 80.00, 75);
+INSERT INTO data.event_sectors VALUES (2, 24, 80.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 25, 80.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 26, 80.00, 75);
+INSERT INTO data.event_sectors VALUES (2, 27, 80.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 28, 80.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 29, 80.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 30, 80.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 31, 80.00, 75);
+INSERT INTO data.event_sectors VALUES (2, 32, 80.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 33, 80.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 34, 80.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 35, 80.00, 200);
+INSERT INTO data.event_sectors VALUES (2, 36, 80.00, 75);
+INSERT INTO data.event_sectors VALUES (2, 37, 70.00, 125);
+INSERT INTO data.event_sectors VALUES (2, 38, 70.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 39, 70.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 40, 70.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 41, 70.00, 250);
+INSERT INTO data.event_sectors VALUES (2, 42, 70.00, 125);
+INSERT INTO data.event_sectors VALUES (2, 43, 80.00, 75);
 
-INSERT INTO data.layout_sectors VALUES (1, 2, 2, 150, 200.00);
-INSERT INTO data.layout_sectors VALUES (2, 2, 3, 60, 80.00);
-INSERT INTO data.layout_sectors VALUES (3, 2, 4, 250, 80.00);
-INSERT INTO data.layout_sectors VALUES (4, 2, 5, 250, 80.00);
-INSERT INTO data.layout_sectors VALUES (5, 2, 6, 250, 80.00);
-INSERT INTO data.layout_sectors VALUES (6, 2, 7, 250, 80.00);
-INSERT INTO data.layout_sectors VALUES (7, 2, 8, 60, 80.00);
-INSERT INTO data.layout_sectors VALUES (8, 2, 9, 60, 80.00);
-INSERT INTO data.layout_sectors VALUES (9, 2, 10, 250, 80.00);
-INSERT INTO data.layout_sectors VALUES (10, 2, 11, 250, 80.00);
-INSERT INTO data.layout_sectors VALUES (11, 2, 12, 60, 80.00);
-INSERT INTO data.layout_sectors VALUES (12, 2, 13, 60, 70.00);
-INSERT INTO data.layout_sectors VALUES (13, 2, 14, 250, 70.00);
-INSERT INTO data.layout_sectors VALUES (14, 2, 15, 250, 70.00);
-INSERT INTO data.layout_sectors VALUES (15, 2, 16, 250, 70.00);
-INSERT INTO data.layout_sectors VALUES (16, 2, 17, 250, 70.00);
-INSERT INTO data.layout_sectors VALUES (17, 2, 18, 60, 70.00);
-INSERT INTO data.layout_sectors VALUES (18, 2, 19, 60, 80.00);
-INSERT INTO data.layout_sectors VALUES (19, 2, 20, 250, 80.00);
-INSERT INTO data.layout_sectors VALUES (20, 2, 21, 250, 80.00);
-INSERT INTO data.layout_sectors VALUES (21, 2, 22, 60, 80.00);
-INSERT INTO data.layout_sectors VALUES (22, 2, 23, 75, 80.00);
-INSERT INTO data.layout_sectors VALUES (23, 2, 24, 200, 80.00);
-INSERT INTO data.layout_sectors VALUES (24, 2, 25, 200, 80.00);
-INSERT INTO data.layout_sectors VALUES (25, 2, 26, 75, 80.00);
-INSERT INTO data.layout_sectors VALUES (26, 2, 27, 200, 80.00);
-INSERT INTO data.layout_sectors VALUES (27, 2, 28, 200, 80.00);
-INSERT INTO data.layout_sectors VALUES (28, 2, 29, 200, 80.00);
-INSERT INTO data.layout_sectors VALUES (29, 2, 30, 200, 80.00);
-INSERT INTO data.layout_sectors VALUES (30, 2, 31, 75, 80.00);
-INSERT INTO data.layout_sectors VALUES (31, 2, 32, 200, 80.00);
-INSERT INTO data.layout_sectors VALUES (32, 2, 33, 200, 80.00);
-INSERT INTO data.layout_sectors VALUES (33, 2, 34, 200, 80.00);
-INSERT INTO data.layout_sectors VALUES (34, 2, 35, 200, 80.00);
-INSERT INTO data.layout_sectors VALUES (35, 2, 36, 75, 80.00);
-INSERT INTO data.layout_sectors VALUES (36, 2, 37, 125, 70.00);
-INSERT INTO data.layout_sectors VALUES (37, 2, 38, 250, 70.00);
-INSERT INTO data.layout_sectors VALUES (38, 2, 39, 250, 70.00);
-INSERT INTO data.layout_sectors VALUES (39, 2, 40, 250, 70.00);
-INSERT INTO data.layout_sectors VALUES (40, 2, 41, 250, 70.00);
-INSERT INTO data.layout_sectors VALUES (41, 2, 42, 125, 70.00);
-INSERT INTO data.layout_sectors VALUES (42, 2, 43, 75, 80.00);
-INSERT INTO data.layout_sectors VALUES (43, 2, 44, 200, 80.00);
-INSERT INTO data.layout_sectors VALUES (44, 2, 45, 200, 80.00);
-INSERT INTO data.layout_sectors VALUES (45, 2, 46, 200, 80.00);
-INSERT INTO data.layout_sectors VALUES (46, 2, 47, 200, 80.00);
-INSERT INTO data.layout_sectors VALUES (47, 2, 48, 75, 80.00);
-INSERT INTO data.layout_sectors VALUES (48, 2, 49, 125, 70.00);
-INSERT INTO data.layout_sectors VALUES (49, 2, 50, 250, 70.00);
-INSERT INTO data.layout_sectors VALUES (50, 2, 51, 250, 70.00);
-INSERT INTO data.layout_sectors VALUES (51, 2, 52, 250, 70.00);
-INSERT INTO data.layout_sectors VALUES (52, 2, 53, 250, 70.00);
-INSERT INTO data.layout_sectors VALUES (53, 2, 54, 125, 70.00);
-INSERT INTO data.layout_sectors VALUES (54, 2, 55, 75, 70.00);
-INSERT INTO data.layout_sectors VALUES (55, 2, 56, 200, 70.00);
-INSERT INTO data.layout_sectors VALUES (56, 2, 57, 200, 70.00);
-INSERT INTO data.layout_sectors VALUES (57, 2, 58, 75, 70.00);
-INSERT INTO data.layout_sectors VALUES (58, 2, 59, 200, 70.00);
-INSERT INTO data.layout_sectors VALUES (59, 2, 60, 200, 70.00);
-INSERT INTO data.layout_sectors VALUES (60, 2, 61, 200, 70.00);
-INSERT INTO data.layout_sectors VALUES (61, 2, 62, 200, 70.00);
-INSERT INTO data.layout_sectors VALUES (64, 3, 65, 2150, 15.00);
-INSERT INTO data.layout_sectors VALUES (66, 4, 66, 3500, 50.00);
-INSERT INTO data.layout_sectors VALUES (67, 1, 67, 450, 30.00);
-INSERT INTO data.layout_sectors VALUES (68, 1, 68, 200, 20.00);

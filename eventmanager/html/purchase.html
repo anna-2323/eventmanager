@@ -9,6 +9,17 @@
     <link rel="stylesheet" href="/res/style.css" />
     <link rel="stylesheet" href="/res/purchase.css" />
 </head>
+    <style>
+        #event-layout-field {
+            display: flex !important;
+        }
+        #seat-map {
+            width: 50%;
+            border: 1px solid #d6d9e0;
+            border-radius: 10px;
+            margin: 0 10px;
+        }
+    </style>
 
 <body>
 
@@ -43,6 +54,7 @@
                         <input class="input" type="tel" id="phone">
                     </div>
                 </div>
+                <label id="event-layout-label" class="label" style="display:none;">Избор на сектор</label>
                 <div id="event-layout-field" style="display:none;">
                     <svg id="seat-map">
                     </svg>
