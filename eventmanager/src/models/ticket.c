@@ -34,11 +34,14 @@ int purchase_ticket(PGconn* db, TicketData* data, int* ticket_id_out) {
 
     // Проверка дали има места за това събитие и за тази категория места
     PGresult* res = PQexecParams(db,
-        "SELECT ls.capacity - COUNT(t.id) "
-        "FROM data.layout_sectors ls "
-        "LEFT JOIN data.tickets t ON t.event_id = $1 AND t.sector_id = ls.id "
-        "WHERE ls.id = $2 "
-        "GROUP BY ls.capacity; ",
+        "SELECT es.capacity - COUNT(t.id) "
+        "FROM data.event_sectors es "
+        "LEFT JOIN data.tickets t "
+        "    ON t.event_id = es.event_id "
+        "   AND t.sector_id = es.sector_id "
+        "WHERE es.event_id = $1 "
+        "  AND es.sector_id = $2 "
+        "GROUP BY es.capacity;",
         2, NULL, check_params, NULL, NULL, 0);
     if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0) {
         PQclear(res);
@@ -95,15 +98,17 @@ json_t* get_ticket(PGconn* db, int ticket_id) {
 
     PGresult* res = PQexecParams(db,
         "SELECT e.title, e.begins_at, v.venue_name, v.city, v.address, "
-        "t.first_name, t.last_name, t.email, t.phone, t.access_token, "
-        "CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name "
+        "       t.first_name, t.last_name, t.email, t.phone, t.access_token, "
+        "       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name "
         "FROM data.tickets t "
         "JOIN data.events e ON t.event_id = e.id "
         "JOIN data.venues v ON e.venue_id = v.id "
-        "JOIN data.layouts l ON e.layout_id = l.id "
-        "JOIN data.layout_sectors ls ON t.sector_id = ls.id "
-        "JOIN data.sectors s ON ls.sector_id = s.id "
-        "WHERE t.id = $1; ",
+        "LEFT JOIN data.event_sectors es "
+        "    ON es.event_id = t.event_id "
+        "   AND es.sector_id = t.sector_id "
+        "LEFT JOIN data.sectors s "
+        "    ON s.id = t.sector_id "
+        "WHERE t.id = $1;",
         1, NULL, params, NULL, NULL, 0);
     CHECK_QUERY(res, db, NULL);
 
@@ -130,17 +135,15 @@ json_t* get_ticket(PGconn* db, int ticket_id) {
     return ticket;
 }
 
-int generate_ticket_html(PGconn* db, int ticket_id, const char* out_path) {
+int generate_ticket_html(PGconn* db, int ticket_id, const char* qr_path, char* out_path, size_t out_size) {
     const char* sql =
         "SELECT e.title, e.begins_at, v.venue_name, v.city, v.address, "
-        "t.first_name, t.last_name, t.email, t.phone, t.access_token, "
-        "CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name "
+        "       t.first_name, t.last_name, t.email, t.phone, t.access_token, "
+        "       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name "
         "FROM data.tickets t "
         "JOIN data.events e ON t.event_id = e.id "
         "JOIN data.venues v ON e.venue_id = v.id "
-        "JOIN data.layouts l ON e.layout_id = l.id "
-        "JOIN data.layout_sectors ls ON t.sector_id = ls.id "
-        "JOIN data.sectors s ON ls.sector_id = s.id "
+        "LEFT JOIN data.sectors s ON s.id = t.sector_id "
         "WHERE t.id = $1;";
 
     char id_str[16];
@@ -157,7 +160,18 @@ int generate_ticket_html(PGconn* db, int ticket_id, const char* out_path) {
     char* html = read_file_to_string("html/ticket_template.html");
     if (!html) { PQclear(res); return 1; }
 
-    const char* fields[10][2] = {
+    const char* token = PQgetvalue(res, 0, 9);
+
+    char qr_relative_path[128];
+    snprintf(qr_relative_path, sizeof(qr_relative_path),
+        "qr/%s.svg", token);
+
+    char qr_html[256];
+    snprintf(qr_html, sizeof(qr_html),
+        "<img src=\"%s\" alt=\"QR Code\">",
+        qr_relative_path);
+
+    const char* fields[11][2] = {
         { "{{EVENT_TITLE}}", PQgetvalue(res, 0, 0) },
         { "{{BEGINS_AT}}",   PQgetvalue(res, 0, 1) },
         { "{{VENUE_NAME}}",  PQgetvalue(res, 0, 2) },
@@ -167,13 +181,11 @@ int generate_ticket_html(PGconn* db, int ticket_id, const char* out_path) {
         { "{{LAST_NAME}}",   PQgetvalue(res, 0, 6) },
         { "{{EMAIL}}",       PQgetvalue(res, 0, 7) },
         { "{{PHONE}}",       PQgetvalue(res, 0, 8) },
-        { "{{SECTOR_NAME}}", PQgetisnull(res, 0, 10) ? "" : PQgetvalue(res, 0, 10) }
+        { "{{SECTOR_NAME}}", PQgetisnull(res, 0, 10) ? "" : PQgetvalue(res, 0, 10) },
+        { "{{QR_CODE}}",     qr_html }
     };
 
-    char token[37];
-    snprintf(token, sizeof(token), PQgetvalue(res, 0, 9));
-
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 11; i++) {
         char* replaced = replace_placeholder(html, fields[i][0], fields[i][1]);
         free(html);
         html = replaced;

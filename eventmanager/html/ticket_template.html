@@ -8,6 +8,7 @@
     h1 { margin: 0 0 4px 0; }
     .info { color: #555; margin-bottom: 16px; }
     .sector { font-weight: bold; color: #2c3e50; }
+    .qr-code { text-align: center; }
   </style>
 </head>
 <body>
@@ -19,6 +20,9 @@
     <hr>
     <p>{{FIRST_NAME}} {{LAST_NAME}}</p>
     <p>{{EMAIL}} - {{PHONE}}</p>
+    <div class="qr-code">
+      {{QR_CODE}}
+    </div>
   </div>
 </body>
 </html>

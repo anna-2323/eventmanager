@@ -6,7 +6,11 @@ int start_pdf_process(const char* token) {
     char html_path[128], pdf_path[128], cmd[512];
     snprintf(html_path, sizeof(html_path), "tickets/ticket_%s.html", token);
     snprintf(pdf_path, sizeof(pdf_path), "tickets/ticket_%s.pdf", token);
-    snprintf(cmd, sizeof(cmd), "wkhtmltopdf \"./%s\" \"%s\"", html_path, pdf_path);
+    // Програмата се извиква чрез команден интерфейс
+    // Аргументът --enable-local-file-access е необходим, за да има достъп до QR кода
+    snprintf(cmd, sizeof(cmd),
+        "wkhtmltopdf --enable-local-file-access \"%s\" \"%s\"",
+        html_path, pdf_path);
 
     STARTUPINFOA si = { 0 };
     PROCESS_INFORMATION pi = { 0 };

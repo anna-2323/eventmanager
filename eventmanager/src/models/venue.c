@@ -66,7 +66,7 @@ json_t* get_sectors(PGconn* db, int venue_id) {
     CHECK_DB(db, NULL);
 
     const char* sql =
-        "SELECT s.name "
+        "SELECT s.id, s.name "
         "FROM data.sectors s "
         "WHERE s.venue_id = $1;";
 
@@ -81,10 +81,12 @@ json_t* get_sectors(PGconn* db, int venue_id) {
 
     int count = PQntuples(res);
     for (int i = 0; i < count; i++) {
-        json_array_append_new(
-            sectors,
-            json_string(PQgetvalue(res, i, 0))
-        );
+        json_t* s = json_object();
+        json_object_set_new(s, "id",
+            json_integer(atoi(PQgetvalue(res, i, 0))));
+        json_object_set_new(s, "name",
+            json_string(PQgetvalue(res, i, 1)));
+        json_array_append_new(sectors, s);
     }
 
     PQclear(res);

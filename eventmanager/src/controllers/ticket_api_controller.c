@@ -2,6 +2,7 @@
 #include "ticket_api_controller.h"
 #include "../email.h"
 #include "../ticket_pdf.h"
+#include "../qrcode.h"
 
 // POST /api/purchase/{event_id}
 int api_purchase_ticket(struct mg_connection* conn, void* data) {
@@ -21,7 +22,6 @@ int api_purchase_ticket(struct mg_connection* conn, void* data) {
         ticket.user_id = s->user_id;
     else
         ticket.user_id = -1;
-    free(s);
 
     json_t* sector = json_object_get(req, "sector_id");
 
@@ -86,9 +86,16 @@ int api_confirm_ticket(struct mg_connection* conn, void* data) {
         fclose(check);
     }
     else {
+        char qr_path[128];
+        snprintf(qr_path, sizeof(qr_path),
+            "tickets/qr/%s.svg", token);
+        if (!generate_ticket_qr(token, qr_path, sizeof(qr_path))) {
+            fprintf(stderr, "Failed to generate QR for ticket %d\n", ticket_id);
+        }
+
         char html_path[128];
 
-        if (generate_ticket_html(db, ticket_id, html_path) != 0) {
+        if (generate_ticket_html(db, ticket_id, qr_path, html_path, sizeof(html_path)) != 0) {
             mg_send_http_error(conn, 404, "Ticket not found");
             remove(html_path);
             return 404;
