@@ -63,13 +63,15 @@ void set_handlers(struct mg_context* ctx) {
     mg_set_request_handler(ctx, "/reset", html_controller, NULL);
     mg_set_request_handler(ctx, "/admin", html_controller, NULL);
     mg_set_request_handler(ctx, "/admin/**", html_controller, NULL);
-    mg_set_request_handler(ctx, "/venues/**", html_controller, NULL);
 
     mg_set_request_handler(ctx, "/api/events/seatmap", api_event_seatmap, db);
     mg_set_request_handler(ctx, "/api/events/**", api_events, db);
     mg_set_request_handler(ctx, "/api/events", api_events, db);
+    mg_set_request_handler(ctx, "/api/cities", api_cities, db);
+    mg_set_request_handler(ctx, "/api/venues", api_venues, db);
     mg_set_request_handler(ctx, "/api/admin/users", api_users, db);
     mg_set_request_handler(ctx, "/api/admin/events", api_admin_events, db);
+    mg_set_request_handler(ctx, "/api/admin/venues", api_admin_events, db);
     mg_set_request_handler(ctx, "/api/purchase/**", api_purchase_ticket, db);
     mg_set_request_handler(ctx, "/api/confirmation/**", api_confirm_ticket, db);
     mg_set_request_handler(ctx, "/api/me", api_me, db);
@@ -79,6 +81,4 @@ void set_handlers(struct mg_context* ctx) {
     mg_set_request_handler(ctx, "/api/forgot", api_forgot, db);
     mg_set_request_handler(ctx, "/api/reset", api_reset_password, db);
     mg_set_request_handler(ctx, "/api/profile", api_profile, db);
-    mg_set_request_handler(ctx, "/api/cities", api_cities, db);
-    mg_set_request_handler(ctx, "/api/venues", api_venues, db);
 }

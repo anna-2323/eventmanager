@@ -2,13 +2,7 @@
 #include "libpq-fe.h"
 #include "civetweb.h"
 #include "jansson.h"
-
-typedef struct {
-	int id;
-	char venue_name[255];
-	char city[255];
-	char address[255];
-} Venue;
+#include "venue.h"
 
 typedef struct {
 	int id;
@@ -28,6 +22,7 @@ int get_events(PGconn* db, const char* search, const char* sort, json_t* out);
 json_t* get_event(PGconn* db, int id);
 json_t* get_event_seatmap(PGconn* db, int id);
 json_t* get_user_events(PGconn* db, int id);
+json_t* get_events_in_venue(PGconn* db, int venue_id);
 
 int admin_update_title(PGconn* db, int id, const char* title);
 int admin_update_begins_at(PGconn* db, int id, const char* begins_at);

@@ -344,6 +344,44 @@ json_t* get_user_events(PGconn* db, int id) {
 	return events;
 }
 
+json_t* get_events_in_venue(PGconn* db, int venue_id) {
+	CHECK_DB(db, NULL);
+
+	char venue_id_str[16];
+	snprintf(venue_id_str, sizeof(venue_id_str), "%d", venue_id);
+	const char* params[1] = { venue_id_str };
+
+	const char* sql =
+		"SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
+		"       MIN(es.price) AS price, "
+		"       SUM(es.capacity) - COUNT(t.id) AS seats_left, "
+		"       e.verified::int "
+		"FROM data.events e "
+		"LEFT JOIN data.event_sectors es ON es.event_id = e.id "
+		"LEFT JOIN data.tickets t "
+		"    ON t.event_id = e.id "
+		"   AND t.sector_id = es.sector_id "
+		"JOIN data.venues v ON e.venue_id = v.id "
+		"WHERE e.venue_id = $1 "
+		"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, e.verified "
+		"ORDER BY e.begins_at ASC;";
+
+	PGresult* res = PQexecParams(db, sql, 1, NULL, params, NULL, NULL, 0);
+	CHECK_QUERY(res, db, NULL);
+
+	json_t* events = json_array();
+	Event e = { 0 };
+	int count = PQntuples(res);
+	for (int i = 0; i < count; i++) {
+		json_t* event = json_object();
+		event_from_query(res, &e, i);
+		json_array_append_new(events, event_to_json(e));
+	}
+
+	PQclear(res);
+	return events;
+}
+
 int update_event(PGconn* db, const char* sql, int event_id, const char* param) {
 	CHECK_DB(db, 0);
 
