@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Контролен панел</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="/res/style.css" />
+</head>
+
+<body>
+    <header id="header">
+    </header>
+
+    <main id="main" class="main is-max-tablet">
+        <div class="container">
+            <h1 class="title mt-4">Зала</h1>
+
+            <div class="columns">
+                <div class="column is-4" id="venue-card">
+                </div>
+                <div class="column">
+                    <div class="box" id="changeable">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal" id="delete-modal">
+      <div class="modal-background"></div>
+      <div class="modal-card">
+        <header class="modal-card-head">
+          <p class="modal-card-title">Потвърждение</p>
+          <button class="delete" id="modal-close"></button>
+        </header>
+        <section class="modal-card-body">
+          <p>Сигурни ли сте, че искате да изтриете тaзи зала?</p>
+        </section>
+        <footer class="modal-card-foot">
+          <button class="button is-danger" id="confirm-delete-btn">Изтрий</button>
+          <button class="button" id="modal-cancel">Отказ</button>
+        </footer>
+      </div>
+    </div>
+    </div>
+
+    <script src="/js/pages/admin_venue.js" type="module"></script>
+</body>
+
+</html>

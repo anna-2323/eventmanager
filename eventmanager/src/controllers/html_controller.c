@@ -54,5 +54,16 @@ int html_controller(struct mg_connection* conn, void* data) {
         if (*end == '\0')
             return send_html(conn, "html/admin_event.html");
     }
+
+    if (strcmp(uri, "/admin/venues") == 0)
+        return send_html(conn, "html/admin_venues.html");
+    if (strncmp(uri, "/admin/venues/", 14) == 0) {
+        if (strcmp(uri, "/admin/venues/create") == 0)
+            return send_html(conn, "html/create_venue.html");
+        char* end;
+        long event_id = strtol(uri + 14, &end, 10);
+        if (*end == '\0')
+            return send_html(conn, "html/admin_venue.html");
+    }
 }
 

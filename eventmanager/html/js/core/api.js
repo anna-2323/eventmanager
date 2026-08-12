@@ -20,13 +20,21 @@ export const api = {
     resetPassword: (data) => request('/reset', { method: 'POST', body: JSON.stringify(data) }),
   },
 
+  cities: {
+    list: () => request('/cities')
+  },
+  
+  venues: {
+    list: () => request('/venues'),
+    get: (id) => request(`/venues/${id}`),
+    getEvents: (id) => request(`/venues/${id}/events`)
+  },
+
   events: {
     list: (params) => request('/events' + toQuery(params)),
     get: (id) => request(`/events/${id}`),
     getSeatMap: (id) => request(`/events/seatmap/${id}`),
     create: (data) => request('/events', { method: 'POST', body: JSON.stringify(data) }),
-    // edit: (id, data) => request(`/events/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-    // delete: (id) => request(`/events/${id}`, { method: 'DELETE' })
   },
 
   tickets: {
@@ -53,6 +61,10 @@ export const api = {
       edit: (id, data) => request(`/admin/events/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
       delete: (id) => request(`/admin/events/${id}`, { method: 'DELETE' })
     },
+    venues: {
+      create: (data) => request('/admin/venues', { method: 'POST', body: JSON.stringify(data) }),
+      edit: (id, data) => request(`/admin/venues/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+    }
   },
 };
 

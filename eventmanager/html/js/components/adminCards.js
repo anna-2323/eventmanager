@@ -104,3 +104,48 @@ export function eventCard(e) {
                 </div>
             </div>`;
 }
+
+export function venueCard(v) {
+    return `<div class="box">
+                    <h2 class="subtitle">Информация</h2>
+
+                    <table class="table is-fullwidth">
+                        <tbody>
+                            <tr><th>ID</th>
+                                <td id="event-id">${v.id}</td>
+                            </tr>
+                            <tr><th>Име</th>
+                                <td id="event-title">${v.venue_name}</td>
+                            </tr>
+                            <tr><th>Град</th>
+                                <td id="event-begins-at">${v.city}</td>
+                            </tr>
+                            <tr><th>Адрес</th>
+                                <td id="event-venue-name">${v.address}</td>
+                            </tr>
+                            <tr><th>Активна</th>
+                                <td id="event-verified">${v.active ? 
+                                    "<span style='color:#00d1b2;'>Да</span>" : 
+                                    "<span style='color:#ff6685;'>Не</span>"}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+
+                    <div class="buttons mt-4">
+                        <button class="button is-primary" id="events-btn">
+                            Преглед на събития
+                        </button>
+                        <button class="button is-info" id="edit-btn">
+                            Редактирай
+                        </button>
+                        <button class="button is-warning" id="verify-btn">
+                            ${v.active ? 'Отмени одобряване' : 'Одобри'}
+                        </button>
+                        <button class="button is-danger" id="delete-btn">
+                            Изтрий
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+}
