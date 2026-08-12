@@ -33,13 +33,12 @@ export const api = {
   events: {
     list: (params) => request('/events' + toQuery(params)),
     get: (id) => request(`/events/${id}`),
-    getSeatMap: (id) => request(`/events/seatmap/${id}`),
-    create: (data) => request('/events', { method: 'POST', body: JSON.stringify(data) }),
+    getSeatMap: (id) => request(`/events/seatmap/${id}`)
   },
 
   tickets: {
     purchase: (id, data) => request(`/purchase/${id}`, { method: 'POST', body: JSON.stringify(data) }),
-    confirm: (token) => request(`/confirmation/${token}`),
+    confirm: (token) => request(`/confirmation/${token}`)
   },
 
   users: {
@@ -58,6 +57,7 @@ export const api = {
     events: {
       list: () => request('/admin/events'),
       get: (id) => request(`/admin/events/${id}`),
+      create: (data) => request('/admin/events', { method: 'POST', body: JSON.stringify(data) }),
       edit: (id, data) => request(`/admin/events/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
       delete: (id) => request(`/admin/events/${id}`, { method: 'DELETE' })
     },
