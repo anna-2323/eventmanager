@@ -3,7 +3,7 @@ import { $ } from "../core/dom.js";
 import { header } from "../components/header.js";
 import { getEventCard } from "../components/eventCard.js";
 
-header();
+await header();
 
 const params = new URLSearchParams(window.location.search);
 

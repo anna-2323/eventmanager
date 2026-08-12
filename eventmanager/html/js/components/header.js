@@ -1,8 +1,10 @@
+import { api } from "../core/api.js";
 import { $ } from "../core/dom.js";
 import { checkProfile } from "./auth.js";
 import { search } from "./search.js";
 
-export function header() {
+export async function header() {
+    const cities = await api.cities.list();
   $("#header").innerHTML = `
     <nav class="navbar" role="navigation" aria-label="main navigation">
 
@@ -43,11 +45,9 @@ export function header() {
                         Градове
                     </a>
                     <div class="navbar-dropdown">
-                        <a class="navbar-item" href="#">Бургас</a>
-                        <a class="navbar-item" href="#">Варна</a>
-                        <a class="navbar-item" href="#">Пловдив</a>
-                        <a class="navbar-item" href="#">Русе</a>
-                        <a class="navbar-item" href="#">София</a>
+                        ${cities.map((c) => 
+                            `<a class="navbar-item" href="#">${c}</a>`
+                        ).join("")}
                     </div>
                 </div>
             </div>
