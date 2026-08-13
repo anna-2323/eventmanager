@@ -15,7 +15,7 @@
         return 0; \
     }
 
-#define CHECK_UPDATE_QUERY(res, db, ret) \
+#define CHECK_COMMAND_QUERY(res, db, ret) \
     if (PQresultStatus(res) != PGRES_COMMAND_OK) { \
         fprintf(stderr, "Грешка във функцията %s: %s\n", __func__, PQerrorMessage(db)); \
         PQclear(res); \

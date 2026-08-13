@@ -11,6 +11,7 @@
 #include "controllers/venue_api_controller.h"
 #include "controllers/html_controller.h"
 #include "session.h"
+#include "db/queries.h"
 
 static PGconn* db;
 
@@ -48,6 +49,16 @@ int main(void) {
 
 static void init_db(void) {
     db = PQconnectdb("host=localhost dbname=eventmanagement user=postgres password=secret");
+
+    if (PQstatus(db) != CONNECTION_OK) {
+        fprintf(stderr, "Няма връзка с БД: %s\n",
+            PQerrorMessage(db));
+        return 0;
+    }
+
+    if (!prepare_queries(db)) {
+        return 0;
+    }
 }
 
 void set_handlers(struct mg_context* ctx) {
@@ -71,7 +82,7 @@ void set_handlers(struct mg_context* ctx) {
     mg_set_request_handler(ctx, "/api/venues", api_venues, db);
     mg_set_request_handler(ctx, "/api/admin/users", api_users, db);
     mg_set_request_handler(ctx, "/api/admin/events", api_admin_events, db);
-    mg_set_request_handler(ctx, "/api/admin/venues", api_admin_events, db);
+    mg_set_request_handler(ctx, "/api/admin/venues", api_admin_venues, db);
     mg_set_request_handler(ctx, "/api/purchase/**", api_purchase_ticket, db);
     mg_set_request_handler(ctx, "/api/confirmation/**", api_confirm_ticket, db);
     mg_set_request_handler(ctx, "/api/me", api_me, db);

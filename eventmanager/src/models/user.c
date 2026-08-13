@@ -24,17 +24,14 @@ static int check_password(const char* stored_hash, const char* salt, int hash_le
 	hash_password(password, salt, computed_hash);
 	// CRYPTO_memcp вместо memcp за защита на хешираната парола 
 	int result = (hash_len == sizeof(computed_hash) &&
-					CRYPTO_memcmp(stored_hash, computed_hash, hash_len) == 0);
+		CRYPTO_memcmp(stored_hash, computed_hash, hash_len) == 0);
 	return result;
 }
 
 int get_all_users(PGconn* db, json_t* out) {
 	CHECK_DB(db, 0);
 
-	char* sql =
-		"SELECT id, email, first_name, last_name, phone, role, deleted_on "
-		"FROM data.users; ";
-	PGresult* res = PQexec(db, sql);
+	PGresult* res = PQexecPrepared(db, "get_users", 0, NULL, NULL, NULL, 0);
 	CHECK_QUERY(res, db, 0);
 
 	User u = { 0 };
@@ -58,14 +55,11 @@ int get_all_users(PGconn* db, json_t* out) {
 json_t* get_user(PGconn* db, int id) {
 	CHECK_DB(db, NULL);
 
-	char* sql =
-		"SELECT email, first_name, last_name, phone, role, deleted_on, active::int "
-		"FROM data.users "
-		"WHERE id = $1; ";
-	char* id_str[16];
+	char id_str[16];
 	snprintf(id_str, sizeof(id_str), "%d", id);
 	const char* params[1] = { id_str };
-	PGresult* res = PQexecParams(db, sql, 1, NULL, params, NULL, NULL, 0);
+
+	PGresult* res = PQexecPrepared(db, "get_user_by_id", 1, params, NULL, NULL, 0);
 	CHECK_QUERY(res, db, NULL);
 	if (PQntuples(res) == 0) {
 		PQclear(res);
@@ -92,37 +86,42 @@ int verify_user(PGconn* db, const char* email, const char* password, User* out) 
 
 	// Първо се прави проверка по имейл
 	const char* check_params[1] = { email };
-	PGresult* res = PQexecParams(db,
-		"SELECT id, email, first_name, last_name, phone, role, deleted_on "
-		"FROM data.users "
-		"WHERE email = $1; ",
-		1, NULL, check_params, NULL, NULL, 0);
 
+	PGresult* res = PQexecPrepared(db, "verify_email", 1, check_params, NULL, NULL, 0);
 	CHECK_QUERY(res, db, 0);
 	if (PQntuples(res) == 0) {
 		PQclear(res);
 		return 0;
 	}
+	int id = atoi(PQgetvalue(res, 0, 0));
+	PQclear(res);
+
+	char id_str[16];
+	snprintf(id_str, sizeof(id_str), "%d", id);
+	const char* params[1] = { id_str };
 
 	// След това - проверка по парола
+	res = PQexecPrepared(db, "get_user_password", 1, params, NULL, NULL, 1);
 	unsigned const char* stored_hash = (const char*)PQgetvalue(res, 0, 0);
 	unsigned const char* salt = (const char*)PQgetvalue(res, 0, 1);
 	int hash_len = PQgetlength(res, 0, 0);
 	int salt_len = PQgetlength(res, 0, 1);
 	int result = check_password(stored_hash, salt, hash_len, salt_len, password);
+	PQclear(res);
 
-	if (result == 0) {
-		out->id = atoi(PQgetvalue(res, 0, 0));
-		strncpy(out->email, PQgetvalue(res, 0, 1), sizeof(out->email) - 1);
-		strncpy(out->first_name, PQgetvalue(res, 0, 2), sizeof(out->first_name) - 1);
-		strncpy(out->last_name, PQgetvalue(res, 0, 3), sizeof(out->last_name) - 1);
-		strncpy(out->phone, PQgetvalue(res, 0, 4), sizeof(out->phone) - 1);
-		out->role = atoi(PQgetvalue(res, 0, 5));
-		strncpy(out->deleted_on, PQgetvalue(res, 0, 6), sizeof(out->deleted_on) - 1);
+	if (result == 1) {
+		res = PQexecPrepared(db, "get_user_by_id", 1, params, NULL, NULL, 0);
+		out->id = id;
+		strncpy(out->email, PQgetvalue(res, 0, 0), sizeof(out->email) - 1);
+		strncpy(out->first_name, PQgetvalue(res, 0, 1), sizeof(out->first_name) - 1);
+		strncpy(out->last_name, PQgetvalue(res, 0, 2), sizeof(out->last_name) - 1);
+		strncpy(out->phone, PQgetvalue(res, 0, 3), sizeof(out->phone) - 1);
+		out->role = atoi(PQgetvalue(res, 0, 4));
+		strncpy(out->deleted_on, PQgetvalue(res, 0, 5), sizeof(out->deleted_on) - 1);
+		PQclear(res);
 	}
 	
-	PQclear(res);
-	return 1;
+	return result;
 }
 
 // Използва се ако потребителят е влязъл за редактиране на данни
@@ -134,9 +133,7 @@ int verify_password(PGconn* db, int user_id, const char* password) {
 	snprintf(id_str, sizeof(id_str), "%d", user_id);
 	const char* params[1] = { id_str };
 
-	PGresult* res = PQexecParams(db,
-		"SELECT password_hash, salt FROM data.users WHERE id = $1",
-		1, NULL, params, NULL, NULL, 1);
+	PGresult* res = PQexecPrepared(db, "verify_password", 1, params, NULL, NULL, 1);
 	CHECK_QUERY(res, db, 0);
 
 	if (PQntuples(res) > 0) {
@@ -161,9 +158,7 @@ int verify_email(PGconn* db, const char* email) {
 	CHECK_DB(db, 0);
 
 	const char* params[1] = { email };
-	PGresult* res = PQexecParams(db,
-		"SELECT id FROM data.users WHERE email = $1",
-		1, NULL, params, NULL, NULL, 0);
+	PGresult* res = PQexecPrepared(db, "verify_email", 1, params, NULL, NULL, 0);
 	CHECK_QUERY(res, db, 0);
 
 	if (PQntuples(res) > 0) {
@@ -184,11 +179,8 @@ json_t* add_user(PGconn* db, const char* fname, const char* lname,
 
 	// Съществува ли вече регистрация с този имейл
 	const char* check_params[1] = { email };
-	PGresult* res = PQexecParams(db,
-		"SELECT id FROM data.users WHERE email = $1",
-		1, NULL, check_params, NULL, NULL, 0);
+	PGresult* res = PQexecPrepared(db, "verify_email", 1, check_params, NULL, NULL, 0);
 	CHECK_QUERY(res, db, NULL);
-
 	if (PQntuples(res) > 0) {
 		PQclear(res);
 		return NULL;
@@ -206,18 +198,9 @@ json_t* add_user(PGconn* db, const char* fname, const char* lname,
 	const char* ins_params[7] = { fname, lname, email, phone, hash, salt, role_str };
 	int lengths[7] = { 0, 0, 0, 0, 32, 16, 0 };
 	int formats[7] = { 0, 0, 0, 0, 1, 1, 0 };
-	
-	res = PQexecParams(db,
-		"INSERT INTO data.users (first_name, last_name, email, phone, password_hash, salt, role) "
-		"VALUES ($1, $2, $3, NULLIF($4, ''), $5, $6, $7) "
-		"RETURNING id, first_name, last_name, email, phone, role",
-		7, NULL, ins_params, lengths, formats, 0);
 
-	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-		fprintf(stderr, "Грешка при добавянето на нова регистрация: %s\n", PQerrorMessage(db));
-		PQclear(res);
-		return NULL;
-	}
+	res = PQexecPrepared(db, "add_user", 7, ins_params, lengths, formats, 0);
+	CHECK_DB(db, NULL);
 
 	User u;
 	u.id = atoi(PQgetvalue(res, 0, 0));
@@ -231,44 +214,62 @@ json_t* add_user(PGconn* db, const char* fname, const char* lname,
 	return user_to_json(&u);
 }
 
-int update_user(PGconn* db, const char* sql, int user_id, const char* param) {
+int admin_update_email(PGconn* db, int user_id, const char* email) {
 	CHECK_DB(db, 0);
 
 	char id_str[16];
 	snprintf(id_str, sizeof(id_str), "%d", user_id);
-	const char* params[2] = { param, id_str };
+	const char* params[2] = { email, id_str };
 
-	PGresult* res = PQexecParams(db, sql, 2, NULL, params, NULL, NULL, 0);
-	CHECK_UPDATE_QUERY(res, db, 0);
+	PGresult* res = PQexecPrepared(db, "update_email", 2, params, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
 
 	PQclear(res);
 	return 1;
 }
 
-int admin_update_email(PGconn* db, int user_id, const char* email) {
-	char sql[255] = "UPDATE data.users SET email = $1 WHERE id = $2";
-	return update_user(db, sql, user_id, email);
-}
-
 int admin_update_phone(PGconn* db, int user_id, const char* phone) {
-	char sql[255] = "UPDATE data.users SET phone = $1 WHERE id = $2";
-	return update_user(db, sql, user_id, phone);
+	CHECK_DB(db, 0);
+
+	char id_str[16];
+	snprintf(id_str, sizeof(id_str), "%d", user_id);
+	const char* params[2] = { phone, id_str };
+
+	PGresult* res = PQexecPrepared(db, "update_phone", 2, params, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
+
+	PQclear(res);
+	return 1;
 }
 
 int admin_update_role(PGconn* db, int user_id, const char* role) {
-	char sql[255] = "UPDATE data.users SET role = $1 WHERE id = $2";
-	return update_user(db, sql, user_id, role);
+	CHECK_DB(db, 0);
+
+	char id_str[16];
+	snprintf(id_str, sizeof(id_str), "%d", user_id);
+	const char* params[2] = { role, id_str };
+
+	PGresult* res = PQexecPrepared(db, "update_role", 2, params, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
+
+	PQclear(res);
+	return 1;
 }
 
 int admin_update_name(PGconn* db, int user_id, const char* first_name, const char* last_name) {
-	char sql1[255] = "UPDATE data.users SET first_name = $1 WHERE id = $2";
-	int res = update_user(db, sql1, user_id, first_name);
-	if (!res) return res;
-	char sql2[255] = "UPDATE data.users SET last_name = $1 WHERE id = $2";
-	return update_user(db, sql2, user_id, last_name);
+	CHECK_DB(db, 0);
+
+	char id_str[16];
+	snprintf(id_str, sizeof(id_str), "%d", user_id);
+	const char* params[3] = { first_name, last_name, id_str };
+
+	PGresult* res = PQexecPrepared(db, "update_names", 3, params, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
+
+	PQclear(res);
+	return 1;
 }
 
-// Не може да се използва общия update_user в случай на паролата
 int update_password(PGconn* db, int user_id, const char* current_password,
 	const char* new_password) {
 	int verified = verify_password(db, user_id, current_password);
@@ -284,35 +285,47 @@ int update_password(PGconn* db, int user_id, const char* current_password,
 	snprintf(id_str, sizeof(id_str), "%d", user_id);
 	const char* params[3] = { hash, salt, id_str };
 	int lenghts[3] = { 32, 16, 0 };
+	// 1 = двоична стойност
 	int formats[3] = { 1, 1, 0 };
 
-	char sql[255] = "UPDATE data.users SET password_hash = $1, salt = $2 WHERE id = $3";
-	// 1 = двоична стойност
-	PGresult* res = PQexecParams(db, sql, 3, NULL, params, lenghts, formats, 0);
-	CHECK_UPDATE_QUERY(res, db, 0);
+	PGresult* res = PQexecPrepared(db, "update_password", 3, params, lenghts, formats, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
+
+	PQclear(res);
+
+	return 1;
+}
+
+int update_email(PGconn* db, int user_id,
+	const char* password, const char* email) {
+	int verified = verify_password(db, user_id, password);
+	if (!verified) return verified;
+
+	char id_str[16];
+	snprintf(id_str, sizeof(id_str), "%d", user_id);
+	const char* params[2] = { email, id_str };
+
+	PGresult* res = PQexecPrepared(db, "update_email", 2, params, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
 
 	PQclear(res);
 	return 1;
 }
 
-int update_email(PGconn* db, int user_id, const char* password,
-	const char* email) {
-	char sql[255] = "UPDATE data.users SET email = $1 WHERE id = $2";
-
+int update_phone(PGconn* db, int user_id,
+	const char* password, const char* phone) {
 	int verified = verify_password(db, user_id, password);
 	if (!verified) return verified;
 
-	return update_user(db, sql, user_id, email);
-}
+	char id_str[16];
+	snprintf(id_str, sizeof(id_str), "%d", user_id);
+	const char* params[2] = { phone, id_str };
 
-int update_phone(PGconn* db, int user_id, const char* password,
-	const char* phone) {
-	char sql[255] = "UPDATE data.users SET phone = $1 WHERE id = $2";
+	PGresult* res = PQexecPrepared(db, "update_phone", 2, params, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
 
-	int verified = verify_password(db, user_id, password);
-	if (!verified) return verified;
-
-	return update_user(db, sql, user_id, phone);
+	PQclear(res);
+	return 1;
 }
 
 int soft_delete_user(PGconn* db, int user_id, const char* password) {
@@ -326,10 +339,8 @@ int soft_delete_user(PGconn* db, int user_id, const char* password) {
 	snprintf(id_str, sizeof(id_str), "%d", user_id);
 	const char* params[1] = { id_str };
 
-	PGresult* res = PQexecParams(db,
-		"UPDATE data.users SET deleted_on = NOW() WHERE id = $1",
-		1, NULL, params, NULL, NULL, 0);
-	CHECK_UPDATE_QUERY(res, db, 0);
+	PGresult* res = PQexecPrepared(db, "soft_delete_user", 1, params, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
 
 	PQclear(res);
 	return 1;
@@ -341,11 +352,9 @@ int deactivate_user(PGconn* db, int user_id) {
 	char id_str[16];
 	snprintf(id_str, sizeof(id_str), "%d", user_id);
 	const char* params[1] = { id_str };
-	
-	PGresult* res = PQexecParams(db,
-		"UPDATE data.users SET active = FALSE WHERE id = $1",
-		1, NULL, params, NULL, NULL, 0);
-	CHECK_UPDATE_QUERY(res, db, 0);
+
+	PGresult* res = PQexecPrepared(db, "deactivate_user", 1, params, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
 
 	PQclear(res);
 	return 1;
@@ -358,10 +367,8 @@ int activate_user(PGconn* db, int user_id) {
 	snprintf(id_str, sizeof(id_str), "%d", user_id);
 	const char* params[1] = { id_str };
 
-	PGresult* res = PQexecParams(db,
-		"UPDATE data.users SET active = TRUE WHERE id = $1",
-		1, NULL, params, NULL, NULL, 0);
-	CHECK_UPDATE_QUERY(res, db, 0);
+	PGresult* res = PQexecPrepared(db, "activate_user", 1, params, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
 
 	PQclear(res);
 	return 1;
@@ -374,10 +381,9 @@ int delete_user(PGconn* db, int user_id) {
 	snprintf(id_str, sizeof(id_str), "%d", user_id);
 	const char* params[1] = { id_str };
 
-	char sql[255] = "DELETE FROM data.users "
-		"WHERE id = $1 ";
-	PGresult* res = PQexecParams(db, sql, 1, NULL, params, NULL, NULL, 0);
-	CHECK_UPDATE_QUERY(res, db, 0);
+	PGresult* res = PQexecPrepared(db, "permanent_delete_user", 1, params, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
+
 	PQclear(res);
 	return 1;
 }
@@ -385,10 +391,7 @@ int delete_user(PGconn* db, int user_id) {
 void permanent_delete_users(PGconn* db) {
 	CHECK_DB(db, NULL);
 
-	PGresult* res = PQexec(db,
-		"DELETE FROM data.users "
-		"WHERE deleted_on IS NOT NULL "
-		"AND deleted_on < NOW() - INTERVAL '30 days'");
+	PGresult* res = PQexecPrepared(db, "permanent_delete_users", 0, NULL, NULL, NULL, 0);
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
 		fprintf(stderr, "Грешка при окончателно изтриване: %s\n", PQerrorMessage(db));
 	else
@@ -418,9 +421,8 @@ char* create_reset_token(PGconn* db, int user_id) {
 	char id_str[16];
 	snprintf(id_str, sizeof(id_str), "%d", user_id);
 	const char* params[2] = { token, id_str };
-	PGresult* res = PQexecParams(db,
-		"INSERT INTO data.password_resets (token, user_id) VALUES ($1, $2)",
-		2, NULL, params, NULL, NULL, 0);
+
+	PGresult* res = PQexecPrepared(db, "create_reset_token", 2, params, NULL, NULL, 0);
 
 	if (PQresultStatus(res) != PGRES_COMMAND_OK) {
 		PQclear(res);
@@ -435,12 +437,9 @@ int validate_reset_token(PGconn* db, const char* token) {
 	CHECK_DB(db, 0);
 
 	const char* params[1] = { token };
-	PGresult* res = PQexecParams(db,
-		"SELECT user_id FROM data.password_resets "
-		"WHERE token = $1 AND expires_at > NOW()",
-		1, NULL, params, NULL, NULL, 0);
-	CHECK_QUERY(res, db, 0);
 
+	PGresult* res = PQexecPrepared(db, "validate_token", 1, params, NULL, NULL, 0);
+	CHECK_QUERY(res, db, 0);
 	if (PQntuples(res) == 0) {
 		PQclear(res);
 		return 0;
@@ -471,10 +470,7 @@ int reset_password(PGconn* db, const char* token, const char* new_password) {
 	int lengths[3] = { 32, 16, 0 };
 	int formats[3] = { 1, 1, 0 };
 
-	PGresult* res = PQexecParams(db,
-		"UPDATE data.users SET password_hash = $1, salt = $2 WHERE id = $3",
-		3, NULL, params, lengths, formats, 0);
-
+	PGresult* res = PQexecPrepared(db, "update_password", 3, params, lengths, formats, 0);
 	if (PQresultStatus(res) != PGRES_COMMAND_OK) {
 		PQclear(res); PQexec(db, "ROLLBACK"); return 0;
 	}
@@ -482,9 +478,8 @@ int reset_password(PGconn* db, const char* token, const char* new_password) {
 
 	// Изтриване на токен
 	const char* del_params[1] = { token };
-	res = PQexecParams(db,
-		"DELETE FROM data.password_resets WHERE token = $1",
-		1, NULL, del_params, NULL, NULL, 0);
+	res = PQexecPrepared(db, "delete_reset_token", 1, del_params, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
 	PQclear(res);
 
 	PQexec(db, "COMMIT");
@@ -493,7 +488,9 @@ int reset_password(PGconn* db, const char* token, const char* new_password) {
 
 int delete_tokens(PGconn* db) {
 	CHECK_DB(db, 0);
-	PQexec(db, "DELETE FROM data.password_resets WHERE expires_at < NOW()");
+	PGresult* res = PQexecPrepared(db, "delete_reset_tokens", 0, NULL, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
+	return 1;
 }
 
 json_t* user_to_json(User* u) {

@@ -1,101 +1,6 @@
 ﻿#include "event.h"
 #include "../util.h"
 
-static void get_query(const char* search, const char* sort, char** out);
-static void event_from_query(PGresult* res, Event* e, int i);
-static void get_query(const char* search, const char* sort, char** out) {
-	if (search && search[0] != '\0') {
-		const char* query = "SELECT e.id, e.title, e.begins_at, e.img_path, "
-			"       v.venue_name, v.city, "
-			"       MIN(es.price) AS price, "
-			"       SUM(es.capacity) - COUNT(t.id) AS seats_left "
-			"FROM data.events e "
-			"JOIN data.venues v ON e.venue_id = v.id "
-			"LEFT JOIN data.event_sectors es ON es.event_id = e.id "
-			"LEFT JOIN data.tickets t "
-			"    ON t.event_id = e.id "
-			"   AND t.sector_id = es.sector_id "
-			"WHERE e.title ILIKE '%' || $1 || '%' OR v.venue_name ILIKE '%' || $1 || '%' "
-			"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city;";
-		*out = malloc(strlen(query) + 1);
-		strcpy(*out, query);
-		return;
-	}
-	if (sort && sort[0] != '\0') {
-		if (strcmp(sort, "price_asc") == 0) {
-					const char* query = "SELECT e.id, e.title, e.begins_at, e.img_path, "
-				"       v.venue_name, v.city, "
-				"       MIN(es.price) AS price, "
-				"       SUM(es.capacity) - COUNT(t.id) AS seats_left "
-				"FROM data.events e "
-				"JOIN data.venues v ON e.venue_id = v.id "
-				"LEFT JOIN data.event_sectors es ON es.event_id = e.id "
-				"LEFT JOIN data.tickets t "
-				"    ON t.event_id = e.id "
-				"   AND t.sector_id = es.sector_id "
-				"WHERE e.begins_at > NOW() "
-				"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city "
-				"ORDER BY e.price ASC;";
-			*out = malloc(strlen(query) + 1);
-			strcpy(*out, query);
-			return;
-		}
-		else if (strcmp(sort, "price_desc") == 0) {
-			const char* query = "SELECT e.id, e.title, e.begins_at, e.img_path, "
-				"       v.venue_name, v.city, "
-				"       MIN(es.price) AS price, "
-				"       SUM(es.capacity) - COUNT(t.id) AS seats_left "
-				"FROM data.events e "
-				"JOIN data.venues v ON e.venue_id = v.id "
-				"LEFT JOIN data.event_sectors es ON es.event_id = e.id "
-				"LEFT JOIN data.tickets t "
-				"    ON t.event_id = e.id "
-				"   AND t.sector_id = es.sector_id "
-				"WHERE e.begins_at > NOW() "
-				"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city "
-				"ORDER BY e.price DESC;";
-			*out = malloc(strlen(query) + 1);
-			strcpy(*out, query);
-			return;
-		}
-		else if (strcmp(sort, "recent") == 0) {
-					const char* query = "SELECT e.id, e.title, e.begins_at, e.img_path, "
-				"       v.venue_name, v.city, "
-				"       MIN(es.price) AS price, "
-				"       SUM(es.capacity) - COUNT(t.id) AS seats_left "
-				"FROM data.events e "
-				"JOIN data.venues v ON e.venue_id = v.id "
-				"LEFT JOIN data.event_sectors es ON es.event_id = e.id "
-				"LEFT JOIN data.tickets t "
-				"    ON t.event_id = e.id "
-				"   AND t.sector_id = es.sector_id "
-				"WHERE e.begins_at > NOW() "
-				"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city "
-				"ORDER BY e.id DESC;";
-			*out = malloc(strlen(query) + 1);
-			strcpy(*out, query);
-			return;
-		}
-	}
-	const char* query = "SELECT e.id, e.title, e.begins_at, e.img_path, "
-		"       v.venue_name, v.city, "
-		"       MIN(es.price) AS price, "
-		"       SUM(es.capacity) - COUNT(t.id) AS seats_left "
-		"FROM data.events e "
-		"JOIN data.venues v ON e.venue_id = v.id "
-		"LEFT JOIN data.event_sectors es ON es.event_id = e.id "
-		"LEFT JOIN data.tickets t "
-		"    ON t.event_id = e.id "
-		"   AND t.sector_id = es.sector_id "
-		"WHERE e.begins_at > NOW() "
-		"GROUP BY e.id, e.title, e.begins_at, e.img_path, "
-		"         v.venue_name, v.city "
-		"ORDER BY e.begins_at ASC;";
-	*out = malloc(strlen(query) + 1);
-	strcpy(*out, query);
-	return;
-}
-
 static void event_from_query(PGresult* res, Event* e, int i) {
 	e->id = atoi(PQgetvalue(res, i, 0));
 	strncpy(e->title, PQgetvalue(res, i, 1), 100);
@@ -111,23 +16,29 @@ static void event_from_query(PGresult* res, Event* e, int i) {
 int get_events(PGconn* db, const char* search, const char* sort, json_t* out) {
 	CHECK_DB(db, 0);
 
-	char* sql = NULL;
-	get_query(search, sort, &sql);
-
 	PGresult* res = NULL;
 	char param_str[256];
+	// todo: сортиране в javascript, а не със заявки
 	if (search && search[0] != '\0') {
 		snprintf(param_str, sizeof(param_str), "%s", search);
 		const char* params[1] = { param_str };
-		res = PQexecParams(db, sql, 1, NULL, params, NULL, NULL, 0);
+		res = PQexecPrepared(db, "get_events_search", 1, params, NULL, NULL, 0);
 	}
 	else if (sort && sort[0] != '\0') {
 		snprintf(param_str, sizeof(param_str), "%s", sort);
 		const char* params[1] = { param_str };
-		res = PQexec(db, sql);
+		if (strcmp(sort, "price_asc") == 0) {
+			res = PQexecPrepared(db, "get_events_price_asc", 0, NULL, NULL, NULL, 0);
+		}
+		else if (strcmp(sort, "price_desc") == 0) {
+			res = PQexecPrepared(db, "get_events_price_desc", 0, NULL, NULL, NULL, 0);
+		}
+		else if (strcmp(sort, "recent") == 0) {
+			res = PQexecPrepared(db, "get_events_recent", 0, NULL, NULL, NULL, 0);
+		}
 	}
 	else
-		res = PQexec(db, sql);
+		res = PQexecPrepared(db, "get_events_upcoming", 0, NULL, NULL, NULL, 0);
 
 	CHECK_QUERY(res, db, 0);
 
@@ -145,21 +56,10 @@ int get_events(PGconn* db, const char* search, const char* sort, json_t* out) {
 json_t* get_event(PGconn* db, int id) {
 	CHECK_DB(db, NULL);
 
-	char* sql =
-		"SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
-		"MIN(es.price) AS price, "
-		"SUM(es.capacity) - COUNT(t.id) AS seats_left, "
-		"e.verified::int "
-		"FROM data.events e "
-		"JOIN data.venues v ON e.venue_id = v.id "
-		"LEFT JOIN data.event_sectors es ON es.event_id = e.id "
-		"LEFT JOIN data.tickets t ON t.event_id = e.id AND t.sector_id = es.sector_id "
-		"WHERE e.id = $1 "
-		"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city; ";
 	char id_str[16];
 	snprintf(id_str, sizeof(id_str), "%d", id);
 	const char* params[1] = { id_str };
-	PGresult* res = PQexecParams(db, sql, 1, NULL, params, NULL, NULL, 0);
+	PGresult* res = PQexecPrepared(db, "get_event", 1, params, NULL, NULL, 0);
 
 	CHECK_QUERY(res, db, NULL);
 	if (PQntuples(res) == 0) {
@@ -179,15 +79,10 @@ json_t* get_event_seatmap(PGconn* db, int event_id) {
 
 	char id_str[16];
 	snprintf(id_str, sizeof(id_str), "%d", event_id);
-
 	const char* params[1] = { id_str };
+
 	// Проверка дали залата има данни за сектори и разположението им
-	PGresult* layout_res = PQexecParams(db,
-		"SELECT v.has_sectors, v.background_svg, v.viewBox "
-		"FROM data.events e "
-		"JOIN data.venues v ON v.id = e.venue_id "
-		"WHERE e.id = $1;",
-		1, NULL, params, NULL, NULL, 0);
+	PGresult* layout_res = PQexecPrepared(db, "has_seatmap", 1, params, NULL, NULL, 0);
 	CHECK_QUERY(layout_res, db, NULL);
 
 	if (PQntuples(layout_res) == 0) {
@@ -202,16 +97,12 @@ json_t* get_event_seatmap(PGconn* db, int event_id) {
 
 	// Ако няма сектори, функцията приключва тук
 	if (!has_sectors) {
-		PGresult* ga_res = PQexecParams(db,
-			"SELECT es.sector_id "
-			"FROM data.event_sectors es "
-			"WHERE es.event_id = $1;",
-			1, NULL, params, NULL, NULL, 0);
+		PGresult* ga_res = PQexecPrepared(db, "no_seatmap", 1, params, NULL, NULL, 0);
 		CHECK_QUERY(ga_res, db, NULL);
-
 		if (PQntuples(ga_res) > 0) {
 			json_object_set_new(root, "no_sector_id", json_integer(atoi(PQgetvalue(ga_res, 0, 0))));
 		}
+
 		json_object_set_new(root, "sectors", json_null());
 		PQclear(ga_res);
 		return root;
@@ -225,20 +116,7 @@ json_t* get_event_seatmap(PGconn* db, int event_id) {
 	PQclear(layout_res);
 
 	// Получаване на сектори, разположението им и останали места в тях
-	const char* sectors_sql =
-		"SELECT s.id, s.name, es.capacity, es.price, s.color, s.svg_path, "
-		"       es.capacity - COALESCE(t.sold, 0) AS available "
-		"FROM data.event_sectors es "
-		"JOIN data.sectors s ON s.id = es.sector_id "
-		"LEFT JOIN ( "
-		"    SELECT sector_id, COUNT(*) AS sold "
-		"    FROM data.tickets "
-		"    WHERE event_id = $1 "
-		"    GROUP BY sector_id "
-		") t ON t.sector_id = es.sector_id "
-		"WHERE es.event_id = $1 "
-		"ORDER BY s.display_order;";
-	PGresult* sec_res = PQexecParams(db, sectors_sql, 1, NULL, params, NULL, NULL, 0);
+	PGresult* sec_res = PQexecPrepared(db, "get_seatmap", 1, params, NULL, NULL, 0);
 	if (PQresultStatus(sec_res) != PGRES_TUPLES_OK) {
 		fprintf(stderr, "Грешка във функцията get_event_layout: %s\n", PQerrorMessage(db));
 		PQclear(sec_res);
@@ -268,17 +146,12 @@ json_t* get_event_seatmap(PGconn* db, int event_id) {
 json_t* get_user_events(PGconn* db, int id) {
 	CHECK_DB(db, NULL);
 
-	// Проверка за роля на потребителя
-	char* check_role_sql =
-		"SELECT role "
-		"FROM data.users "
-		"WHERE id = $1; ";
-
 	char id_str[16];
 	snprintf(id_str, sizeof(id_str), "%d", id);
 	const char* params[1] = { id_str };
 	
-	PGresult* res = PQexecParams(db, check_role_sql, 1, NULL, params, NULL, NULL, 0);
+	// Проверка за роля на потребителя
+	PGresult* res = PQexecPrepared(db, "check_role", 1, params, NULL, NULL, 0);
 	CHECK_QUERY(res, db, NULL);
 	if (PQntuples(res) == 0) {
 		PQclear(res);
@@ -289,31 +162,11 @@ json_t* get_user_events(PGconn* db, int id) {
 
 	// Ако е организатор, показва качени събития
 	if (role == 1) {
-		char* sql =
-			"SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
-			"MIN(ls.price) AS price, "
-			"SUM(ls.capacity) - COUNT(t.id) AS seats_left "
-			"FROM data.events e "
-			"JOIN data.venues v ON e.venue_id = v.id "
-			"JOIN data.layouts l ON e.layout_id = l.id "
-			"JOIN data.layout_sectors ls ON ls.layout_id = l.id "
-			"LEFT JOIN data.tickets t ON t.event_id = e.id AND t.sector_id = ls.id "
-			"WHERE e.organizer_id = $1 "
-			"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city; ";
-		res = PQexecParams(db, sql, 1, NULL, params, NULL, NULL, 0);
+		res = PQexecPrepared(db, "get_uploaded_events", 1, params, NULL, NULL, 0);
 	}
 	// В противен случай, показва резервирани събития
 	else {
-		char* sql =
-			"SELECT t.event_id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, ls.price, s.name "
-			"FROM data.tickets t "
-			"JOIN data.events e ON t.event_id = e.id "
-			"JOIN data.venues v ON e.venue_id = v.id "
-			"JOIN data.layouts l ON e.layout_id = l.id "
-			"JOIN data.layout_sectors ls ON ls.layout_id = l.id "
-			"JOIN data.sectors s ON ls.sector_id = s.id "
-			"WHERE t.user_id = $1 ";
-		res = PQexecParams(db, sql, 1, NULL, params, NULL, NULL, 0);
+		res = PQexecPrepared(db, "get_booked_events", 1, params, NULL, NULL, 0);
 	}
 
 	CHECK_QUERY(res, db, NULL);
@@ -351,22 +204,7 @@ json_t* get_events_in_venue(PGconn* db, int venue_id) {
 	snprintf(venue_id_str, sizeof(venue_id_str), "%d", venue_id);
 	const char* params[1] = { venue_id_str };
 
-	const char* sql =
-		"SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
-		"       MIN(es.price) AS price, "
-		"       SUM(es.capacity) - COUNT(t.id) AS seats_left, "
-		"       e.verified::int "
-		"FROM data.events e "
-		"LEFT JOIN data.event_sectors es ON es.event_id = e.id "
-		"LEFT JOIN data.tickets t "
-		"    ON t.event_id = e.id "
-		"   AND t.sector_id = es.sector_id "
-		"JOIN data.venues v ON e.venue_id = v.id "
-		"WHERE e.venue_id = $1 "
-		"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, e.verified "
-		"ORDER BY e.begins_at ASC;";
-
-	PGresult* res = PQexecParams(db, sql, 1, NULL, params, NULL, NULL, 0);
+	PGresult* res = PQexecPrepared(db, "get_venue_events", 1, params, NULL, NULL, 0);
 	CHECK_QUERY(res, db, NULL);
 
 	json_t* events = json_array();
@@ -382,28 +220,87 @@ json_t* get_events_in_venue(PGconn* db, int venue_id) {
 	return events;
 }
 
-int update_event(PGconn* db, const char* sql, int event_id, const char* param) {
+int add_event(
+	PGconn* db, int organizer_id, int venue_id, const char* title, 
+	const char* begins_at, double price, int capacity) {
+	CHECK_DB(db, 0);
+
+	PQexec(db, "BEGIN");
+
+	// 1. Добавяне на ново събитие
+	char venue_id_str[16];
+	snprintf(venue_id_str, sizeof(venue_id_str), "%d", venue_id);
+	char organizer_id_str[16];
+	snprintf(organizer_id_str, sizeof(organizer_id_str), "%d", organizer_id);
+	const char* params1[4] = { title, begins_at, venue_id_str, organizer_id_str };
+
+	PGresult* res = PQexecPrepared(db, "add_event", 4, params1, NULL, NULL, 0);
+	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+		PQclear(res);
+		fprintf(stderr, "Грешка във функцията add_event: %s\n", PQerrorMessage(db));
+		PQexec(db, "ROLLBACK");
+		return 0;
+	}
+
+	int event_id = atoi(PQgetvalue(res, 0, 0));
+	PQclear(res);
+
+	// 2. Намиране на сектор на зала
+	json_t* sectors = get_sectors(db, venue_id);
+	int sector_id =
+		json_integer_value(json_object_get(json_array_get(sectors, 0), "id"));
+
+	char event_id_str[16];
+	snprintf(event_id_str, sizeof(event_id_str), "%d", event_id);
+	char sector_id_str[16];
+	snprintf(sector_id_str, sizeof(sector_id_str), "%d", sector_id);
+	char price_str[16];
+	snprintf(price_str, sizeof(price_str), "%.2f", price);
+	char capacity_str[16];
+	snprintf(capacity_str, sizeof(capacity_str), "%d", capacity);
+	const char* params2[4] = { event_id_str, sector_id_str, price_str, capacity_str };
+
+	// 3. Добавяне на запис в event_sectors
+	res = PQexecPrepared(db, "add_event_sectors", 4, params2, NULL, NULL, 0);
+	if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+		PQclear(res);
+		fprintf(stderr, "Грешка във функцията add_event: %s\n", PQerrorMessage(db));
+		PQexec(db, "ROLLBACK");
+		return 0;
+	}
+
+	json_decref(sectors);
+	PQclear(res);
+	PQexec(db, "COMMIT");
+	return event_id;
+}
+
+int admin_update_title(PGconn* db, int id, const char* title) {
 	CHECK_DB(db, 0);
 
 	char id_str[16];
-	snprintf(id_str, sizeof(id_str), "%d", event_id);
-	const char* params[2] = { param, id_str };
+	snprintf(id_str, sizeof(id_str), "%d", id);
+	const char* params[2] = { title, id_str };
 
-	PGresult* res = PQexecParams(db, sql, 2, NULL, params, NULL, NULL, 0);
-	CHECK_UPDATE_QUERY(res, db, 0);
+	PGresult* res = PQexecPrepared(db, "update_event_title", 2, params, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
 
 	PQclear(res);
 	return 1;
 }
 
-int admin_update_title(PGconn* db, int id, const char* title) {
-	char sql[255] = "UPDATE data.events SET title = $1 WHERE id = $2";
-	return update_event(db, sql, id, title);
-}
-
 int admin_update_begins_at(PGconn* db, int id, const char* begins_at) {
-	char sql[255] = "UPDATE data.events SET begins_at = $1 WHERE id = $2";
-	return update_event(db, sql, id, begins_at);
+	CHECK_DB(db, 0);
+
+	char id_str[16];
+	snprintf(id_str, sizeof(id_str), "%d", id);
+	const char* params[2] = { begins_at, id_str };
+
+	PGresult* res = PQexecPrepared(db, "update_event_begins_at", 2, params, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
+
+	PQclear(res);
+	return 1;
 }
 
 int verify_event(PGconn* db, int id) {
@@ -413,10 +310,8 @@ int verify_event(PGconn* db, int id) {
 	snprintf(id_str, sizeof(id_str), "%d", id);
 	const char* params[1] = { id_str };
 
-	PGresult* res = PQexecParams(db,
-		"UPDATE data.events SET verified = TRUE WHERE id = $1",
-		1, NULL, params, NULL, NULL, 0);
-	CHECK_UPDATE_QUERY(res, db, 0);
+	PGresult* res = PQexecPrepared(db, "verify_event", 1, params, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
 
 	PQclear(res);
 	return 1;
@@ -429,10 +324,8 @@ int unverify_event(PGconn* db, int id) {
 	snprintf(id_str, sizeof(id_str), "%d", id);
 	const char* params[1] = { id_str };
 
-	PGresult* res = PQexecParams(db,
-		"UPDATE data.events SET verified = FALSE WHERE id = $1",
-		1, NULL, params, NULL, NULL, 0);
-	CHECK_UPDATE_QUERY(res, db, 0);
+	PGresult* res = PQexecPrepared(db, "unverify_event", 1, params, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
 
 	PQclear(res);
 	return 1;
@@ -445,10 +338,9 @@ int delete_event(PGconn* db, int id) {
 	snprintf(id_str, sizeof(id_str), "%d", id);
 	const char* params[1] = { id_str };
 
-	char sql[255] = "DELETE FROM data.events "
-		"WHERE id = $1 ";
-	PGresult* res = PQexecParams(db, sql, 1, NULL, params, NULL, NULL, 0);
-	CHECK_UPDATE_QUERY(res, db, 0);
+	PGresult* res = PQexecPrepared(db, "delete_event", 1, params, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
+
 	PQclear(res);
 	return 1;
 }

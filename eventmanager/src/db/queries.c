@@ -1,0 +1,132 @@
+#include "queries.h"
+#include "event_queries.h"
+#include "ticket_queries.h"
+#include "venue_queries.h"
+#include "user_queries.h"
+#include "../util.h"
+
+static int prepare_query(PGconn* db, const char* name, const char* sql, int nparams) {
+    PGresult* res = PQprepare(db, name, sql, nparams, NULL);
+    CHECK_COMMAND_QUERY(res, db, 0);
+    PQclear(res);
+    return 1;
+}
+
+int prepare_queries(PGconn* db)
+{
+    if (!prepare_query(db, "get_events_upcoming", SQL_GET_EVENTS_UPCOMING, 0))
+        return 0;
+    if (!prepare_query(db, "get_events_recent", SQL_GET_EVENTS_RECENT, 0))
+        return 0;
+    if (!prepare_query(db, "get_events_price_desc", SQL_GET_EVENTS_PRICE_DESC, 0))
+        return 0;
+    if (!prepare_query(db, "get_events_price_asc", SQL_GET_EVENTS_PRICE_ASC, 0))
+        return 0;
+    if (!prepare_query(db, "get_events_search", SQL_GET_EVENTS_SEARCH, 1))
+        return 0;
+    if (!prepare_query(db, "get_uploaded_events", SQL_GET_UPLOADED_EVENTS, 1))
+        return 0;
+    if (!prepare_query(db, "get_booked_events", SQL_GET_BOOKED_EVENTS, 1))
+        return 0;
+    if (!prepare_query(db, "get_venue_events", SQL_GET_VENUE_EVENTS, 1))
+        return 0;
+    if (!prepare_query(db, "get_event", SQL_GET_EVENT, 1))
+        return 0;
+    if (!prepare_query(db, "has_seatmap", SQL_HAS_SEATMAP, 1))
+        return 0;
+    if (!prepare_query(db, "no_seatmap", SQL_NO_SEATMAP, 1))
+        return 0;
+    if (!prepare_query(db, "get_seatmap", SQL_GET_SEATMAP, 1))
+        return 0;
+    if (!prepare_query(db, "add_event", SQL_ADD_EVENT, 4))
+        return 0;
+    if (!prepare_query(db, "add_event_sectors", SQL_ADD_EVENT_SECTORS, 4))
+        return 0;
+    if (!prepare_query(db, "update_event_title", SQL_UPDATE_EVENT_TITLE, 2))
+        return 0;
+    if (!prepare_query(db, "update_event_begins_at", SQL_UPDATE_EVENT_BEGINS_AT, 2))
+        return 0;
+    if (!prepare_query(db, "verify_event", SQL_VERIFY_EVENT, 1))
+        return 0;
+    if (!prepare_query(db, "unverify_event", SQL_UNVERIFY_EVENT, 1))
+        return 0;
+    if (!prepare_query(db, "delete_event", SQL_DELETE_EVENT, 1))
+        return 0;
+
+    if (!prepare_query(db, "check_seat", SQL_CHECK_SEAT, 2))
+        return 0;
+    if (!prepare_query(db, "add_ticket_user", SQL_ADD_TICKET_USER, 7))
+        return 0;
+    if (!prepare_query(db, "add_ticket_guest", SQL_ADD_TICKET_GUEST, 6))
+        return 0;
+    if (!prepare_query(db, "get_ticket", SQL_GET_TICKET, 1))
+        return 0;
+    if (!prepare_query(db, "get_ticket_for_html", SQL_GET_TICKET_FOR_HTML, 1))
+        return 0;
+
+    if (!prepare_query(db, "get_venues", SQL_GET_VENUES, 0))
+        return 0;
+    if (!prepare_query(db, "get_venue", SQL_GET_VENUE, 1))
+        return 0;
+    if (!prepare_query(db, "get_sectors", SQL_GET_SECTORS, 1))
+        return 0;
+    if (!prepare_query(db, "get_cities", SQL_GET_CITIES, 0))
+        return 0;
+    if (!prepare_query(db, "add_venue", SQL_ADD_VENUE, 3))
+        return 0;
+    if (!prepare_query(db, "add_venue_sector", SQL_ADD_VENUE_SECTOR, 1))
+        return 0;
+    if (!prepare_query(db, "update_venue_name", SQL_UPDATE_VENUE_NAME, 2))
+        return 0;
+    if (!prepare_query(db, "deactivate_venue", SQL_DEACTIVATE_VENUE, 1))
+        return 0;
+    if (!prepare_query(db, "restore_venue", SQL_RESTORE_VENUE, 1))
+        return 0;
+
+    if (!prepare_query(db, "get_users", SQL_GET_USERS, 0))
+        return 0;
+    if (!prepare_query(db, "get_user_by_id", SQL_GET_USER_BY_ID, 1))
+        return 0;
+    if (!prepare_query(db, "get_user_by_email", SQL_GET_USER_BY_EMAIL, 1))
+        return 0;
+    if (!prepare_query(db, "get_user_password", SQL_GET_USER_PASSWORD, 1))
+        return 0;
+    if (!prepare_query(db, "verify_password", SQL_VERIFY_PASSWORD, 1))
+        return 0;
+    if (!prepare_query(db, "verify_email", SQL_VERIFY_EMAIL, 1))
+        return 0;
+    if (!prepare_query(db, "check_role", SQL_CHECK_ROLE, 1))
+        return 0;
+    if (!prepare_query(db, "add_user", SQL_ADD_USER, 7))
+        return 0;
+    if (!prepare_query(db, "update_role", SQL_UPDATE_ROLE, 2))
+        return 0;
+    if (!prepare_query(db, "update_names", SQL_UPDATE_NAMES, 3))
+        return 0;
+    if (!prepare_query(db, "update_password", SQL_UPDATE_PASSWORD, 3))
+        return 0;
+    if (!prepare_query(db, "update_email", SQL_UPDATE_EMAIL, 2))
+        return 0;
+    if (!prepare_query(db, "update_phone", SQL_UPDATE_PHONE, 2))
+        return 0;
+    if (!prepare_query(db, "soft_delete_user", SQL_SOFT_DELETE_USER, 1))
+        return 0;
+    if (!prepare_query(db, "activate_user", SQL_ACTIVATE_USER, 1))
+        return 0;
+    if (!prepare_query(db, "deactivate_user", SQL_DEACTIVATE_USER, 1))
+        return 0;
+    if (!prepare_query(db, "permanent_delete_user", SQL_PERMANENT_DELETE_USER, 1))
+        return 0;
+    if (!prepare_query(db, "permanent_delete_users", SQL_PERMANENT_DELETE_USERS, 0))
+        return 0;
+    if (!prepare_query(db, "create_reset_token", SQL_CREATE_RESET_TOKEN, 2))
+        return 0;
+    if (!prepare_query(db, "validate_reset_token", SQL_VALIDATE_RESET_TOKEN, 1))
+        return 0;
+    if (!prepare_query(db, "delete_reset_token", SQL_DELETE_RESET_TOKEN, 1))
+        return 0;
+    if (!prepare_query(db, "delete_reset_tokens", SQL_DELETE_RESET_TOKENS, 0))
+        return 0;
+
+    return 1;
+}

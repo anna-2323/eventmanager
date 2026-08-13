@@ -33,16 +33,7 @@ int purchase_ticket(PGconn* db, TicketData* data, int* ticket_id_out) {
     const char* check_params[2] = { event_id_str, sector_id_str };
 
     // Проверка дали има места за това събитие и за тази категория места
-    PGresult* res = PQexecParams(db,
-        "SELECT es.capacity - COUNT(t.id) "
-        "FROM data.event_sectors es "
-        "LEFT JOIN data.tickets t "
-        "    ON t.event_id = es.event_id "
-        "   AND t.sector_id = es.sector_id "
-        "WHERE es.event_id = $1 "
-        "  AND es.sector_id = $2 "
-        "GROUP BY es.capacity;",
-        2, NULL, check_params, NULL, NULL, 0);
+    PGresult* res = PQexecPrepared(db, "check_seat", 2, check_params, NULL, NULL, 0);
     if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0) {
         PQclear(res);
         fprintf(stderr, "Грешка: %s\n", PQerrorMessage(db));
@@ -63,18 +54,14 @@ int purchase_ticket(PGconn* db, TicketData* data, int* ticket_id_out) {
         char user_id_str[16];
         snprintf(user_id_str, sizeof(user_id_str), "%d", data->user_id);
         const char* ins_params[7] = { event_id_str, user_id_str, sector_id_str, data->first_name, data->last_name, data->email, data->phone };
-        res = PQexecParams(db,
-            "INSERT INTO data.tickets (event_id, user_id, sector_id, first_name, last_name, email, phone) "
-            "VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
-            7, NULL, ins_params, NULL, NULL, 0);
+
+        PGresult* res = PQexecPrepared(db, "add_ticket_user", 7, ins_params, NULL, NULL, 0);
     }
     // Гост:
     else {
         const char* ins_params[6] = { event_id_str, sector_id_str, data->first_name, data->last_name, data->email, data->phone };
-        res = PQexecParams(db,
-            "INSERT INTO data.tickets (event_id, sector_id, first_name, last_name, email, phone) "
-            "VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
-            6, NULL, ins_params, NULL, NULL, 0);
+
+        PGresult* res = PQexecPrepared(db, "add_ticket_guest", 6, ins_params, NULL, NULL, 0);
     }
 
     if (PQresultStatus(res) != PGRES_TUPLES_OK) {
@@ -96,20 +83,7 @@ json_t* get_ticket(PGconn* db, int ticket_id) {
     snprintf(id_str, sizeof(id_str), "%d", ticket_id);
     const char* params[1] = { id_str };
 
-    PGresult* res = PQexecParams(db,
-        "SELECT e.title, e.begins_at, v.venue_name, v.city, v.address, "
-        "       t.first_name, t.last_name, t.email, t.phone, t.access_token, "
-        "       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name "
-        "FROM data.tickets t "
-        "JOIN data.events e ON t.event_id = e.id "
-        "JOIN data.venues v ON e.venue_id = v.id "
-        "LEFT JOIN data.event_sectors es "
-        "    ON es.event_id = t.event_id "
-        "   AND es.sector_id = t.sector_id "
-        "LEFT JOIN data.sectors s "
-        "    ON s.id = t.sector_id "
-        "WHERE t.id = $1;",
-        1, NULL, params, NULL, NULL, 0);
+    PGresult* res = PQexecPrepared(db, "get_ticket", 1, params, NULL, NULL, 0);
     CHECK_QUERY(res, db, NULL);
 
     if (PQntuples(res) == 0) {
@@ -135,22 +109,13 @@ json_t* get_ticket(PGconn* db, int ticket_id) {
     return ticket;
 }
 
-int generate_ticket_html(PGconn* db, int ticket_id, const char* qr_path, char* out_path, size_t out_size) {
-    const char* sql =
-        "SELECT e.title, e.begins_at, v.venue_name, v.city, v.address, "
-        "       t.first_name, t.last_name, t.email, t.phone, t.access_token, "
-        "       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name "
-        "FROM data.tickets t "
-        "JOIN data.events e ON t.event_id = e.id "
-        "JOIN data.venues v ON e.venue_id = v.id "
-        "LEFT JOIN data.sectors s ON s.id = t.sector_id "
-        "WHERE t.id = $1;";
-
+int generate_ticket_html(PGconn* db, int ticket_id, const char* qr_path, 
+        char* out_path, size_t out_size) {
     char id_str[16];
     snprintf(id_str, sizeof(id_str), "%d", ticket_id);
     const char* params[1] = { id_str };
 
-    PGresult* res = PQexecParams(db, sql, 1, NULL, params, NULL, NULL, 0);
+    PGresult* res = PQexecPrepared(db, "get_ticket_for_html", 1, params, NULL, NULL, 0);
     if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0) {
         fprintf(stderr, "Ticket lookup failed: %s\n", PQerrorMessage(db));
         PQclear(res);
