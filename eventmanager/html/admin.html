@@ -8,6 +8,7 @@
     <title>Контролен панел</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="/res/style.css" />
     <style>
         #main {
@@ -25,9 +26,83 @@
     </header>
 
     <main id="main" class="main mt-4">
-        <a class="button is-primary" href="/admin/users">Управление на потребители</a>
-        <a class="button is-primary" href="/admin/events">Управление на събития</a>
-        <a class="button is-primary" href="/admin/venues">Управление на зали</a>
+        <div id="admin-summary" class="columns is-multiline is-centered">
+            <div class="column is-2">
+                <div class="box has-text-centered">
+                    <p class="heading">Потребители</p>
+                    <p id="total-users" class="title">0</p>
+                </div>
+            </div>
+        
+            <div class="column is-2">
+                <div class="box has-text-centered">
+                    <p class="heading">Зали</p>
+                    <p id="total-venues" class="title">0</p>
+                </div>
+            </div>
+        
+            <div class="column is-2">
+                <div class="box has-text-centered">
+                    <p class="heading">Събития</p>
+                    <p id="total-events" class="title">0</p>
+                </div>
+            </div>
+        
+            <div class="column is-2">
+                <div class="box has-text-centered">
+                    <p class="heading">Билети</p>
+                    <p id="total-tickets" class="title">0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="columns is-multiline is-centered">
+            <a class="button is-primary column is-2 mx-4" href="/admin/users">Управление на потребители</a>
+            <a class="button is-primary column is-2 mx-4" href="/admin/events">Управление на събития</a>
+            <a class="button is-primary column is-2 mx-4" href="/admin/venues">Управление на зали</a>
+        </div>
+
+        <h2 class="title is-4 mt-4">Развитие по месеци</h2>
+        <div class="columns is-centered is-variable is-4">
+            <div class="column is-3">   
+                <div class="box">
+                    <h2 class="title is-6">Регистрирани потребители</h2>
+                    <div>
+                        <input type="radio" value="monthly" name="user-growth" checked>По месеци</input>
+                        <input type="radio" value="daily" name="user-growth">По дни</input>
+                    </div>
+                    <div style="height: 200px;">
+                        <canvas id="users-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-3">
+                <div class="box">
+                    <h2 class="title is-6">Публикувани събития</h2>
+                    <div>
+                        <input type="radio" value="monthly" name="event-growth" checked>По месеци</input>
+                        <input type="radio" value="daily" name="event-growth">По дни</input>
+                    </div>
+                    <div style="height: 200px;">
+                        <canvas id="events-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-3">
+                <div class="box">
+                    <h2 class="title is-6">Купени билети</h2>
+                    <div>
+                        <input type="radio" value="monthly" name="ticket-growth" checked>По месеци</input>
+                        <input type="radio" value="daily" name="ticket-growth">По дни</input>
+                    </div>
+                    <div style="height: 200px;">
+                        <canvas id="tickets-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <script src="/js/pages/admin.js" type="module"></script>

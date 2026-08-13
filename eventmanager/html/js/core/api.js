@@ -64,6 +64,15 @@ export const api = {
     venues: {
       create: (data) => request('/admin/venues', { method: 'POST', body: JSON.stringify(data) }),
       edit: (id, data) => request(`/admin/venues/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+    },
+    stats: {
+      monthly: () => request('/admin/stats/monthly'),
+      daily: () => request('/admin/stats/daily'),
+      totals: () => request('/admin/stats/totals'),
+      export: {
+        monthly: () =>  request('/admin/stats/export/monthly'),
+        daily: () => request('/admin/stats/export/daily')
+      }
     }
   },
 };
