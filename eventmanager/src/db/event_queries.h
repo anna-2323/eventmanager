@@ -178,3 +178,30 @@ const char* SQL_UNVERIFY_EVENT =
 
 const char* SQL_DELETE_EVENT =
 "DELETE FROM data.events WHERE id = $1 ";
+
+const char* SQL_TOTAL_EVENTS =
+"SELECT COUNT(*) "
+"FROM data.events;";
+
+const char* SQL_EVENTS_GROWTH_MONTHLY =
+"SELECT DATE_TRUNC('month', e.uploaded_at) AS month, "
+"COUNT(*) AS event_count "
+"FROM data.events e "
+"WHERE e.uploaded_at >= CURRENT_DATE - INTERVAL '12 months' "
+"GROUP BY DATE_TRUNC('month', e.uploaded_at) "
+"ORDER BY month; ";
+
+const char* SQL_EVENTS_GROWTH_DAILY =
+"SELECT DATE_TRUNC('day', e.uploaded_at) AS day, "
+"COUNT(*) AS event_count "
+"FROM data.events e "
+"WHERE e.uploaded_at >= CURRENT_DATE - INTERVAL '30 days' "
+"GROUP BY DATE_TRUNC('day', e.uploaded_at) "
+"ORDER BY day; ";
+
+const char* SQL_EVENTS_GROWTH_MONTHLY_ALL =
+"SELECT DATE_TRUNC('month', e.uploaded_at) AS month, "
+"COUNT(*) AS event_count "
+"FROM data.events e "
+"GROUP BY DATE_TRUNC('month', e.uploaded_at) "
+"ORDER BY month; ";

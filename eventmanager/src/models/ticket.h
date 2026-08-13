@@ -17,3 +17,8 @@ typedef struct {
 int purchase_ticket(PGconn* db, TicketData* data, int* ticket_id_out);
 json_t* get_ticket(PGconn* db, int ticket_id);
 int generate_ticket_html(PGconn* db, int ticket_id, const char* qr_path, char* out_path, size_t out_size);
+
+json_t* get_total_tickets(PGconn* db);
+json_t* get_tickets_growth(PGconn* db, int type);
+
+json_t* get_revenue(PGconn* db, int type);

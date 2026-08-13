@@ -21,3 +21,4 @@ int update_venue_name(PGconn* db, int id, const char* venue_name);
 int soft_delete_venue(PGconn* db, int id);
 int restore_venue(PGconn* db, int id);
 
+json_t* get_total_venues(PGconn* db);

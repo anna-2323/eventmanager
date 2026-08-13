@@ -358,3 +358,71 @@ json_t* event_to_json(Event e) {
 	json_object_set_new(obj, "verified", json_integer(e.verified));
 	return obj;
 }
+
+json_t* get_total_events(PGconn* db) {
+	CHECK_DB(db, NULL);
+
+	PGresult* res = PQexecPrepared(db, "get_total_events", 0, NULL, NULL, NULL, 0);
+	CHECK_QUERY(res, db, NULL);
+
+	int total = atoi(PQgetvalue(res, 0, 0));
+
+	return json_integer(total);
+}
+
+static json_t* get_events_growth_json(PGresult* res, int type) {
+	json_t* growth = json_array();
+	int count = PQntuples(res);
+
+	for (int i = 0; i < count; i++) {
+		const char* period = PQgetvalue(res, i, 0);
+		int event_count = atoi(PQgetvalue(res, i, 1));
+
+		json_t* entry = json_object();
+
+		if (type == 0 || type == 1)
+			json_object_set_new(
+				entry,
+				"month",
+				json_string(period)
+			);
+		else if (type == 2)
+			json_object_set_new(
+				entry,
+				"day",
+				json_string(period)
+			);
+
+		json_object_set_new(
+			entry,
+			"event_count",
+			json_integer(event_count)
+		);
+
+		json_array_append_new(growth, entry);
+	}
+
+	PQclear(res);
+	return growth;
+}
+
+json_t* get_events_growth(PGconn* db, int type) {
+	CHECK_DB(db, NULL);
+
+	PGresult* res;
+	if (type == 0) {
+		res = PQexecPrepared(db, "get_events_growth_monthly", 0, NULL, NULL, NULL, 0);
+		CHECK_QUERY(res, db, NULL);
+		return get_events_growth_json(res, type);
+	}
+	else if (type == 1) {
+		res = PQexecPrepared(db, "get_events_growth_monthly_all", 0, NULL, NULL, NULL, 0);
+		CHECK_QUERY(res, db, NULL);
+		return get_events_growth_json(res, type);
+	}
+	else if (type == 2) {
+		res = PQexecPrepared(db, "get_events_growth_daily", 0, NULL, NULL, NULL, 0);
+		CHECK_QUERY(res, db, NULL);
+		return get_events_growth_json(res, type);
+	}
+}

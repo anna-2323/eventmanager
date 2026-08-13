@@ -498,6 +498,74 @@ int delete_tokens(PGconn* db) {
 	return 1;
 }
 
+json_t* get_total_users(PGconn* db) {
+	CHECK_DB(db, NULL);
+
+	PGresult* res = PQexecPrepared(db, "get_total_users", 0, NULL, NULL, NULL, 0);
+	CHECK_QUERY(res, db, NULL);
+
+	int total = atoi(PQgetvalue(res, 0, 0));
+
+	return json_integer(total);
+}
+
+static json_t* get_users_growth_json(PGresult* res, int type) {
+	int count = PQntuples(res);
+	json_t* growth = json_array();
+
+	for (int i = 0; i < count; i++) {
+		const char* period = PQgetvalue(res, i, 0);
+		int user_count = atoi(PQgetvalue(res, i, 1));
+
+		json_t* entry = json_object();
+
+		if (type == 0 || type == 1)
+			json_object_set_new(
+				entry,
+				"month",
+				json_string(period)
+			);
+		else if (type == 2)
+			json_object_set_new(
+				entry,
+				"day",
+				json_string(period)
+			);
+
+		json_object_set_new(
+			entry,
+			"user_count",
+			json_integer(user_count)
+		);
+
+		json_array_append_new(growth, entry);
+	}
+
+	PQclear(res);
+	return growth;
+}
+
+json_t* get_users_growth(PGconn* db, int type) {
+	CHECK_DB(db, NULL);
+
+	PGresult* res;
+	if (type == 0) {
+		res = PQexecPrepared(db, "get_users_growth_monthly", 0, NULL, NULL, NULL, 0);
+		CHECK_QUERY(res, db, NULL);
+		return get_users_growth_json(res, type);
+	}
+	else if (type == 1) {
+		res = PQexecPrepared(db, "get_users_growth_monthly_all", 0, NULL, NULL, NULL, 0);
+		CHECK_QUERY(res, db, NULL);
+		return get_users_growth_json(res, type);
+	}
+	else if (type == 2) {
+		res = PQexecPrepared(db, "get_users_growth_daily", 0, NULL, NULL, NULL, 0);
+		CHECK_QUERY(res, db, NULL);
+		return get_users_growth_json(res, type);
+	}
+}
+
 json_t* user_to_json(User* u) {
 	json_t* obj = json_object();
 	json_object_set_new(obj, "id", json_integer(u->id));

@@ -165,3 +165,185 @@ int generate_ticket_html(PGconn* db, int ticket_id, const char* qr_path,
     free(html);
     return result;
 }
+
+json_t* get_total_tickets(PGconn* db) {
+    CHECK_DB(db, NULL);
+
+    PGresult* res = PQexecPrepared(db, "get_total_tickets", 0, NULL, NULL, NULL, 0);
+    CHECK_QUERY(res, db, NULL);
+
+    int total = atoi(PQgetvalue(res, 0, 0));
+
+    return json_integer(total);
+}
+
+static json_t* get_tickets_growth_json(PGresult* res, int type) {
+    json_t* growth = json_array();
+    int count = PQntuples(res);
+
+    for (int i = 0; i < count; i++) {
+        const char* period = PQgetvalue(res, i, 0);
+        int ticket_count = atoi(PQgetvalue(res, i, 1));
+
+        json_t* entry = json_object();
+
+        if (type == 0 || type == 1)
+            json_object_set_new(
+                entry,
+                "month",
+                json_string(period)
+            );
+        else if (type == 2)
+            json_object_set_new(
+                entry,
+                "day",
+                json_string(period)
+            );
+
+        json_object_set_new(
+            entry,
+            "ticket_count",
+            json_integer(ticket_count)
+        );
+
+        json_array_append_new(growth, entry);
+    }
+
+    PQclear(res);
+    return growth;
+}
+
+json_t* get_tickets_growth(PGconn* db, int type) {
+    CHECK_DB(db, NULL);
+
+    PGresult* res;
+    if (type == 0) {
+        res = PQexecPrepared(db, "get_tickets_growth_monthly", 0, NULL, NULL, NULL, 0);
+        CHECK_QUERY(res, db, NULL);
+        return get_tickets_growth_json(res, type);
+    }
+    else if (type == 1) {
+        res = PQexecPrepared(db, "get_tickets_growth_monthly_all", 0, NULL, NULL, NULL, 0);
+        CHECK_QUERY(res, db, NULL);
+        return get_tickets_growth_json(res, type);
+    }
+    else if (type == 2) {
+        res = PQexecPrepared(db, "get_tickets_growth_daily", 0, NULL, NULL, NULL, 0);
+        CHECK_QUERY(res, db, NULL);
+        return get_tickets_growth_json(res, type);
+    }
+}
+
+static json_t* get_revenue_json(PGresult* res, int type) {
+    json_t* json = json_array();
+    int count = PQntuples(res);
+
+    for (int i = 0; i < count; i++) {
+        const char* period = PQgetvalue(res, i, 0);
+        float revenue = atof(PQgetvalue(res, i, 1));
+        int tickets_sold = atoi(PQgetvalue(res, i, 2));
+
+        json_t* entry = json_object();
+
+        if (type != 2)
+            json_object_set_new(
+                entry,
+                "month",
+                json_string(period)
+            );
+        else if (type == 2)
+            json_object_set_new(
+                entry,
+                "day",
+                json_string(period)
+            );
+
+        json_object_set_new(
+            entry,
+            "revenue",
+            json_real(revenue)
+        );
+        json_object_set_new(
+            entry,
+            "tickets_sold",
+            json_integer(tickets_sold)
+        );
+
+        json_array_append_new(json, entry);
+    }
+
+    PQclear(res);
+    return json;
+}
+
+static json_t* get_revenue_by_venue_json(PGresult* res) {
+    json_t* json = json_array();
+    int count = PQntuples(res);
+
+    for (int i = 0; i < count; i++) {
+        const char* period = PQgetvalue(res, i, 0);
+        float revenue = atof(PQgetvalue(res, i, 1));
+        int tickets_sold = atoi(PQgetvalue(res, i, 2));
+        int venue_id = atoi(PQgetvalue(res, i, 3));
+
+        json_t* entry = json_object();
+
+        json_object_set_new(
+          entry,
+          "day",
+          json_string(period)
+        );
+
+        json_object_set_new(
+            entry,
+            "venue",
+            json_integer(venue_id)
+        );
+        json_object_set_new(
+            entry,
+            "revenue",
+            json_real(revenue)
+        );
+        json_object_set_new(
+            entry,
+            "tickets_sold",
+            json_integer(tickets_sold)
+        );
+
+        json_array_append_new(json, entry);
+    }
+
+    PQclear(res);
+    return json;
+}
+
+json_t* get_revenue(PGconn* db, int type) {
+    CHECK_DB(db, NULL);
+
+    PGresult* res;
+    if (type == 0) {
+        res = PQexecPrepared(db, "get_revenue_monthly", 0, NULL, NULL, NULL, 0);
+        CHECK_QUERY(res, db, NULL);
+        return get_revenue_json(res, type);
+    }
+    else if (type == 1) {
+        res = PQexecPrepared(db, "get_revenue_monthly_all", 0, NULL, NULL, NULL, 0);
+        CHECK_QUERY(res, db, NULL);
+        return get_revenue_json(res, type);
+    }
+    else if (type == 2) {
+        res = PQexecPrepared(db, "get_revenue_daily", 0, NULL, NULL, NULL, 0);
+        CHECK_QUERY(res, db, NULL);
+        return get_revenue_json(res, type);
+    }
+    else if (type == 3) {
+        res = PQexecPrepared(db, "get_revenue_by_venue_monthly", 0, NULL, NULL, NULL, 0);
+        CHECK_QUERY(res, db, NULL);
+        return get_revenue_by_venue_json(res);
+    }
+    else if (type == 4) {
+        res = PQexecPrepared(db, "get_revenue_by_venue_monthly_all", 0, NULL, NULL, NULL, 0);
+        CHECK_QUERY(res, db, NULL);
+        return get_revenue_by_venue_json(res);
+    }
+}

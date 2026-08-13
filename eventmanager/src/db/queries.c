@@ -128,5 +128,46 @@ int prepare_queries(PGconn* db)
     if (!prepare_query(db, "delete_reset_tokens", SQL_DELETE_RESET_TOKENS, 0))
         return 0;
 
+    if (!prepare_query(db, "get_total_events", SQL_TOTAL_EVENTS, 0))
+        return 0;
+    if (!prepare_query(db, "get_total_venues", SQL_TOTAL_VENUES, 0))
+        return 0;
+    if (!prepare_query(db, "get_total_tickets", SQL_TOTAL_TICKETS, 0))
+        return 0;
+    if (!prepare_query(db, "get_total_users", SQL_TOTAL_USERS, 0))
+        return 0;
+
+    if (!prepare_query(db, "get_users_growth_monthly", SQL_USERS_GROWTH_MONTHLY, 0))
+        return 0;
+    if (!prepare_query(db, "get_users_growth_monthly_all", SQL_USERS_GROWTH_MONTHLY_ALL, 0))
+        return 0;
+    if (!prepare_query(db, "get_users_growth_daily", SQL_USERS_GROWTH_DAILY, 0))
+        return 0;
+    if (!prepare_query(db, "get_events_growth_monthly", SQL_EVENTS_GROWTH_MONTHLY, 0))
+        return 0;
+    if (!prepare_query(db, "get_events_growth_monthly_all", SQL_EVENTS_GROWTH_MONTHLY_ALL, 0))
+        return 0;
+    if (!prepare_query(db, "get_events_growth_daily", SQL_EVENTS_GROWTH_DAILY, 0))
+        return 0;
+    if (!prepare_query(db, "get_tickets_growth_monthly", SQL_TICKETS_GROWTH_MONTHLY, 0))
+        return 0;
+    if (!prepare_query(db, "get_tickets_growth_monthly_all", SQL_TICKETS_GROWTH_MONTHLY_ALL, 0))
+        return 0;
+    if (!prepare_query(db, "get_tickets_growth_daily", SQL_TICKETS_GROWTH_DAILY, 0))
+        return 0;
+
+    if (!prepare_query(db, "get_total_revenue", SQL_TOTAL_REVENUE, 0))
+        return 0;
+    if (!prepare_query(db, "get_revenue_daily", SQL_REVENUE_DAILY, 0))
+        return 0;
+    if (!prepare_query(db, "get_revenue_monthly", SQL_REVENUE_MONTHLY, 0))
+        return 0;
+    if (!prepare_query(db, "get_revenue_monthly_all", SQL_REVENUE_MONTHLY_ALL, 0))
+        return 0;
+    if (!prepare_query(db, "get_revenue_by_venue_monthly", SQL_REVENUE_BY_VENUE_MONTHLY, 0))
+        return 0;
+    if (!prepare_query(db, "get_revenue_by_venue_monthly_all", SQL_REVENUE_BY_VENUE_MONTHLY_ALL, 0))
+        return 0;
+
     return 1;
 }

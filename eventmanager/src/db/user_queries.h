@@ -80,3 +80,32 @@ const char* SQL_DELETE_RESET_TOKEN =
 
 const char* SQL_DELETE_RESET_TOKENS =
 "DELETE FROM data.password_resets WHERE expires_at < NOW()";
+
+const char* SQL_TOTAL_USERS =
+"SELECT COUNT(*) "
+"FROM data.users "
+"WHERE deleted_on IS NULL "
+"AND active = true;";
+
+const char* SQL_USERS_GROWTH_MONTHLY =
+"SELECT DATE_TRUNC('month', u.created_at) AS month, "
+"COUNT(*) AS registrations "
+"FROM data.users u "
+"WHERE u.created_at >= CURRENT_DATE - INTERVAL '12 months' "
+"GROUP BY DATE_TRUNC('month', u.created_at) "
+"ORDER BY month; ";
+
+const char* SQL_USERS_GROWTH_MONTHLY_ALL =
+"SELECT DATE_TRUNC('month', u.created_at) AS month, "
+"COUNT(*) AS registrations "
+"FROM data.users u "
+"GROUP BY DATE_TRUNC('month', u.created_at) "
+"ORDER BY month; ";
+
+const char* SQL_USERS_GROWTH_DAILY =
+"SELECT DATE_TRUNC('day', u.created_at) AS day, "
+"COUNT(*) AS registrations "
+"FROM data.users u "
+"WHERE u.created_at >= CURRENT_DATE - INTERVAL '30 days' "
+"GROUP BY DATE_TRUNC('day', u.created_at) "
+"ORDER BY day; ";

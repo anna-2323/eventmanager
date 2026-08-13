@@ -170,3 +170,14 @@ int restore_venue(PGconn* db, int id) {
     PQclear(res);
     return 1;
 }
+
+json_t* get_total_venues(PGconn* db) {
+    CHECK_DB(db, NULL);
+
+    PGresult* res = PQexecPrepared(db, "get_total_venues", 0, NULL, NULL, NULL, 0);
+    CHECK_QUERY(res, db, NULL);
+
+    int total = atoi(PQgetvalue(res, 0, 0));
+
+    return json_integer(total);
+}

@@ -31,4 +31,7 @@ int verify_event(PGconn* db, int id);
 int unverify_event(PGconn* db, int id);
 int delete_event(PGconn* db, int id);
 
+json_t* get_total_events(PGconn* db);
+json_t* get_events_growth(PGconn* db, int type);
+
 json_t* event_to_json(Event e);

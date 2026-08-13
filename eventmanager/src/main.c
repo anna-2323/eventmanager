@@ -10,6 +10,7 @@
 #include "controllers/ticket_api_controller.h"
 #include "controllers/venue_api_controller.h"
 #include "controllers/html_controller.h"
+#include "controllers/stats_controller.h"
 #include "session.h"
 #include "db/queries.h"
 
@@ -78,13 +79,22 @@ void set_handlers(struct mg_context* ctx) {
     mg_set_request_handler(ctx, "/api/events/seatmap", api_event_seatmap, db);
     mg_set_request_handler(ctx, "/api/events/**", api_events, db);
     mg_set_request_handler(ctx, "/api/events", api_events, db);
+
     mg_set_request_handler(ctx, "/api/cities", api_cities, db);
     mg_set_request_handler(ctx, "/api/venues", api_venues, db);
+
     mg_set_request_handler(ctx, "/api/admin/users", api_users, db);
     mg_set_request_handler(ctx, "/api/admin/events", api_admin_events, db);
     mg_set_request_handler(ctx, "/api/admin/venues", api_admin_venues, db);
+
+    mg_set_request_handler(ctx, "/api/admin/stats/export", api_admin_stats_export, db);
+    mg_set_request_handler(ctx, "/api/admin/stats/export/**", api_admin_stats_export, db);
+    mg_set_request_handler(ctx, "/api/admin/stats", api_admin_stats, db);;
+    mg_set_request_handler(ctx, "/api/admin/stats/**", api_admin_stats, db);
+
     mg_set_request_handler(ctx, "/api/purchase/**", api_purchase_ticket, db);
     mg_set_request_handler(ctx, "/api/confirmation/**", api_confirm_ticket, db);
+
     mg_set_request_handler(ctx, "/api/me", api_me, db);
     mg_set_request_handler(ctx, "/api/signup", api_signup, db);
     mg_set_request_handler(ctx, "/api/login", api_login, db);

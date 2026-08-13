@@ -36,3 +36,8 @@ const char* SQL_DEACTIVATE_VENUE =
 
 const char* SQL_RESTORE_VENUE =
 "UPDATE data.venues SET active = TRUE WHERE id = $1;";
+
+const char* SQL_TOTAL_VENUES =
+"SELECT COUNT(*) "
+"FROM data.venues "
+"WHERE active = true;";

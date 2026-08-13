@@ -38,6 +38,9 @@ int delete_user(PGconn* db, int user_id);
 int soft_delete_user(PGconn* db, int user_id, const char* password);
 void permanent_delete_users(PGconn* db);
 
+json_t* get_total_users(PGconn* db);
+json_t* get_users_growth(PGconn* db, int type);
+
 char* create_reset_token(PGconn* db, int user_id);
 int validate_reset_token(PGconn* db, const char* token);
 int reset_password(PGconn* db, const char* token, const char* new_password);
