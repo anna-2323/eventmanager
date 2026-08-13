@@ -176,6 +176,5 @@ const char* SQL_VERIFY_EVENT =
 const char* SQL_UNVERIFY_EVENT =
 "UPDATE data.events SET verified = FALSE WHERE id = $1";
 
-// nuh uh
 const char* SQL_DELETE_EVENT =
 "DELETE FROM data.events WHERE id = $1 ";

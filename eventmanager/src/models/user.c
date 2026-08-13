@@ -6,22 +6,27 @@
 #include <openssl/rand.h>
 #include <openssl/evp.h>
 
-static int hash_password(const char* pass, const unsigned char* salt, const unsigned char* hash) {
+static int hash_password(const char* pass, const unsigned char* salt, size_t salt_len, const unsigned char* hash, size_t hash_len) {
 	return PKCS5_PBKDF2_HMAC(
 		pass,
 		strlen(pass),
 		salt,
-		sizeof(salt),
+		salt_len,
 		100000, // итерации
 		EVP_sha256(),
-		sizeof(hash),
+		hash_len,
 		hash
 	);
 }
 
-static int check_password(const char* stored_hash, const char* salt, int hash_len, int salt_len, const char* password) {
+static int check_password(
+	const unsigned char* stored_hash,
+	const unsigned char* salt,
+	size_t hash_len,
+	size_t salt_len,
+	const char* password) {
 	unsigned char computed_hash[32];
-	hash_password(password, salt, computed_hash);
+	hash_password(password, salt, salt_len, computed_hash, hash_len);
 	// CRYPTO_memcp вместо memcp за защита на хешираната парола 
 	int result = (hash_len == sizeof(computed_hash) &&
 		CRYPTO_memcmp(stored_hash, computed_hash, hash_len) == 0);
@@ -193,7 +198,7 @@ json_t* add_user(PGconn* db, const char* fname, const char* lname,
 	unsigned char salt[16];
 	unsigned char hash[32];
 	RAND_bytes(salt, sizeof(salt));
-	hash_password(password, salt, hash);
+	hash_password(password, salt, 16, hash, 32);
 
 	const char* ins_params[7] = { fname, lname, email, phone, hash, salt, role_str };
 	int lengths[7] = { 0, 0, 0, 0, 32, 16, 0 };
@@ -279,7 +284,7 @@ int update_password(PGconn* db, int user_id, const char* current_password,
 	unsigned char salt[16];
 	unsigned char hash[32];
 	RAND_bytes(salt, sizeof(salt));
-	hash_password(new_password, salt, hash);
+	hash_password(new_password, salt, 16, hash, 32);
 
 	char id_str[16];
 	snprintf(id_str, sizeof(id_str), "%d", user_id);
@@ -462,7 +467,7 @@ int reset_password(PGconn* db, const char* token, const char* new_password) {
 	unsigned char salt[16];
 	unsigned char hash[32];
 	RAND_bytes(salt, sizeof(salt));
-	hash_password(new_password, salt, hash);
+	hash_password(new_password, salt, 16, hash, 32);
 
 	char id_str[16];
 	snprintf(id_str, sizeof(id_str), "%d", user_id);

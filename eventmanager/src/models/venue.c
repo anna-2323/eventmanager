@@ -122,7 +122,7 @@ int add_venue(PGconn* db, const char* city, const char* address, const char* ven
     snprintf(venue_id_str, sizeof(venue_id_str), "%d", venue_id);
     const char* params2[1] = { venue_id_str };
 
-    PGresult* res = PQexecPrepared(db, "add_venue_sector", 1, params2, NULL, NULL, 0);
+    res = PQexecPrepared(db, "add_venue_sector", 1, params2, NULL, NULL, 0);
     CHECK_COMMAND_QUERY(res, db, 0);
 
     return venue_id;

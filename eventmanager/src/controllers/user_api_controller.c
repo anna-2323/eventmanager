@@ -62,9 +62,9 @@ int api_users(struct mg_connection* conn, void* data) {
 			if (!json_is_boolean(active_json))
 				result = 0;
 			else if (json_boolean_value(active_json))
-				result = deactivate_user(db, id);
-			else
 				result = activate_user(db, id);
+			else
+				result = deactivate_user(db, id);
 
 			if (email)
 				result = admin_update_email(db, id, email);
@@ -331,7 +331,7 @@ static int handle_phone(PGconn* db, Session* s, json_t* req, json_t* res) {
 	if (!phone || !password) {
 		missing_fields(res);
 	}
-	int result = update_phone(db, s->user_id, phone, password);
+	int result = update_phone(db, s->user_id, password, phone);
 	set_result(res, result);
 	return result;
 }
