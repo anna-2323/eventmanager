@@ -79,5 +79,13 @@ export const api = {
 
 function toQuery(params) {
   if (!params) return '';
-  return '?' + new URLSearchParams(params).toString();
+
+  const filtered = Object.entries(params)
+    .filter(([, value]) => value !== null && value !== undefined && value !== '');
+
+  if (filtered.length === 0) {
+    return '';
+  }
+
+  return '?' + new URLSearchParams(filtered).toString();
 }

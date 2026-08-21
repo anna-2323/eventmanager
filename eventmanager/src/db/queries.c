@@ -14,15 +14,7 @@ static int prepare_query(PGconn* db, const char* name, const char* sql, int npar
 
 int prepare_queries(PGconn* db)
 {
-    if (!prepare_query(db, "get_events_upcoming", SQL_GET_EVENTS_UPCOMING, 0))
-        return 0;
-    if (!prepare_query(db, "get_events_recent", SQL_GET_EVENTS_RECENT, 0))
-        return 0;
-    if (!prepare_query(db, "get_events_price_desc", SQL_GET_EVENTS_PRICE_DESC, 0))
-        return 0;
-    if (!prepare_query(db, "get_events_price_asc", SQL_GET_EVENTS_PRICE_ASC, 0))
-        return 0;
-    if (!prepare_query(db, "get_events_search", SQL_GET_EVENTS_SEARCH, 1))
+    if (!prepare_query(db, "get_events", SQL_GET_EVENTS, 0))
         return 0;
     if (!prepare_query(db, "get_uploaded_events", SQL_GET_UPLOADED_EVENTS, 1))
         return 0;

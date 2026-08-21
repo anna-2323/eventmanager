@@ -18,7 +18,19 @@ typedef struct {
 	Venue venue;
 } Event;
 
-int get_events(PGconn* db, const char* search, const char* sort, json_t* out);
+typedef struct {
+	const char* search;
+	const char* city;
+	int category_id;
+
+	int upcoming;
+	int uploaded;
+	int booked;
+
+	int user_id;
+} EventFilters;
+
+int get_events(PGconn* db, const EventFilters* filters, json_t* out);
 json_t* get_event(PGconn* db, int id);
 json_t* get_event_seatmap(PGconn* db, int id);
 json_t* get_user_events(PGconn* db, int id);

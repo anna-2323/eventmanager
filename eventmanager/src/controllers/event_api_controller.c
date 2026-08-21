@@ -1,22 +1,52 @@
 #include "event_api_controller.h"
 
-static int handle_edit_event();
-
 // GET /api/events
 int api_events(struct mg_connection* conn, void* data) {
     const struct mg_request_info* info = mg_get_request_info(conn);
 
     if (strcmp(info->local_uri, "/api/events") == 0) {
+        EventFilters filters = { 0 };
+
+        filters.upcoming = 1;
+
         char search[256] = "";
-        char sort[256] = "";
+        char city[128] = "";
+        char category[32] = "";
 
         if (info->query_string) {
-            mg_get_var(info->query_string, strlen(info->query_string), "search", search, sizeof(search));
-            mg_get_var(info->query_string, strlen(info->query_string), "sort", sort, sizeof(sort));
+            mg_get_var(
+                info->query_string,
+                strlen(info->query_string),
+                "search",
+                search,
+                sizeof(search)
+            );
+
+            mg_get_var(
+                info->query_string,
+                strlen(info->query_string),
+                "city",
+                city,
+                sizeof(city)
+            );
+
+            mg_get_var(
+                info->query_string,
+                strlen(info->query_string),
+                "category",
+                category,
+                sizeof(category)
+            );
         }
 
+        filters.search = search;
+        filters.city = city;
+        filters.category_id = atoi(category);
+
         json_t* json = json_array();
-        get_events((PGconn*)data, search, sort, json);
+
+        get_events((PGconn*)data, &filters, json);
+
         return send_json(conn, json);
     }
     else {
@@ -52,7 +82,7 @@ int api_event_seatmap(struct mg_connection* conn, void* data) {
 
 // GET/PATCH/DELETE /api/admin/events
 int api_admin_events(struct mg_connection* conn, void* data) {
-    if (check_role(conn, ROLE_ADMIN) < 1) {
+    if (check_role(conn, ROLE_USER)) {
         mg_send_http_error(conn, 403, "Forbidden");
         return 403;
     }
@@ -62,24 +92,76 @@ int api_admin_events(struct mg_connection* conn, void* data) {
 
     // /api/admin/events
     if (strcmp(info->local_uri, "/api/admin/events") == 0) {
-        if (strcmp(info->request_method, "GET") != 0) {
-            mg_send_http_error(conn, 405, "Method Not Allowed");
-            return 405;
+        if (strcmp(info->request_method, "GET") == 0) {
+            EventFilters filters = { 0 };
+
+            filters.upcoming = 0;
+
+            char search[256] = "";
+            char city[128] = "";
+            char category[32] = "";
+
+            if (info->query_string) {
+                mg_get_var(
+                    info->query_string,
+                    strlen(info->query_string),
+                    "search",
+                    search,
+                    sizeof(search)
+                );
+
+                mg_get_var(
+                    info->query_string,
+                    strlen(info->query_string),
+                    "city",
+                    city,
+                    sizeof(city)
+                );
+
+                mg_get_var(
+                    info->query_string,
+                    strlen(info->query_string),
+                    "category",
+                    category,
+                    sizeof(category)
+                );
+            }
+
+            filters.search = search;
+            filters.city = city;
+            filters.category_id = atoi(category);
+
+            json_t* json = json_array();
+
+            int result = get_events(db, &filters, json);
+
+            return send_json(conn, json);
+        }
+        if (strcmp(info->request_method, "POST") == 0) {
+            if (check_role(conn, ROLE_USER)) {
+                mg_send_http_error(conn, 403, "Forbidden");
+                return 403;
+            }
+
+            json_t* req = get_json(conn);
+            if (!req) return 400;
+
+            json_t* res = json_object();
+
+            Session* s = get_session(conn);
+
+            int venue_id = json_integer_value(json_object_get(req, "venue_id"));
+            const char* title = json_string_value(json_object_get(req, "title"));
+            const char* begins_at = json_string_value(json_object_get(req, "begins_at"));
+            double price = json_number_value(json_object_get(req, "price"));
+            int capacity = json_integer_value(json_object_get(req, "capacity"));
+            int result = add_event(db, s->user_id, venue_id, title, begins_at, price, capacity);
+
+            set_result(res, result);
+            json_decref(req);
+            return send_json(conn, res);
         }
 
-        char search[256] = "";
-        char sort[256] = "";
-
-        if (info->query_string) {
-            mg_get_var(info->query_string, strlen(info->query_string),
-                "search", search, sizeof(search));
-            mg_get_var(info->query_string, strlen(info->query_string),
-                "sort", sort, sizeof(sort));
-        }
-
-        json_t* json = json_array();
-        int result = get_events(db, search, sort, json);
-        return send_json(conn, json);
     }
 
     // /api/admin/events/{id}

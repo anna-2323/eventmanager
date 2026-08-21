@@ -13,37 +13,52 @@ static void event_from_query(PGresult* res, Event* e, int i) {
 	if (!PQgetisnull(res, i, 8)) e->verified = atoi(PQgetvalue(res, i, 8));
 }
 
-int get_events(PGconn* db, const char* search, const char* sort, json_t* out) {
+int get_events(PGconn* db, const EventFilters* filters, json_t* out) {
 	CHECK_DB(db, 0);
 
-	PGresult* res = NULL;
-	char param_str[256];
-	// todo: сортиране в javascript, а не със заявки
-	if (search && search[0] != '\0') {
-		snprintf(param_str, sizeof(param_str), "%s", search);
-		const char* params[1] = { param_str };
-		res = PQexecPrepared(db, "get_events_search", 1, params, NULL, NULL, 0);
+	const char* params[4];
+
+	char upcoming_str[2];
+	snprintf(upcoming_str, sizeof(upcoming_str), "%d", filters->upcoming);
+	params[0] = upcoming_str;
+	params[1] = filters->search && filters->search[0] != '\0'
+		? filters->search
+		: NULL;
+	params[2] = filters->city && filters->city[0] != '\0'
+		? filters->city
+		: NULL;
+
+	char category_str[32];
+
+	if (filters->category_id > 0) {
+		snprintf(
+			category_str,
+			sizeof(category_str),
+			"%d",
+			filters->category_id
+		);
+
+		params[3] = category_str;
 	}
-	else if (sort && sort[0] != '\0') {
-		snprintf(param_str, sizeof(param_str), "%s", sort);
-		const char* params[1] = { param_str };
-		if (strcmp(sort, "price_asc") == 0) {
-			res = PQexecPrepared(db, "get_events_price_asc", 0, NULL, NULL, NULL, 0);
-		}
-		else if (strcmp(sort, "price_desc") == 0) {
-			res = PQexecPrepared(db, "get_events_price_desc", 0, NULL, NULL, NULL, 0);
-		}
-		else if (strcmp(sort, "recent") == 0) {
-			res = PQexecPrepared(db, "get_events_recent", 0, NULL, NULL, NULL, 0);
-		}
+	else {
+		params[3] = NULL;
 	}
-	else
-		res = PQexecPrepared(db, "get_events_upcoming", 0, NULL, NULL, NULL, 0);
+
+	PGresult* res = PQexecPrepared(
+		db,
+		"get_events",
+		4,
+		params,
+		NULL,
+		NULL,
+		0
+	);
 
 	CHECK_QUERY(res, db, 0);
 
 	Event e = { 0 };
 	int count = PQntuples(res);
+
 	for (int i = 0; i < count; i++) {
 		event_from_query(res, &e, i);
 		json_array_append_new(out, event_to_json(e));
