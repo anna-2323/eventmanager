@@ -14,7 +14,8 @@
 
 #events {
   grid-template-columns: repeat(auto-fill, 200px);
-  justify-items: start;
+  justify-items: center;
+  justify-content: center;
 }
 
 .image {
