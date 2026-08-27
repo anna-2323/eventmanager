@@ -27,6 +27,7 @@ $("#event").innerHTML = `<div class="box">
                         <span>${toDatetime(e.begins_at)}</span>
                     </span>
                 </p>
+                <p class="is-size-6">${e.description}</p>
                 <p class="is-size-4 has-text-weight-bold has-text-primary mb-4">
                     ${toPrice(e.price)}</p>
                 ${

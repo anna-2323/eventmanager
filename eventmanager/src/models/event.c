@@ -11,6 +11,7 @@ static void event_from_query(PGresult* res, Event* e, int i) {
 	e->price = atof(PQgetvalue(res, i, 6));
 	e->seats_left = atoi(PQgetvalue(res, i, 7));
 	if (!PQgetisnull(res, i, 8)) e->verified = atoi(PQgetvalue(res, i, 8));
+	if (!PQgetisnull(res, i, 9)) strncpy(e->description, PQgetvalue(res, i, 9), 512);
 }
 
 int get_events(PGconn* db, const EventFilters* filters, json_t* out) {
@@ -394,6 +395,7 @@ json_t* event_to_json(Event e) {
 	json_object_set_new(obj, "city", json_string(e.venue.city));
 	json_object_set_new(obj, "seats_left", json_integer(e.seats_left));
 	json_object_set_new(obj, "verified", json_integer(e.verified));
+	json_object_set_new(obj, "description", json_string(e.description));
 	return obj;
 }
 

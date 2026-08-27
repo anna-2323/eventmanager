@@ -13,6 +13,7 @@ typedef struct {
 	char begins_at[255];
 	char img_path[255];
 	char uploaded_on[255];
+	char description[512];
 	int organizer_id;
 	int verified;
 	Venue venue;

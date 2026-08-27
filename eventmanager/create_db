@@ -11,7 +11,8 @@ CREATE TABLE data.events (
     organizer_id integer NOT NULL,
     uploaded_at timestamp with time zone DEFAULT now(),
     verified BOOLEAN DEFAULT false,
-    category_id integer references data.categories(id)
+    category_id integer references data.categories(id),
+    description VARCHAR(512)
 );
 
 CREATE TABLE data.users (
