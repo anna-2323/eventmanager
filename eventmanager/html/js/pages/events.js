@@ -7,6 +7,17 @@ await header();
 
 const params = new URLSearchParams(window.location.search);
 
+// Попълване на dropdown менютата
+const cities = await api.cities.list();
+const categories = await api.categories.list();
+$('#city-dropdown').innerHTML = cities.map(city =>
+  
+  `<a class="dropdown-item" data-value="${city}">${city}</a>`
+).join("");
+$("#category-dropdown").innerHTML = categories.map(c => 
+  `<a class="dropdown-item" data-value="${c.id}">${c.title}</a>`
+).join("");
+
 let currentSort = null;
 let currentCategory = null;
 let currentCity = null;

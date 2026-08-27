@@ -5,6 +5,7 @@ import { search } from "./search.js";
 
 export async function header() {
     const cities = await api.cities.list();
+    const categories = await api.categories.list();
   $("#header").innerHTML = `
     <nav class="navbar" role="navigation" aria-label="main navigation">
 
@@ -33,10 +34,9 @@ export async function header() {
                         Категории
                     </a>
                     <div class="navbar-dropdown">
-                        <a class="navbar-item" href="#">Спорт</a>
-                        <a class="navbar-item" href="#">Театър</a>
-                        <a class="navbar-item" href="#">Концерти</a>
-                        <a class="navbar-item" href="#">Семинари</a>
+                        ${categories.map((c) =>
+                            `<a class="navbar-item" href="/events?category=${c.id}">${c.title}</a>`
+                        ).join("")}
                     </div>
                 </div>
 
@@ -46,7 +46,7 @@ export async function header() {
                     </a>
                     <div class="navbar-dropdown">
                         ${cities.map((c) => 
-                            `<a class="navbar-item" href="#">${c}</a>`
+                            `<a class="navbar-item" href="/events?city=${c}">${c}</a>`
                         ).join("")}
                     </div>
                 </div>
