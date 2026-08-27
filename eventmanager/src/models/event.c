@@ -360,6 +360,29 @@ int delete_event(PGconn* db, int id) {
 	return 1;
 }
 
+json_t* get_categories(PGconn* db) {
+	CHECK_DB(db, NULL);
+
+	PGresult* res = PQexecPrepared(db, "get_categories", 0, NULL, NULL, NULL, 0);
+	CHECK_QUERY(res, db, NULL);
+
+	json_t* categories = json_array();
+
+	int count = PQntuples(res);
+	for (int i = 0; i < count; i++) {
+		json_t* category = json_object();
+		json_object_set_new(category, "id", json_string(PQgetvalue(res, i, 0)));
+		json_object_set_new(category, "title", json_string(PQgetvalue(res, i, 1)));
+		json_array_append_new(
+			categories,
+			category
+		);
+	}
+
+	PQclear(res);
+	return categories;
+}
+
 json_t* event_to_json(Event e) {
 	json_t* obj = json_object();
 	json_object_set_new(obj, "id", json_integer(e.id));

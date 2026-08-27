@@ -10,7 +10,8 @@ CREATE TABLE data.events (
     img_path varchar(225) DEFAULT '/res/default1.png',
     organizer_id integer NOT NULL,
     uploaded_at timestamp with time zone DEFAULT now(),
-    verified BOOLEAN DEFAULT false
+    verified BOOLEAN DEFAULT false,
+    category_id integer references data.categories(id)
 );
 
 CREATE TABLE data.users (

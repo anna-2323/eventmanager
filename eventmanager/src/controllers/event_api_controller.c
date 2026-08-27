@@ -64,6 +64,14 @@ int api_events(struct mg_connection* conn, void* data) {
     return 0;
 }
 
+// GET /api/categories
+int api_categories(struct mg_connection* conn, void* data) {
+    json_t* res = get_categories((PGconn*)data);
+    if (!res)
+        return 500;
+    return send_json(conn, res);
+}
+
 // GET /api/events/seatmap/{id}
 int api_event_seatmap(struct mg_connection* conn, void* data) {
     PGconn* db = (PGconn*)data;

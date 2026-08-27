@@ -24,12 +24,7 @@ const char* SQL_GET_EVENTS =
 "     e.title ILIKE '%' || $2 || '%' "
 "     OR v.venue_name ILIKE '%' || $2 || '%') "
 "AND ($3::text IS NULL OR v.city = $3) "
-"AND ($4::int IS NULL OR EXISTS ("
-"    SELECT 1 "
-"    FROM data.events_categories ec "
-"    WHERE ec.event_id = e.id "
-"      AND ec.category_id = $4 "
-")) "
+"AND ($4::int IS NULL OR e.category_id = $4) "
 "GROUP BY "
 "    e.id, "
 "    e.title, "
@@ -141,6 +136,9 @@ const char* SQL_UNVERIFY_EVENT =
 
 const char* SQL_DELETE_EVENT =
 "DELETE FROM data.events WHERE id = $1 ";
+
+const char* SQL_GET_CATEGORIES =
+"SELECT id, title FROM data.categories;";
 
 const char* SQL_TOTAL_EVENTS =
 "SELECT COUNT(*) "

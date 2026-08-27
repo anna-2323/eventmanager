@@ -23,6 +23,10 @@ export const api = {
   cities: {
     list: () => request('/cities')
   },
+
+  categories: {
+    list: () => request('/categories')
+  },
   
   venues: {
     list: () => request('/venues'),

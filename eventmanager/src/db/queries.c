@@ -44,6 +44,8 @@ int prepare_queries(PGconn* db)
         return 0;
     if (!prepare_query(db, "delete_event", SQL_DELETE_EVENT, 1))
         return 0;
+    if (!prepare_query(db, "get_categories", SQL_GET_CATEGORIES, 1))
+        return 0;
 
     if (!prepare_query(db, "check_seat", SQL_CHECK_SEAT, 2))
         return 0;
