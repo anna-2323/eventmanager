@@ -5,9 +5,11 @@
 
 typedef struct {
 	int id;
-	char venue_name[255];
-	char city[255];
-	char address[255];
+	char venue_name[256];
+	char city[256];
+	char address[256];
+	int active;
+	int has_sectors;
 } Venue;
 
 int get_venues(PGconn* db, json_t* out);

@@ -4,20 +4,44 @@
 #include "jansson.h"
 #include "venue.h"
 
+
 typedef struct {
 	int id;
 	int capacity;
 	int seats_left;
 	float price;
-	char title[255];
-	char begins_at[255];
-	char img_path[255];
-	char uploaded_on[255];
+	char title[256];
+	char begins_at[256];
+	char img_path[256];
+	char uploaded_on[256];
 	char description[512];
 	int organizer_id;
 	int verified;
 	Venue venue;
 } Event;
+
+typedef struct {
+	int id;
+	char name[100];
+	int capacity;
+	double price;
+	char color[8];
+	char svg_path[256];
+	int available;
+} Sector;
+
+typedef struct {
+	int has_sectors;
+	char background_svg[256];
+	char viewbox[50];
+	Sector* sectors;
+	int sector_count;
+} SeatMap;
+
+typedef struct {
+	int id;
+	char title[256];
+} Category;
 
 typedef struct {
 	const char* search;

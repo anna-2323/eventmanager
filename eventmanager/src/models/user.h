@@ -4,12 +4,12 @@
 
 typedef struct {
 	int id;
-	char email[255];
-	char first_name[255];
-	char last_name[255];
-	char phone[255];
+	char email[256];
+	char first_name[256];
+	char last_name[256];
+	char phone[256];
 	int role;
-	char deleted_on[255];
+	char deleted_on[256];
 	int active;
 } User;
 

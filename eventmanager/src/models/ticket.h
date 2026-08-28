@@ -5,13 +5,28 @@
 #include "user.h"
 
 typedef struct {
+    char event_name[256];
+    char begins_at[256];
+    char venue_name[256];
+    char venue_city[256];
+    char venue_address[256];
+    char first_name[256];
+    char last_name[256];
+    char email[256];
+    char phone[50];
+    char sector[256];
+    char token[256];
+    float price;
+} TicketView;
+
+typedef struct {
     int event_id;
-    int user_id;
     int sector_id;
-    char first_name[255];
-    char last_name[255];
-    char email[255];
-    char phone[255];
+    int user_id;
+    char first_name[256];
+    char last_name[256];
+    char email[256];
+    char phone[50];
 } TicketData;
 
 int purchase_ticket(PGconn* db, TicketData* data, int* ticket_id_out);
