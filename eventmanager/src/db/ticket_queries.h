@@ -20,8 +20,9 @@ const char* SQL_ADD_TICKET_GUEST =
 
 const char* SQL_GET_TICKET =
 "SELECT e.title, e.begins_at, v.venue_name, v.city, v.address, "
-"       t.first_name, t.last_name, t.email, t.phone, t.access_token, "
-"       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name "
+"       t.first_name, t.last_name, t.email, t.phone, "
+"       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name, "
+"		t.access_token "
 "FROM data.tickets t "
 "JOIN data.events e ON t.event_id = e.id "
 "JOIN data.venues v ON e.venue_id = v.id "
@@ -34,8 +35,9 @@ const char* SQL_GET_TICKET =
 
 const char* SQL_GET_TICKET_FOR_HTML =
 "SELECT e.title, e.begins_at, v.venue_name, v.city, v.address, "
-"       t.first_name, t.last_name, t.email, t.phone, t.access_token, "
-"       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name "
+"       t.first_name, t.last_name, t.email, t.phone, "
+"       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name, "
+"		t.access_token "
 "FROM data.tickets t "
 "JOIN data.events e ON t.event_id = e.id "
 "JOIN data.venues v ON e.venue_id = v.id "
@@ -60,6 +62,7 @@ const char* SQL_TICKETS_GROWTH_MONTHLY_ALL =
 "DATE_TRUNC('month', t.purchased_at) AS month, "
 "COUNT(*) AS ticket_count "
 "FROM data.tickets t "
+"WHERE t.purchased_at >= CURRENT_DATE - INTERVAL '12 months' "
 "GROUP BY DATE_TRUNC('month', t.purchased_at) "
 "ORDER BY month; ";
 

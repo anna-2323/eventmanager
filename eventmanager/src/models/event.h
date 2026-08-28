@@ -3,7 +3,7 @@
 #include "civetweb.h"
 #include "jansson.h"
 #include "venue.h"
-
+#include "model.h"
 
 typedef struct {
 	int id;
@@ -21,14 +21,13 @@ typedef struct {
 } Event;
 
 typedef struct {
-	int id;
-	char name[100];
-	int capacity;
+	int organizer_id;
+	int venue_id;
+	char title[256];
+	char begins_at[256];
 	double price;
-	char color[8];
-	char svg_path[256];
-	int available;
-} Sector;
+	int capacity;
+} EventData;
 
 typedef struct {
 	int has_sectors;
@@ -55,11 +54,13 @@ typedef struct {
 	int user_id;
 } EventFilters;
 
-int get_events(PGconn* db, const EventFilters* filters, json_t* out);
-json_t* get_event(PGconn* db, int id);
-json_t* get_event_seatmap(PGconn* db, int id);
-json_t* get_user_events(PGconn* db, int id);
-json_t* get_events_in_venue(PGconn* db, int venue_id);
+int get_events(PGconn* db, const EventFilters* filters, Event** out);
+int get_event(PGconn* db, int id, Event* out);
+int get_event_seatmap(PGconn* db, int id, SeatMap* out);
+int get_user_events(PGconn* db, int id, Event** out);
+int get_events_in_venue(PGconn* db, int venue_id, Event** out);
+
+int add_event(PGconn* db, EventData* data);
 
 int admin_update_title(PGconn* db, int id, const char* title);
 int admin_update_begins_at(PGconn* db, int id, const char* begins_at);
@@ -68,10 +69,7 @@ int verify_event(PGconn* db, int id);
 int unverify_event(PGconn* db, int id);
 int delete_event(PGconn* db, int id);
 
-json_t* get_categories(PGconn* db);
+int get_categories(PGconn* db, Category** out);
 
-json_t* get_total_events(PGconn* db);
-json_t* get_events_growth(PGconn* db, int type);
-
-
-json_t* event_to_json(Event e);
+int get_total_events(PGconn* db);
+int get_events_growth(PGconn* db, int type, StatGrowth** out);

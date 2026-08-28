@@ -3,9 +3,17 @@
 
 // GET /api/cities
 int api_cities(struct mg_connection* conn, void* data) {
-	json_t* res = get_cities((PGconn*)data);
-	if (!res)
+	char** cities;
+	int count = get_cities((PGconn*)data, &cities);
+	if (count == 0)
 		return 500;
+
+	json_t* res = json_array();
+	for (int i = 0; i < count; i++) {
+		json_array_append(res, json_string(cities[i]));
+	}
+	
+	free(cities);
 	return send_json(conn, res);
 }
 
@@ -18,7 +26,12 @@ int api_venues(struct mg_connection* conn, void* data) {
 		// GET /api/venues
 		if (strcmp(info->request_method, "GET") == 0) {
 			json_t* res = json_array();
-			int count = get_venues(db, res);
+			Venue* venues;
+			int count = get_venues(db, &venues);
+			for (int i = 0; i < count; i++) {
+				json_array_append(res, venue_to_json(&venues[i]));
+			}
+			free(venues);
 			return send_json(conn, res);
 		}
 	}
@@ -37,7 +50,13 @@ int api_venues(struct mg_connection* conn, void* data) {
 			return 405;
 		}
 
-		json_t* res = get_events_in_venue(db, id);
+		Event* events = NULL;
+		int count = get_events_in_venue(db, id, &events);
+		json_t* res = json_array();
+		for (int i = 0; i < count; i++) {
+			json_array_append(res, event_to_json(&events[i]));
+		}
+		free(events);
 		return send_json(conn, res);
 	}
 
@@ -48,11 +67,11 @@ int api_venues(struct mg_connection* conn, void* data) {
 
 	// GET /api/venues/{id}
 	if (strcmp(info->request_method, "GET") == 0) {
-		res = get_venue(db, id);
-		return send_json(conn, res);
+		Venue venue;
+		if(get_venue(db, id, &venue))
+			return send_json(conn, venue_to_json(&venue));
 	}
 	
-
 	mg_send_http_error(conn, 405, "Method Not Allowed");
 	return 405;
 }
@@ -79,10 +98,11 @@ int api_admin_venues(struct mg_connection* conn, void* data) {
 
 			json_t* res = json_object();
 
-			const char* city = json_string_value(json_object_get(req, "city"));
-			const char* address = json_string_value(json_object_get(req, "address"));
-			const char* venue_name = json_string_value(json_object_get(req, "venue_name"));
-			int result = add_venue(db, city, address, venue_name);
+			Venue v;
+			snprintf(v.city, sizeof(v.city), "%s", json_string_value(json_object_get(req, "city")));
+			snprintf(v.address, sizeof(v.address), "%s", json_string_value(json_object_get(req, "address")));
+			snprintf(v.venue_name, sizeof(v.venue_name), "%s", json_string_value(json_object_get(req, "venue_name")));
+			int result = add_venue(db, &v);
 
 			set_result(res, result);
 			json_decref(req);

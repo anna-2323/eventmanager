@@ -5,7 +5,7 @@ const char* SQL_GET_USERS =
 "FROM data.users; ";
 
 const char* SQL_GET_USER_BY_ID =
-"SELECT email, first_name, last_name, phone, role, deleted_on, active::int "
+"SELECT id, email, first_name, last_name, phone, role, deleted_on, active::int "
 "FROM data.users "
 "WHERE id = $1; ";
 
@@ -33,7 +33,7 @@ const char* SQL_CHECK_ROLE =
 const char* SQL_ADD_USER =
 "INSERT INTO data.users (first_name, last_name, email, phone, password_hash, salt, role) "
 "VALUES ($1, $2, $3, NULLIF($4, ''), $5, $6, $7) "
-"RETURNING id, first_name, last_name, email, phone, role";
+"RETURNING id";
 
 const char* SQL_UPDATE_ROLE =
 "UPDATE data.users SET role = $1 WHERE id = $2";

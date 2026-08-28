@@ -1,6 +1,7 @@
 #pragma once
 #include "libpq-fe.h"
 #include <jansson.h>
+#include "model.h"
 
 typedef struct {
 	int id;
@@ -13,14 +14,13 @@ typedef struct {
 	int active;
 } User;
 
-int get_all_users(PGconn* db, json_t* out);
-json_t* get_user(PGconn* db, int id);
-json_t* user_to_json(User* u);
+int get_all_users(PGconn* db, User** out);
+int get_user(PGconn* db, int id, User* out);
 
 int verify_user(PGconn* db, const char* email, const char* password, User* out);
 int verify_email(PGconn* db, const char* email);
 
-json_t* add_user(PGconn* db, const char* fname, const char* lname, const char* email, const char* phone, const char* password, int role);
+int add_user(PGconn* db, User* u, const char* password);
 
 int admin_update_email(PGconn* db, int user_id, const char* email);
 int admin_update_phone(PGconn* db, int user_id, const char* phone);
@@ -38,8 +38,8 @@ int delete_user(PGconn* db, int user_id);
 int soft_delete_user(PGconn* db, int user_id, const char* password);
 void permanent_delete_users(PGconn* db);
 
-json_t* get_total_users(PGconn* db);
-json_t* get_users_growth(PGconn* db, int type);
+int get_total_users(PGconn* db);
+int get_users_growth(PGconn* db, int type, StatGrowth** out);
 
 char* create_reset_token(PGconn* db, int user_id);
 int validate_reset_token(PGconn* db, const char* token);

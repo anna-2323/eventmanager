@@ -24,15 +24,8 @@ int api_purchase_ticket(struct mg_connection* conn, void* data) {
         ticket.user_id = -1;
 
     json_t* sector = json_object_get(req, "sector_id");
-
-    printf("exists: %s\n", sector ? "yes" : "no");
-    printf("is integer: %s\n", json_is_integer(sector) ? "yes" : "no");
-
-    if (sector) {
-        printf("integer value: %lld\n", json_integer_value(sector));
-    }
-
     ticket.sector_id = json_integer_value(json_object_get(req, "sector_id"));
+
     strncpy(ticket.first_name, 
         json_string_value(json_object_get(req, "first_name")), sizeof(ticket.first_name) - 1);
     strncpy(ticket.last_name, 
@@ -41,7 +34,6 @@ int api_purchase_ticket(struct mg_connection* conn, void* data) {
         json_string_value(json_object_get(req, "email")), sizeof(ticket.email) - 1);
     strncpy(ticket.phone, 
         json_string_value(json_object_get(req, "phone")), sizeof(ticket.phone) - 1); 
-
 
     int ticket_id;
     int result = purchase_ticket(db, &ticket, &ticket_id);
@@ -60,7 +52,6 @@ int api_purchase_ticket(struct mg_connection* conn, void* data) {
         json_object_set_new(res, "error", json_string("Възникна грешка."));
     }
 
-
     json_decref(req);
     return send_json(conn, res);
 }
@@ -73,12 +64,11 @@ int api_confirm_ticket(struct mg_connection* conn, void* data) {
     int ticket_id = atoi(info->local_uri + strlen("/api/confirmation/"));
     if (ticket_id <= 0) { mg_send_http_error(conn, 400, "Invalid ID"); return 400; }
 
-    json_t* ticket = get_ticket(db, ticket_id);
-    if (!ticket) { mg_send_http_error(conn, 404, "Not found"); return 404; }
+    TicketView ticket;
+    if (!get_ticket(db, ticket_id, &ticket)) { mg_send_http_error(conn, 404, "Not found"); return 404; }
 
-    const char* token = json_string_value(json_object_get(ticket, "token"));
     char pdf_path[128];
-    snprintf(pdf_path, sizeof(pdf_path), "tickets/ticket_%s.pdf", token);
+    snprintf(pdf_path, sizeof(pdf_path), "tickets/ticket_%s.pdf", ticket.token);
 
     // Проверка има ли вече генериран PDF билет
     FILE* check = fopen(pdf_path, "rb");
@@ -87,9 +77,7 @@ int api_confirm_ticket(struct mg_connection* conn, void* data) {
     }
     else {
         char qr_path[128];
-        snprintf(qr_path, sizeof(qr_path),
-            "tickets/qr/%s.svg", token);
-        if (!generate_ticket_qr(token, qr_path, sizeof(qr_path))) {
+        if (!generate_ticket_qr(ticket.token, qr_path, sizeof(qr_path))) {
             fprintf(stderr, "Failed to generate QR for ticket %d\n", ticket_id);
         }
 
@@ -100,22 +88,20 @@ int api_confirm_ticket(struct mg_connection* conn, void* data) {
             remove(html_path);
             return 404;
         }
-        if (start_pdf_process(token) != 0) {
+        if (start_pdf_process(ticket.token) != 0) {
             mg_send_http_error(conn, 500, "Failed to generate PDF");
             remove(html_path);
             return 500;
         }
 
-        const char* to = json_string_value(json_object_get(ticket, "email"));
         char buf[128];
-        snprintf(buf, sizeof(buf), "Билет за %s", json_string_value(json_object_get(ticket, "event_name")));
+        snprintf(buf, sizeof(buf), "Билет за %s", ticket.event_name);
         const char* subject = buf;
 
-        send_ticket_email(to, subject, "Вашият билет е прикачен тук.", token);
+        send_ticket_email(ticket.email, subject, "Вашият билет е прикачен тук.", ticket.token);
 
         remove(html_path);
-
     }
-    printf("%s\n", json_dumps(ticket, JSON_INDENT(2)));
-    return send_json(conn, ticket);
+    json_t* res = ticket_to_json(&ticket);
+    return send_json(conn, res);
 }

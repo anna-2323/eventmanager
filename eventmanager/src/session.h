@@ -18,7 +18,7 @@ typedef struct {
 } Session;
 
 void session_init(void);
-Session* session_create(int user_id, const char* email, const char* first_name, const char* last_name, const char* phone, int role);
+Session* session_create(User* u);
 Session* session_from_token(const char* token);
 Session* get_session(struct mg_connection* conn);
 void session_delete(const char* token);

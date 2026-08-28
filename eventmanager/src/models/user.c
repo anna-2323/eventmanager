@@ -33,56 +33,55 @@ static int check_password(
 	return result;
 }
 
-int get_all_users(PGconn* db, json_t* out) {
+static void user_from_query(PGresult * res, User * u, int i) {
+	u->id = atoi(PQgetvalue(res, i, 0));
+	snprintf(u->email, sizeof(u->email), "%s", PQgetvalue(res, i, 1));
+	snprintf(u->first_name, sizeof(u->first_name), "%s", PQgetvalue(res, i, 2));
+	snprintf(u->last_name, sizeof(u->last_name), "%s", PQgetvalue(res, i, 3));
+	snprintf(u->phone, sizeof(u->phone), "%s", PQgetvalue(res, i, 4));
+	u->role = atoi(PQgetvalue(res, i, 5));
+	snprintf(u->deleted_on, sizeof(u->deleted_on), "%s", PQgetvalue(res, i, 6));
+}
+
+int get_all_users(PGconn* db, User** out) {
 	CHECK_DB(db, 0);
 
 	PGresult* res = PQexecPrepared(db, "get_users", 0, NULL, NULL, NULL, 0);
 	CHECK_QUERY(res, db, 0);
 
-	User u = { 0 };
 	int count = PQntuples(res);
-	for (int i = 0; i < count; i++) {
-		u.id = atoi(PQgetvalue(res, i, 0));
-		strncpy(u.email, PQgetvalue(res, i, 1), 100);
-		strncpy(u.first_name, PQgetvalue(res, i, 2), 255);
-		strncpy(u.last_name, PQgetvalue(res, i, 3), 255);
-		strncpy(u.phone, PQgetvalue(res, i, 4), 255);
-		u.role = atoi(PQgetvalue(res, i, 5));
-		strncpy(u.deleted_on, PQgetvalue(res, i, 6), 255);
+	*out = malloc(count * sizeof(User));
+	if (*out == NULL && count > 0) {
+		PQclear(res);
+		return 0;
+	}
 
-		json_array_append_new(out, user_to_json(&u));
+	for (int i = 0; i < count; i++) {
+		user_from_query(res, &(*out)[i], i);
 	}
 
 	PQclear(res);
 	return count;
 }
 
-json_t* get_user(PGconn* db, int id) {
-	CHECK_DB(db, NULL);
+int get_user(PGconn* db, int id, User* out) {
+	CHECK_DB(db, 0);
 
 	char id_str[16];
 	snprintf(id_str, sizeof(id_str), "%d", id);
 	const char* params[1] = { id_str };
 
 	PGresult* res = PQexecPrepared(db, "get_user_by_id", 1, params, NULL, NULL, 0);
-	CHECK_QUERY(res, db, NULL);
+	CHECK_QUERY(res, db, 0);
 	if (PQntuples(res) == 0) {
 		PQclear(res);
 		return 0;
 	}
 
-	User u = { 0 };
-	u.id = id;
-	strncpy(u.email, PQgetvalue(res, 0, 0), 255);
-	strncpy(u.first_name, PQgetvalue(res, 0, 1), 255);
-	strncpy(u.last_name, PQgetvalue(res, 0, 2), 255);
-	strncpy(u.phone, PQgetvalue(res, 0, 3), 255);
-	u.role = atoi(PQgetvalue(res, 0, 4));
-	strncpy(u.deleted_on, PQgetvalue(res, 0, 5), 255);
-	u.active = atoi(PQgetvalue(res, 0, 6));
+	user_from_query(res, out, 0);
 
 	PQclear(res);
-	return user_to_json(&u);
+	return 1;
 }
 
 // Използва се при вход на потребител
@@ -117,12 +116,12 @@ int verify_user(PGconn* db, const char* email, const char* password, User* out) 
 	if (result == 1) {
 		res = PQexecPrepared(db, "get_user_by_id", 1, params, NULL, NULL, 0);
 		out->id = id;
-		strncpy(out->email, PQgetvalue(res, 0, 0), sizeof(out->email) - 1);
-		strncpy(out->first_name, PQgetvalue(res, 0, 1), sizeof(out->first_name) - 1);
-		strncpy(out->last_name, PQgetvalue(res, 0, 2), sizeof(out->last_name) - 1);
-		strncpy(out->phone, PQgetvalue(res, 0, 3), sizeof(out->phone) - 1);
-		out->role = atoi(PQgetvalue(res, 0, 4));
-		strncpy(out->deleted_on, PQgetvalue(res, 0, 5), sizeof(out->deleted_on) - 1);
+		strncpy(out->email, PQgetvalue(res, 0, 1), sizeof(out->email) - 1);
+		strncpy(out->first_name, PQgetvalue(res, 0, 2), sizeof(out->first_name) - 1);
+		strncpy(out->last_name, PQgetvalue(res, 0, 3), sizeof(out->last_name) - 1);
+		strncpy(out->phone, PQgetvalue(res, 0, 4), sizeof(out->phone) - 1);
+		out->role = atoi(PQgetvalue(res, 0, 5));
+		strncpy(out->deleted_on, PQgetvalue(res, 0, 6), sizeof(out->deleted_on) - 1);
 		PQclear(res);
 	}
 	
@@ -177,46 +176,38 @@ int verify_email(PGconn* db, const char* email) {
 	}
 }
 
-json_t* add_user(PGconn* db, const char* fname, const char* lname,
-	const char* email, const char* phone,
-	const char* password, int role) {
-	CHECK_DB(db, NULL);
+int add_user(PGconn* db, User* u, const char* password) {
+	CHECK_DB(db, 0);
 
 	// Съществува ли вече регистрация с този имейл
-	const char* check_params[1] = { email };
+	const char* check_params[1] = { u->email };
 	PGresult* res = PQexecPrepared(db, "verify_email", 1, check_params, NULL, NULL, 0);
-	CHECK_QUERY(res, db, NULL);
+	CHECK_QUERY(res, db, 0);
 	if (PQntuples(res) > 0) {
 		PQclear(res);
-		return NULL;
+		return 0;
 	}
 	PQclear(res);
 	
 	char role_str[8];
-	snprintf(role_str, sizeof(role_str), "%d", role);
+	snprintf(role_str, sizeof(role_str), "%d", u->role);
 
 	unsigned char salt[16];
 	unsigned char hash[32];
 	RAND_bytes(salt, sizeof(salt));
 	hash_password(password, salt, 16, hash, 32);
 
-	const char* ins_params[7] = { fname, lname, email, phone, hash, salt, role_str };
+	const char* ins_params[7] = { u->first_name, u->last_name, u->email, u->phone, hash, salt, role_str };
 	int lengths[7] = { 0, 0, 0, 0, 32, 16, 0 };
 	int formats[7] = { 0, 0, 0, 0, 1, 1, 0 };
 
 	res = PQexecPrepared(db, "add_user", 7, ins_params, lengths, formats, 0);
-	CHECK_DB(db, NULL);
+	CHECK_DB(db, 0);
 
-	User u;
-	u.id = atoi(PQgetvalue(res, 0, 0));
-	strncpy(u.first_name, PQgetvalue(res, 0, 1), sizeof(u.first_name) - 1);
-	strncpy(u.last_name, PQgetvalue(res, 0, 2), sizeof(u.last_name) - 1);
-	strncpy(u.email, PQgetvalue(res, 0, 3), sizeof(u.email) - 1);
-	strncpy(u.phone, PQgetvalue(res, 0, 4), sizeof(u.phone) - 1);
-	u.role = atoi(PQgetvalue(res, 0, 5));
-
+	int id = atoi(PQgetvalue(res, 0, 0));
+	
 	PQclear(res);
-	return user_to_json(&u);
+	return id;
 }
 
 int admin_update_email(PGconn* db, int user_id, const char* email) {
@@ -498,7 +489,7 @@ int delete_tokens(PGconn* db) {
 	return 1;
 }
 
-json_t* get_total_users(PGconn* db) {
+int get_total_users(PGconn* db) {
 	CHECK_DB(db, NULL);
 
 	PGresult* res = PQexecPrepared(db, "get_total_users", 0, NULL, NULL, NULL, 0);
@@ -506,75 +497,40 @@ json_t* get_total_users(PGconn* db) {
 
 	int total = atoi(PQgetvalue(res, 0, 0));
 
-	return json_integer(total);
+	return total;
 }
 
-static json_t* get_users_growth_json(PGresult* res, int type) {
+int get_users_growth(PGconn* db, int type, StatGrowth** out) {
+	CHECK_DB(db, NULL);
+	PGresult* res = NULL;
+	if (type == 0) {
+		res = PQexecPrepared(db, "get_users_growth_monthly", 
+			0, NULL, NULL, NULL, 0);
+	}
+	else if (type == 1) {
+		res = PQexecPrepared(db, "get_users_growth_monthly_all", 
+			0, NULL, NULL, NULL, 0);
+	}
+	else if (type == 2) {
+		res = PQexecPrepared(db, "get_users_growth_daily", 
+			0, NULL, NULL, NULL, 0);
+	}
+
+	CHECK_QUERY(res, db, 0);
 	int count = PQntuples(res);
-	json_t* growth = json_array();
+
+	*out = malloc(count * sizeof(StatGrowth));
+	if (*out == NULL && count > 0) {
+		PQclear(res);
+		return 0;
+	}
 
 	for (int i = 0; i < count; i++) {
-		const char* period = PQgetvalue(res, i, 0);
-		int user_count = atoi(PQgetvalue(res, i, 1));
-
-		json_t* entry = json_object();
-
-		if (type == 0 || type == 1)
-			json_object_set_new(
-				entry,
-				"month",
-				json_string(period)
-			);
-		else if (type == 2)
-			json_object_set_new(
-				entry,
-				"day",
-				json_string(period)
-			);
-
-		json_object_set_new(
-			entry,
-			"user_count",
-			json_integer(user_count)
-		);
-
-		json_array_append_new(growth, entry);
+		snprintf((*out)[i].period, sizeof((*out)[i].period), "%s", PQgetvalue(res, i, 0));
+		(*out)[i].count = atoi(PQgetvalue(res, i, 1));
 	}
 
 	PQclear(res);
-	return growth;
+	return count;
 }
 
-json_t* get_users_growth(PGconn* db, int type) {
-	CHECK_DB(db, NULL);
-
-	PGresult* res;
-	if (type == 0) {
-		res = PQexecPrepared(db, "get_users_growth_monthly", 0, NULL, NULL, NULL, 0);
-		CHECK_QUERY(res, db, NULL);
-		return get_users_growth_json(res, type);
-	}
-	else if (type == 1) {
-		res = PQexecPrepared(db, "get_users_growth_monthly_all", 0, NULL, NULL, NULL, 0);
-		CHECK_QUERY(res, db, NULL);
-		return get_users_growth_json(res, type);
-	}
-	else if (type == 2) {
-		res = PQexecPrepared(db, "get_users_growth_daily", 0, NULL, NULL, NULL, 0);
-		CHECK_QUERY(res, db, NULL);
-		return get_users_growth_json(res, type);
-	}
-}
-
-json_t* user_to_json(User* u) {
-	json_t* obj = json_object();
-	json_object_set_new(obj, "id", json_integer(u->id));
-	json_object_set_new(obj, "email", json_string(u->email));
-	json_object_set_new(obj, "first_name", json_string(u->first_name));
-	json_object_set_new(obj, "last_name", json_string(u->last_name));
-	json_object_set_new(obj, "phone", json_string(u->phone));
-	json_object_set_new(obj, "role", json_integer(u->role));
-	json_object_set_new(obj, "deleted_on", json_string(u->deleted_on));
-	json_object_set_new(obj, "active", json_integer(u->active));
-	return obj;
-}

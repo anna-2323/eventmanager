@@ -1,45 +1,41 @@
 #include "venue.h"
 
-static json_t* venue_from_query(PGresult* res, int i) {
-    json_t* v = json_object();
-    json_object_set_new(v, "id",
-        json_integer(atoi(PQgetvalue(res, i, 0))));
-    json_object_set_new(v, "city",
-        json_string(PQgetvalue(res, i, 1)));
-    json_object_set_new(v, "address",
-        json_string(PQgetvalue(res, i, 2)));
-    json_object_set_new(v, "venue_name",
-        json_string(PQgetvalue(res, i, 3)));
-    if (!PQgetisnull(res, i, 4))
-        json_object_set_new(v, "active",
-            json_integer(atoi(PQgetvalue(res, i, 4))));
-    if(!PQgetisnull(res, i, 5))
-        json_object_set_new(v, "has_sectors",
-            json_integer(atoi(PQgetvalue(res, i, 5))));
-    return v;
+static void venue_from_query(PGresult* res, Venue* v, int i) {
+    v->id = atoi(PQgetvalue(res, i, 0));
+    snprintf(v->city, sizeof(v->city), "%s", PQgetvalue(res, i, 1));
+    snprintf(v->address, sizeof(v->address), "%s", PQgetvalue(res, i, 2));
+    snprintf(v->venue_name, sizeof(v->venue_name), "%s", PQgetvalue(res, i, 3));
+    if(!PQgetisnull(res, i, 4))
+        v->active = atoi(PQgetvalue(res, i, 4));
+    if (!PQgetisnull(res, i, 5))
+        v->has_sectors = atoi(PQgetvalue(res, i, 5));
 }
 
-int get_venues(PGconn* db, json_t* out) {
+int get_venues(PGconn* db, Venue** out) {
 	CHECK_DB(db, 0);
-
-    const char* sql =
-        "SELECT v.id, v.city, v.address, v.venue_name "
-        "FROM data.venues v;";
 
     PGresult* res = PQexecPrepared(db, "get_venues", 0, NULL, NULL, NULL, 0);
     CHECK_QUERY(res, db, 0);
 
     int count = PQntuples(res);
+
+    *out = malloc(count * sizeof(Venue));
+
+    if (*out == NULL && count > 0) {
+        PQclear(res);
+        return 0;
+    }
+
     for (int i = 0; i < count; i++) {
-        json_array_append_new(out, venue_from_query(res, i));
+        venue_from_query(res, &(*out)[i], i);
     }
 
     PQclear(res);
     return count;
 }
 
-json_t* get_venue(PGconn* db, int id) {
-    CHECK_DB(db, NULL);
+int get_venue(PGconn* db, int id, Venue* out) {
+    CHECK_DB(db, 0);
 
     char id_str[16];
     snprintf(id_str, sizeof(id_str), "%d", id);
@@ -49,16 +45,16 @@ json_t* get_venue(PGconn* db, int id) {
     if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0) {
         fprintf(stderr, "Грешка в get_venue: %s\n", PQerrorMessage(db));
         PQclear(res);
-        return 1;
+        return 0;
     }
 
-    json_t* v = venue_from_query(res, 0);
+    venue_from_query(res, out, 0);
 
     PQclear(res);
-    return v;
+    return 1;
 }
 
-json_t* get_sectors(PGconn* db, int venue_id) {
+int get_sectors(PGconn* db, int venue_id, Sector** out) {
     CHECK_DB(db, NULL);
 
     char venue_id_str[16];
@@ -68,48 +64,58 @@ json_t* get_sectors(PGconn* db, int venue_id) {
     PGresult* res = PQexecPrepared(db, "get_sectors", 1, params, NULL, NULL, 0);
     CHECK_DB(db, NULL);
 
-    json_t* sectors = json_array();
-
     int count = PQntuples(res);
+    *out = malloc(count * sizeof(Sector));
+    if (*out == NULL && count > 0) {
+        PQclear(res);
+        return 0;
+    }
+
     for (int i = 0; i < count; i++) {
-        json_t* s = json_object();
-        json_object_set_new(s, "id",
-            json_integer(atoi(PQgetvalue(res, i, 0))));
-        json_object_set_new(s, "name",
-            json_string(PQgetvalue(res, i, 1)));
-        json_array_append_new(sectors, s);
+        (*out)[i].id = atoi(PQgetvalue(res, i, 0));
+        snprintf((*out)[i].name, sizeof((*out)[i].name), "%s", PQgetvalue(res, i, 1));
     }
 
     PQclear(res);
-    return sectors;
+    return count;
 }
 
-json_t* get_cities(PGconn* db)
+int get_cities(PGconn* db, char*** out)
 {
-    CHECK_DB(db, NULL);
-
+    CHECK_DB(db, 0);
     PGresult* res = PQexecPrepared(db, "get_cities", 0, NULL, NULL, NULL, 0);
-    CHECK_QUERY(res, db, NULL);
-
-    json_t* cities = json_array();
-
+    CHECK_QUERY(res, db, 0);
     int count = PQntuples(res);
-    for (int i = 0; i < count; i++) {
-        json_array_append_new(
-            cities,
-            json_string(PQgetvalue(res, i, 0))
-        );
+
+    *out = malloc(count * sizeof(char*));
+    if (*out == NULL && count > 0) {
+        PQclear(res);
+        return 0;
     }
 
+    for (int i = 0; i < count; i++) {
+        const char* value = PQgetvalue(res, i, 0);
+        (*out)[i] = malloc(strlen(value) + 1);
+        // При неуспех се освобождава паметта
+        if ((*out)[i] == NULL) {
+            for (int j = 0; j < i; j++)
+                free((*out)[j]);
+            free(*out);
+            *out = NULL;
+            PQclear(res);
+            return 0;
+        }
+        strcpy((*out)[i], value);
+    }
     PQclear(res);
-    return cities;
+    return count;
 }
 
-int add_venue(PGconn* db, const char* city, const char* address, const char* venue_name) {
+int add_venue(PGconn* db, Venue* v) {
     CHECK_DB(db, 0);
 
     // 1. Добавяне на нова зала; приема се, че няма сектори
-    const char* params1[3] = { city, address, venue_name };
+    const char* params1[3] = { v->city, v->address, v->venue_name };
 
     PGresult* res = PQexecPrepared(db, "add_venue", 3, params1, NULL, NULL, 0);
     CHECK_QUERY(res, db, 0);
@@ -171,13 +177,14 @@ int restore_venue(PGconn* db, int id) {
     return 1;
 }
 
-json_t* get_total_venues(PGconn* db) {
+int get_total_venues(PGconn* db) {
     CHECK_DB(db, NULL);
 
     PGresult* res = PQexecPrepared(db, "get_total_venues", 0, NULL, NULL, NULL, 0);
     CHECK_QUERY(res, db, NULL);
 
     int total = atoi(PQgetvalue(res, 0, 0));
+    PQclear(res);
 
-    return json_integer(total);
+    return total;
 }

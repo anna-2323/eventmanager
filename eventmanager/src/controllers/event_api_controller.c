@@ -43,10 +43,13 @@ int api_events(struct mg_connection* conn, void* data) {
         filters.city = city;
         filters.category_id = atoi(category);
 
+        Event* events;
+        int count = get_events((PGconn*)data, &filters, &events);
         json_t* json = json_array();
-
-        get_events((PGconn*)data, &filters, json);
-
+        for (size_t i = 0; i < count; i++) {
+            json_array_append_new(json, event_to_json(&events[i]));
+        }
+        free(events);
         return send_json(conn, json);
     }
     else {
@@ -57,8 +60,11 @@ int api_events(struct mg_connection* conn, void* data) {
             return 404;
         }
 
-        json_t* json = get_event((PGconn*)data, id);
-        return send_json(conn, json);
+        Event e;
+        if (get_event((PGconn*)data, id, &e)) {
+            json_t* json = event_to_json(&e);
+            return send_json(conn, json);
+        }
     }
 
     return 0;
@@ -66,9 +72,17 @@ int api_events(struct mg_connection* conn, void* data) {
 
 // GET /api/categories
 int api_categories(struct mg_connection* conn, void* data) {
-    json_t* res = get_categories((PGconn*)data);
-    if (!res)
+    Category* categories = NULL;
+    int count = get_categories((PGconn*)data, &categories);
+    if (!count)
         return 500;
+    json_t* res = json_array();
+    for (int i = 0; i < count; i++) {
+        json_t* c = json_object();
+        json_object_set_new(c, "id", json_integer(categories[i].id));
+        json_object_set_new(c, "title", json_string(categories[i].title));
+        json_array_append_new(res, c);
+    }
     return send_json(conn, res);
 }
 
@@ -84,8 +98,35 @@ int api_event_seatmap(struct mg_connection* conn, void* data) {
         return 404;
     }
 
-    json_t* json = get_event_seatmap((PGconn*)data, id);
-    return send_json(conn, json);
+    SeatMap* seatMap = NULL;
+    if (get_event_seatmap((PGconn*)data, id, &seatMap)) {
+        json_t* res = json_object();
+        json_object_set_new(res, "has_sectors", json_boolean(seatMap->has_sectors));
+        if (seatMap->has_sectors) {
+            json_object_set_new(res, "background_svg", 
+                seatMap->background_svg ? json_string(seatMap->background_svg) : json_null());
+            json_object_set_new(res, "viewbox", 
+                seatMap->viewbox ? json_string(seatMap->viewbox) : json_null());
+            json_t* sectors = json_array();
+            for (int i = 0; i < seatMap->sector_count; i++) {
+                json_t* sector = json_object();
+                json_object_set_new(sector, "id", json_integer(seatMap->sectors[i].id));
+                json_object_set_new(sector, "name", json_string(seatMap->sectors[i].name));
+                json_object_set_new(sector, "capacity", json_integer(seatMap->sectors[i].capacity));
+                json_object_set_new(sector, "price", json_real(seatMap->sectors[i].price));
+                json_object_set_new(sector, "color", json_string(seatMap->sectors[i].color));
+                json_object_set_new(sector, "svg_path", json_string(seatMap->sectors[i].svg_path));
+                json_object_set_new(sector, "available", json_integer(seatMap->sectors[i].available));
+                json_array_append(sectors, sector);
+            }
+            json_object_set_new(res, "sectors", sectors);
+        }
+        else {
+            json_object_set_new(res, "no_sector_id", json_integer(seatMap->sectors[0].id));
+            json_object_set_new(res, "sectors", json_null());
+        }
+        return send_json(conn, res);
+    }
 }
 
 // GET/PATCH/DELETE /api/admin/events
@@ -139,9 +180,12 @@ int api_admin_events(struct mg_connection* conn, void* data) {
             filters.city = city;
             filters.category_id = atoi(category);
 
+            Event* events;
+            int count = get_events((PGconn*)data, &filters, &events);
             json_t* json = json_array();
-
-            int result = get_events(db, &filters, json);
+            for (size_t i = 0; i < count; i++) {
+                json_array_append_new(json, event_to_json(&events[i]));
+            }
 
             return send_json(conn, json);
         }
@@ -158,12 +202,14 @@ int api_admin_events(struct mg_connection* conn, void* data) {
 
             Session* s = get_session(conn);
 
-            int venue_id = json_integer_value(json_object_get(req, "venue_id"));
-            const char* title = json_string_value(json_object_get(req, "title"));
-            const char* begins_at = json_string_value(json_object_get(req, "begins_at"));
-            double price = json_number_value(json_object_get(req, "price"));
-            int capacity = json_integer_value(json_object_get(req, "capacity"));
-            int result = add_event(db, s->user_id, venue_id, title, begins_at, price, capacity);
+            EventData data;
+            data.organizer_id = s->user_id;
+            data.venue_id = json_integer_value(json_object_get(req, "venue_id"));
+            snprintf(data.title, sizeof(data.title), "%s", json_string_value(json_object_get(req, "title")));
+            snprintf(data.begins_at, sizeof(data.begins_at), "%s", json_string_value(json_object_get(req, "begins_at")));
+            data.price = json_number_value(json_object_get(req, "price"));
+            data.capacity = json_integer_value(json_object_get(req, "capacity"));
+            int result = add_event(db, &data);
 
             set_result(res, result);
             json_decref(req);
@@ -182,7 +228,9 @@ int api_admin_events(struct mg_connection* conn, void* data) {
     }
 
     if (strcmp(info->request_method, "GET") == 0) {
-        return send_json(conn, get_event(db, id));
+        Event e;
+        if(get_event(db, id, &e))
+            return send_json(conn, event_to_json(&e));
     }
 
     if (strcmp(info->request_method, "PATCH") == 0) {
@@ -224,4 +272,3 @@ int api_admin_events(struct mg_connection* conn, void* data) {
     mg_send_http_error(conn, 405, "Method Not Allowed");
     return 405;
 }
-

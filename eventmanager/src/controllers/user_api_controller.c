@@ -17,26 +17,38 @@ int api_users(struct mg_connection* conn, void* data) {
 	PGconn* db = (PGconn*)data;
 	const struct mg_request_info* info = mg_get_request_info(conn);
 
-	json_t* json = json_array();
 	if (strcmp(info->local_uri, "/api/admin/users") == 0) {
-		get_all_users(db, json);
-		return send_json(conn, json);
+		User* users;
+		int count = get_all_users(db, &users);
+		json_t* res = json_array();
+		for (int i = 0; i < count; i++) {
+			json_array_append(res, user_to_json(&users[i]));
+		}
+		free(users);
+		return send_json(conn, res);
 	}
 	else {
 		const char* id_str = info->local_uri + strlen("/api/admin/users/");
 		char* end;
 		long id = strtol(id_str, &end, 10);
 		if (strcmp(end, "/events") == 0) {
-			json = get_user_events(db, id);
-			return send_json(conn, json);
+			Event* events = NULL;
+			int count = get_user_events(db, id, &events);
+			json_t* res = json_array();
+			for (int i = 0; i < count; i++) {
+				json_array_append(res, event_to_json(&events[i]));
+			}
+			free(events);
+			return send_json(conn, res);
 		}
 		if (*end != '\0') {
 			mg_send_http_error(conn, 404, "Not found");
 			return 404;
 		}
 		if (strcmp(info->request_method, "GET") == 0) {
-			json = get_user(db, id);
-			return send_json(conn, json);
+			User user;
+			if(get_user(db, id, &user))
+				return send_json(conn, user_to_json(&user));
 		}
 		if (strcmp(info->request_method, "PATCH") == 0) {
 			json_t* req = get_json(conn);
@@ -131,7 +143,7 @@ int api_login(struct mg_connection* conn, void* data) {
 	json_t* res = json_object();
 	if (ok > 0) {
 		// Създава се бисквитка
-		Session* s = session_create(user.id, user.email, user.first_name, user.last_name, user.phone, user.role);
+		Session* s = session_create(&user);
 		mg_printf(conn,
 			"HTTP/1.1 200 OK\r\n"
 			"Content-Type: application/json\r\n"
@@ -159,26 +171,26 @@ int api_signup(struct mg_connection* conn, void* data) {
 	json_t* req = get_json(conn);
 	if (!req) return 400;
 
-	const char* fname = json_string_value(json_object_get(req, "first_name"));
-	const char* lname = json_string_value(json_object_get(req, "last_name"));
-	const char* email = json_string_value(json_object_get(req, "email"));
-	const char* phone = json_string_value(json_object_get(req, "phone"));
-	if (!phone) phone = "";
+	User u;
+	snprintf(u.first_name, sizeof(u.first_name), "%s", json_string_value(json_object_get(req, "first_name")));
+	snprintf(u.last_name, sizeof(u.last_name), "%s", json_string_value(json_object_get(req, "last_name")));
+	snprintf(u.email, sizeof(u.email), "%s", json_string_value(json_object_get(req, "email")));
+	snprintf(u.phone, sizeof(u.phone), "%s", json_string_value(json_object_get(req, "phone")));
+	if (!u.phone) snprintf(u.phone, sizeof(u.phone), "%s", "");
 	const char* password = json_string_value(json_object_get(req, "password"));
 	json_t* role_json = json_object_get(req, "role");
-	int role = role_json ? json_integer_value(role_json) : 0;
+	u.role = role_json ? json_integer_value(role_json) : 0;
+	json_decref(req);
 
-	if (!fname || !lname || !email || !phone || !password) {
+	if (!u.first_name || !u.last_name || !u.email || !u.phone || !password) {
 		json_decref(req);
 		mg_send_http_error(conn, 400, "Липсват данни");
 		return 400;
 	}
 
-	json_t* user = add_user((PGconn*)data, fname, lname, email, phone, password, role);
-	json_decref(req);
-
 	json_t* res = json_object();
-	if (!user) {
+	u.id = add_user((PGconn*)data, &u, password);
+	if (!u.id) {
 		json_object_set_new(res, "success", json_false());
 		json_object_set_new(res, "error", json_string("Имейлът вече е регистриран."));
 		char* json_str = json_dumps(res, JSON_COMPACT);
@@ -189,9 +201,8 @@ int api_signup(struct mg_connection* conn, void* data) {
 	}
 
 	// Създаване на бисквитка за новия потребител
-	char role_str[8];
-	snprintf(role_str, sizeof(role_str), "%d", role);
-	Session* s = session_create(json_integer(json_object_get(user, "id")), email, fname, lname, phone, role_str);
+	json_t* user = user_to_json(&u);
+	Session* s = session_create(&u);
 	mg_printf(conn,
 		"HTTP/1.1 200 OK\r\n"
 		"Content-Type: application/json\r\n"

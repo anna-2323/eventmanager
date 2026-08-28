@@ -29,11 +29,18 @@ typedef struct {
     char phone[50];
 } TicketData;
 
+typedef struct {
+    char period[11];  // "YYYY-MM-DD"
+    double revenue;
+    int count;
+    int venue_id;
+} StatRevenue;
+
 int purchase_ticket(PGconn* db, TicketData* data, int* ticket_id_out);
-json_t* get_ticket(PGconn* db, int ticket_id);
+int get_ticket(PGconn* db, int ticket_id, TicketView* out);
 int generate_ticket_html(PGconn* db, int ticket_id, const char* qr_path, char* out_path, size_t out_size);
 
-json_t* get_total_tickets(PGconn* db);
-json_t* get_tickets_growth(PGconn* db, int type);
+int get_total_tickets(PGconn* db);
+int get_tickets_growth(PGconn* db, int type, StatGrowth** out);
 
-json_t* get_revenue(PGconn* db, int type);
+int get_revenue(PGconn* db, int type, StatRevenue* out);

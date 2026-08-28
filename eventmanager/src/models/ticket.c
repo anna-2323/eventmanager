@@ -3,6 +3,21 @@
 #include <stdlib.h>
 #include "../util.h"
 
+static void ticket_from_query(PGresult* res, TicketView* t, int i) {
+    snprintf(t->event_name, sizeof(t->event_name), "%s", PQgetvalue(res, i, 0));
+    snprintf(t->begins_at, sizeof(t->begins_at), "%s", PQgetvalue(res, i, 1));
+    snprintf(t->venue_name, sizeof(t->venue_name), "%s", PQgetvalue(res, i, 2));
+    snprintf(t->venue_city, sizeof(t->venue_city), "%s", PQgetvalue(res, i, 3));
+    snprintf(t->venue_address, sizeof(t->venue_address), "%s", PQgetvalue(res, i, 4));
+    snprintf(t->first_name, sizeof(t->first_name), "%s", PQgetvalue(res, i, 5));
+    snprintf(t->last_name, sizeof(t->last_name), "%s", PQgetvalue(res, i, 6));
+    snprintf(t->email, sizeof(t->email), "%s", PQgetvalue(res, i, 7));
+    snprintf(t->phone, sizeof(t->phone), "%s", PQgetvalue(res, i, 8));
+    snprintf(t->sector, sizeof(t->sector), "%s", PQgetvalue(res, i, 9));
+    if(!PQgetisnull(res, i, 10)) snprintf(t->token, sizeof(t->token), "%s", PQgetvalue(res, i, 10));
+    if (!PQgetisnull(res, i, 11)) t->price = atof(PQgetvalue(res, i, 11));
+}
+
 // Открива първия {{шалбон}} и го заменя с дадената стойност
 char* replace_placeholder(const char* src, const char* placeholder, const char* value) {
     const char* pos = strstr(src, placeholder);
@@ -78,35 +93,24 @@ int purchase_ticket(PGconn* db, TicketData* data, int* ticket_id_out) {
     return 1;
 }
 
-json_t* get_ticket(PGconn* db, int ticket_id) {
+int get_ticket(PGconn* db, int ticket_id, TicketView* out) {
+    CHECK_DB(db, 0);
     char id_str[16];
     snprintf(id_str, sizeof(id_str), "%d", ticket_id);
     const char* params[1] = { id_str };
 
     PGresult* res = PQexecPrepared(db, "get_ticket", 1, params, NULL, NULL, 0);
-    CHECK_QUERY(res, db, NULL);
+    CHECK_QUERY(res, db, 0);
 
     if (PQntuples(res) == 0) {
         PQclear(res);
-        return NULL;
+        return 0;
     }
 
-    json_t* ticket = json_object();
-    json_object_set_new(ticket, "id", json_integer(ticket_id));
-    json_object_set_new(ticket, "event_name", json_string(PQgetvalue(res, 0, 0)));
-    json_object_set_new(ticket, "begins_at", json_string(PQgetvalue(res, 0, 1)));
-    json_object_set_new(ticket, "venue_name", json_string(PQgetvalue(res, 0, 2)));
-    json_object_set_new(ticket, "venue_city", json_string(PQgetvalue(res, 0, 3)));
-    json_object_set_new(ticket, "venue_address", json_string(PQgetvalue(res, 0, 4)));
-    json_object_set_new(ticket, "first_name", json_string(PQgetvalue(res, 0, 5)));
-    json_object_set_new(ticket, "last_name", json_string(PQgetvalue(res, 0, 6)));
-    json_object_set_new(ticket, "email", json_string(PQgetvalue(res, 0, 7)));
-    json_object_set_new(ticket, "phone", json_string(PQgetvalue(res, 0, 8)));
-    json_object_set_new(ticket, "token", json_string(PQgetvalue(res, 0, 9)));
-    json_object_set_new(ticket, "sector", json_string(PQgetvalue(res, 0, 10)));
+    ticket_from_query(res, out, 0);
 
     PQclear(res);
-    return ticket;
+    return 1;
 }
 
 int generate_ticket_html(PGconn* db, int ticket_id, const char* qr_path, 
@@ -122,14 +126,15 @@ int generate_ticket_html(PGconn* db, int ticket_id, const char* qr_path,
         return 1;
     }
 
+    TicketView t;
+    ticket_from_query(res, &t, 0);
+
     char* html = read_file_to_string("html/ticket_template.html");
     if (!html) { PQclear(res); return 1; }
 
-    const char* token = PQgetvalue(res, 0, 9);
-
     char qr_relative_path[128];
     snprintf(qr_relative_path, sizeof(qr_relative_path),
-        "qr/%s.svg", token);
+        "qr/%s.svg", t.token);
 
     char qr_html[256];
     snprintf(qr_html, sizeof(qr_html),
@@ -137,16 +142,16 @@ int generate_ticket_html(PGconn* db, int ticket_id, const char* qr_path,
         qr_relative_path);
 
     const char* fields[11][2] = {
-        { "{{EVENT_TITLE}}", PQgetvalue(res, 0, 0) },
-        { "{{BEGINS_AT}}",   PQgetvalue(res, 0, 1) },
-        { "{{VENUE_NAME}}",  PQgetvalue(res, 0, 2) },
-        { "{{CITY}}",        PQgetvalue(res, 0, 3) },
-        { "{{ADDRESS}}",     PQgetvalue(res, 0, 4) },
-        { "{{FIRST_NAME}}",  PQgetvalue(res, 0, 5) },
-        { "{{LAST_NAME}}",   PQgetvalue(res, 0, 6) },
-        { "{{EMAIL}}",       PQgetvalue(res, 0, 7) },
-        { "{{PHONE}}",       PQgetvalue(res, 0, 8) },
-        { "{{SECTOR_NAME}}", PQgetisnull(res, 0, 10) ? "" : PQgetvalue(res, 0, 10) },
+        { "{{EVENT_TITLE}}", t.event_name },
+        { "{{BEGINS_AT}}",   t.begins_at },
+        { "{{VENUE_NAME}}",  t.venue_name },
+        { "{{CITY}}",        t.venue_city },
+        { "{{ADDRESS}}",     t.venue_address },
+        { "{{FIRST_NAME}}",  t.first_name },
+        { "{{LAST_NAME}}",   t.last_name },
+        { "{{EMAIL}}",       t.email },
+        { "{{PHONE}}",       t.phone },
+        { "{{SECTOR_NAME}}", t.sector ? "" : t.sector },
         { "{{QR_CODE}}",     qr_html }
     };
 
@@ -159,191 +164,99 @@ int generate_ticket_html(PGconn* db, int ticket_id, const char* qr_path,
 
     PQclear(res);
 
-    snprintf(out_path, 128, "tickets/ticket_%s.html", token);
+    snprintf(out_path, 128, "tickets/ticket_%s.html", t.token);
 
     int result = write_string_to_file(out_path, html);
     free(html);
     return result;
 }
 
-json_t* get_total_tickets(PGconn* db) {
+int get_total_tickets(PGconn* db) {
     CHECK_DB(db, NULL);
 
     PGresult* res = PQexecPrepared(db, "get_total_tickets", 0, NULL, NULL, NULL, 0);
     CHECK_QUERY(res, db, NULL);
 
     int total = atoi(PQgetvalue(res, 0, 0));
-
-    return json_integer(total);
-}
-
-static json_t* get_tickets_growth_json(PGresult* res, int type) {
-    json_t* growth = json_array();
-    int count = PQntuples(res);
-
-    for (int i = 0; i < count; i++) {
-        const char* period = PQgetvalue(res, i, 0);
-        int ticket_count = atoi(PQgetvalue(res, i, 1));
-
-        json_t* entry = json_object();
-
-        if (type == 0 || type == 1)
-            json_object_set_new(
-                entry,
-                "month",
-                json_string(period)
-            );
-        else if (type == 2)
-            json_object_set_new(
-                entry,
-                "day",
-                json_string(period)
-            );
-
-        json_object_set_new(
-            entry,
-            "ticket_count",
-            json_integer(ticket_count)
-        );
-
-        json_array_append_new(growth, entry);
-    }
-
     PQclear(res);
-    return growth;
+
+    return total;
 }
 
-json_t* get_tickets_growth(PGconn* db, int type) {
-    CHECK_DB(db, NULL);
-
-    PGresult* res;
+int get_tickets_growth(PGconn* db, int type, StatGrowth** out) {
+    CHECK_DB(db, 0);
+    PGresult* res = NULL;
     if (type == 0) {
-        res = PQexecPrepared(db, "get_tickets_growth_monthly", 0, NULL, NULL, NULL, 0);
-        CHECK_QUERY(res, db, NULL);
-        return get_tickets_growth_json(res, type);
+        res = PQexecPrepared(db, "get_tickets_growth_monthly",
+            0, NULL, NULL, NULL, 0);
     }
     else if (type == 1) {
-        res = PQexecPrepared(db, "get_tickets_growth_monthly_all", 0, NULL, NULL, NULL, 0);
-        CHECK_QUERY(res, db, NULL);
-        return get_tickets_growth_json(res, type);
+        res = PQexecPrepared(db, "get_tickets_growth_monthly_all",
+            0, NULL, NULL, NULL, 0);
     }
     else if (type == 2) {
-        res = PQexecPrepared(db, "get_tickets_growth_daily", 0, NULL, NULL, NULL, 0);
-        CHECK_QUERY(res, db, NULL);
-        return get_tickets_growth_json(res, type);
+        res = PQexecPrepared(db, "get_tickets_growth_daily",
+            0, NULL, NULL, NULL, 0);
     }
-}
 
-static json_t* get_revenue_json(PGresult* res, int type) {
-    json_t* json = json_array();
+    CHECK_QUERY(res, db, 0);
     int count = PQntuples(res);
 
+    *out = malloc(count * sizeof(StatGrowth));
+    if (*out == NULL && count > 0) {
+        PQclear(res);
+        return 0;
+    }
+
     for (int i = 0; i < count; i++) {
-        const char* period = PQgetvalue(res, i, 0);
-        float revenue = atof(PQgetvalue(res, i, 1));
-        int tickets_sold = atoi(PQgetvalue(res, i, 2));
-
-        json_t* entry = json_object();
-
-        if (type != 2)
-            json_object_set_new(
-                entry,
-                "month",
-                json_string(period)
-            );
-        else if (type == 2)
-            json_object_set_new(
-                entry,
-                "day",
-                json_string(period)
-            );
-
-        json_object_set_new(
-            entry,
-            "revenue",
-            json_real(revenue)
-        );
-        json_object_set_new(
-            entry,
-            "tickets_sold",
-            json_integer(tickets_sold)
-        );
-
-        json_array_append_new(json, entry);
+        snprintf((*out)[i].period, sizeof((*out)[i].period), "%s", PQgetvalue(res, i, 0));
+        (*out)[i].count = atoi(PQgetvalue(res, i, 1));
     }
 
     PQclear(res);
-    return json;
+    return count;
 }
 
-static json_t* get_revenue_by_venue_json(PGresult* res) {
-    json_t* json = json_array();
-    int count = PQntuples(res);
-
-    for (int i = 0; i < count; i++) {
-        const char* period = PQgetvalue(res, i, 0);
-        float revenue = atof(PQgetvalue(res, i, 1));
-        int tickets_sold = atoi(PQgetvalue(res, i, 2));
-        int venue_id = atoi(PQgetvalue(res, i, 3));
-
-        json_t* entry = json_object();
-
-        json_object_set_new(
-          entry,
-          "day",
-          json_string(period)
-        );
-
-        json_object_set_new(
-            entry,
-            "venue",
-            json_integer(venue_id)
-        );
-        json_object_set_new(
-            entry,
-            "revenue",
-            json_real(revenue)
-        );
-        json_object_set_new(
-            entry,
-            "tickets_sold",
-            json_integer(tickets_sold)
-        );
-
-        json_array_append_new(json, entry);
-    }
-
-    PQclear(res);
-    return json;
-}
-
-json_t* get_revenue(PGconn* db, int type) {
-    CHECK_DB(db, NULL);
-
+int get_revenue(PGconn* db, int type, StatRevenue** out) {
+    CHECK_DB(db, 0);
     PGresult* res;
+
     if (type == 0) {
         res = PQexecPrepared(db, "get_revenue_monthly", 0, NULL, NULL, NULL, 0);
-        CHECK_QUERY(res, db, NULL);
-        return get_revenue_json(res, type);
     }
     else if (type == 1) {
         res = PQexecPrepared(db, "get_revenue_monthly_all", 0, NULL, NULL, NULL, 0);
-        CHECK_QUERY(res, db, NULL);
-        return get_revenue_json(res, type);
     }
     else if (type == 2) {
         res = PQexecPrepared(db, "get_revenue_daily", 0, NULL, NULL, NULL, 0);
-        CHECK_QUERY(res, db, NULL);
-        return get_revenue_json(res, type);
     }
     else if (type == 3) {
         res = PQexecPrepared(db, "get_revenue_by_venue_monthly", 0, NULL, NULL, NULL, 0);
-        CHECK_QUERY(res, db, NULL);
-        return get_revenue_by_venue_json(res);
     }
     else if (type == 4) {
         res = PQexecPrepared(db, "get_revenue_by_venue_monthly_all", 0, NULL, NULL, NULL, 0);
-        CHECK_QUERY(res, db, NULL);
-        return get_revenue_by_venue_json(res);
     }
+    else {
+        return 0;
+    }
+
+    CHECK_QUERY(res, db, 0);
+    int count = PQntuples(res);
+
+    *out = malloc(count * sizeof(StatRevenue));
+    if (*out == NULL && count > 0) {
+        PQclear(res);
+        return 0;
+    }
+
+    for (int i = 0; i < count; i++) {
+        snprintf((*out)[i].period, sizeof((*out)[i].period), "%s", PQgetvalue(res, i, 0));
+        (*out)[i].revenue = atof(PQgetvalue(res, i, 1));
+        (*out)[i].count = atoi(PQgetvalue(res, i, 2));
+        if(!PQgetisnull(res, i, 3))
+            (*out)[i].venue_id = atoi(PQgetvalue(res, i, 3));
+    }
+
+    PQclear(res);
+    return count;
 }
