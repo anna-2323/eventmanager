@@ -12,7 +12,7 @@ int generate_ticket_qr(const char* token, char* path, size_t path_size) {
     if (!qr)
         return 0;
 
-    snprintf(path, path_size, "tickets/qr/%s.svg", token);
+    snprintf(path, path_size, "html/tickets/qr/%s.svg", token);
     FILE* file = fopen(path, "w");
     if (!file) {
         QRcode_free(qr);

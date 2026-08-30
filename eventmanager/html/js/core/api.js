@@ -42,7 +42,8 @@ export const api = {
 
   tickets: {
     purchase: (id, data) => request(`/purchase/${id}`, { method: 'POST', body: JSON.stringify(data) }),
-    confirm: (token) => request(`/confirmation/${token}`)
+    confirm: (token) => request(`/confirmation/${token}`),
+    getMine: () => request(`/mytickets`)
   },
 
   users: {
@@ -73,12 +74,25 @@ export const api = {
       monthly: () => request('/admin/stats/monthly'),
       daily: () => request('/admin/stats/daily'),
       totals: () => request('/admin/stats/totals'),
+      revenue: {
+        monthly: () => request('/admin/stats/revenue/monthly'),
+        daily: () => request('/admin/stats/revenue/daily'),
+        byVenues: () => request('/admin/stats/revenue/venues')
+      },
       export: {
-        monthly: () =>  request('/admin/stats/export/monthly'),
-        daily: () => request('/admin/stats/export/daily')
+        users: () =>  request('/admin/stats/export/users'),
+        events: () => request('/admin/stats/export/events'),
+        tickets: () => request('/admin/stats/export/tickets'),
+        revenueMonthly: () => request('/admin/stats/export/revenue'),
+        revenueVenues: () => request('/admin/stats/export/revenue/venues')
       }
     }
   },
+  organizer: {
+    venues: {
+      list: () => request('organizer/venues')
+    }
+  }
 };
 
 function toQuery(params) {

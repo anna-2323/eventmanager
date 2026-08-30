@@ -164,11 +164,58 @@ int generate_ticket_html(PGconn* db, int ticket_id, const char* qr_path,
 
     PQclear(res);
 
-    snprintf(out_path, 128, "tickets/ticket_%s.html", t.token);
+    snprintf(out_path, 128, "html/tickets/ticket_%s.html", t.token);
 
     int result = write_string_to_file(out_path, html);
     free(html);
     return result;
+}
+
+int get_user_tickets(PGconn* db, int user_id, TicketView** out) {
+    CHECK_DB(db, 0);
+    char id_str[16];
+    snprintf(id_str, sizeof(id_str), "%d", user_id);
+    const char* params[1] = { id_str };
+
+    PGresult* res = PQexecPrepared(db, "get_user_tickets", 1, params, NULL, NULL, 0);
+    CHECK_QUERY(res, db, 0);
+
+    if (PQntuples(res) == 0) {
+        PQclear(res);
+        return 0;
+    }
+
+    int count = PQntuples(res);
+    *out = malloc(count * sizeof(TicketView));
+    if (*out == NULL && count > 0) {
+        PQclear(res);
+        return 0;
+    }
+    for (int i = 0; i < count; i++) {
+        ticket_from_query(res, &(*out)[i], i);
+    }
+
+    PQclear(res);
+    return count;
+}
+
+int ticket_belongs_to_user(PGconn* db, int user_id, int ticket_id) {
+    CHECK_DB(db, 0);
+    char user_id_str[16];
+    snprintf(user_id_str, sizeof(user_id_str), "%d", user_id);
+    char ticket_id_str[16];
+    snprintf(ticket_id_str, sizeof(ticket_id_str), "%d", ticket_id);
+    const char* params[2] = { ticket_id_str, user_id_str };
+
+    PGresult* res = PQexecPrepared(db, "get_user_tickets", 1, params, NULL, NULL, 0);
+    CHECK_QUERY(res, db, 0);
+
+    if (PQntuples(res) == 0) {
+        PQclear(res);
+        return 0;
+    }
+
+    return 1;
 }
 
 int get_total_tickets(PGconn* db) {

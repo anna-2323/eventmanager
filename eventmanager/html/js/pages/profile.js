@@ -1,5 +1,5 @@
 import { api } from "../core/api.js";
-import { $, $$, show } from "../core/dom.js";
+import { $, $$, show, toDate } from "../core/dom.js";
 import { header } from "../components/header.js";
 
 header();
@@ -15,7 +15,35 @@ if (user.logged_in) {
   // Контейнер за резервирани събития
   // Ще има такива само ако потребителят е с роля на клиент
   if (user.role == 2) {
+    const tickets = await api.tickets.getMine();
     show($("#booked-events"));
+    if(tickets.length > 0) {
+      $("#booked-events").innerHTML += `
+        <table class="table is-fullwidth is-striped is-hoverable" id="events-table">
+          <tr> 
+            <th>Име</th>
+            <th>Време</th>
+            <th>Локация</th>
+            <th></th>
+          </tr>
+        </table>`
+      $("#events-table").innerHTML = tickets
+              .map(
+                (t) =>
+                  `<tr>
+                        <td>${t.event_name}</td>
+                        <td>${toDate(t.begins_at)}</td>
+                        <td>${t.venue_name}</td>
+                        <td><a href="/tickets/ticket_${t.token}.pdf"><button class="button is-small is-link">
+                                PDF 
+                            </button></a></td>
+                    </tr>`,
+              ).join("");
+    }
+    else {
+      $("#booked-events").innerHTML += 
+        `<p class="has-text-grey">Все още няма резервирани събития.</p>`;
+    }
   }
 
   // Съобщение за успех/грешка при редактиране на данни

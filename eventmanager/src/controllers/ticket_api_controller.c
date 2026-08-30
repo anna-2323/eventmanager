@@ -105,3 +105,68 @@ int api_confirm_ticket(struct mg_connection* conn, void* data) {
     json_t* res = ticket_to_json(&ticket);
     return send_json(conn, res);
 }
+
+int api_my_tickets(struct mg_connection* conn, void* data) {
+    Session* s = get_session(conn);
+    // Само регистрирани потребители, които са клиенти могат да купуват билети
+    if (!s || s->role != 2) {
+        mg_send_http_error(conn, 401, "Unauthorized");
+        return 401;
+    }
+
+    const struct mg_request_info* info = mg_get_request_info(conn);
+    if (strcmp(info->request_method, "GET") == 0) {
+
+        PGconn* db = (PGconn*)data;
+        TicketView* tickets = NULL;
+        int count = get_user_tickets(db, s->user_id, &tickets);
+
+        json_t* json = json_array();
+        for (size_t i = 0; i < count; i++) {
+            json_array_append_new(json, ticket_to_json(&tickets[i]));
+        }
+        free(tickets);
+        return send_json(conn, json);
+    }
+
+    mg_send_http_error(conn, 405, "Method Not Allowed");
+    return 405;
+}
+
+int api_ticket_file(struct mg_connection* conn, void* data) {
+    const struct mg_request_info* info = mg_get_request_info(conn);
+    Session* s = get_session(conn);
+
+    if (!s) {
+        mg_send_http_error(conn, 401, "Unauthorized");
+        return 401;
+    }
+
+    // /tickets/ticket_<uuid>.pdf
+    const char* filename =
+        info->local_uri + strlen("/tickets/");
+
+    char ticket_uuid[37];
+
+    if (sscanf(filename,
+        "ticket_%36[0-9a-fA-F-].pdf",
+        ticket_uuid) != 1) {
+        mg_send_http_error(conn, 404, "Not found");
+        return 404;
+    }
+
+    PGconn* db = (PGconn*)data;
+
+    if (!ticket_belongs_to_user(db, ticket_uuid, s->user_id)) {
+        mg_send_http_error(conn, 404, "Not found");
+        return 404;
+    }
+
+    char path[512];
+    snprintf(path, sizeof(path),
+        "html/tickets/%s", filename);
+
+    mg_send_file(conn, path);
+
+    return 200;
+}

@@ -95,6 +95,8 @@ void set_handlers(struct mg_context* ctx) {
 
     mg_set_request_handler(ctx, "/api/purchase/**", api_purchase_ticket, db);
     mg_set_request_handler(ctx, "/api/confirmation/**", api_confirm_ticket, db);
+    mg_set_request_handler(ctx, "/api/mytickets", api_my_tickets, db);
+    mg_set_request_handler(ctx, "/tickets/**", api_ticket_file, db);
 
     mg_set_request_handler(ctx, "/api/me", api_me, db);
     mg_set_request_handler(ctx, "/api/signup", api_signup, db);
@@ -103,4 +105,5 @@ void set_handlers(struct mg_context* ctx) {
     mg_set_request_handler(ctx, "/api/forgot", api_forgot, db);
     mg_set_request_handler(ctx, "/api/reset", api_reset_password, db);
     mg_set_request_handler(ctx, "/api/profile", api_profile, db);
+
 }

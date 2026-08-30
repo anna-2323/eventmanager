@@ -38,6 +38,8 @@ typedef struct {
 
 int purchase_ticket(PGconn* db, TicketData* data, int* ticket_id_out);
 int get_ticket(PGconn* db, int ticket_id, TicketView* out);
+int get_user_tickets(PGconn* db, int user_id, TicketView** out);
+int ticket_belongs_to_user(PGconn* db, int user_id, int ticket_id);
 int generate_ticket_html(PGconn* db, int ticket_id, const char* qr_path, char* out_path, size_t out_size);
 
 int get_total_tickets(PGconn* db);
