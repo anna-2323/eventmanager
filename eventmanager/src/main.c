@@ -88,10 +88,10 @@ void set_handlers(struct mg_context* ctx) {
     mg_set_request_handler(ctx, "/api/admin/events", api_admin_events, db);
     mg_set_request_handler(ctx, "/api/admin/venues", api_admin_venues, db);
 
-    mg_set_request_handler(ctx, "/api/admin/stats/export", api_admin_stats_export, db);
-    mg_set_request_handler(ctx, "/api/admin/stats/export/**", api_admin_stats_export, db);
-    mg_set_request_handler(ctx, "/api/admin/stats", api_admin_stats, db);;
-    mg_set_request_handler(ctx, "/api/admin/stats/**", api_admin_stats, db);
+    // mg_set_request_handler(ctx, "/api/stats/export", api_admin_stats_export, db);
+    // mg_set_request_handler(ctx, "/api/stats/export/**", api_admin_stats_export, db);
+    mg_set_request_handler(ctx, "/api/stats", api_stats, db);;
+    mg_set_request_handler(ctx, "/api/stats/**", api_stats, db);
 
     mg_set_request_handler(ctx, "/api/purchase/**", api_purchase_ticket, db);
     mg_set_request_handler(ctx, "/api/confirmation/**", api_confirm_ticket, db);

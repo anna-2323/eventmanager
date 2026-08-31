@@ -1,5 +1,6 @@
 ﻿#include "event.h"
 #include "../util.h"
+#include "../controllers/stats_controller.h"
 
 static void event_from_query(PGresult* res, Event* e, int i) {
 	e->id = atoi(PQgetvalue(res, i, 0));
@@ -106,7 +107,7 @@ int get_event_seatmap(PGconn* db, int event_id, SeatMap** out) {
 		(*out)->sector_count = 1;
 
 		PQclear(ga_res);
-		return 0;
+		return 1;
 	}
 
 	snprintf((*out)->background_svg, sizeof((*out)->background_svg), "%s", PQgetvalue(layout_res, 0, 1));
@@ -355,10 +356,20 @@ int get_categories(PGconn* db, Category** out) {
 	return count;
 }
 
-int get_total_events(PGconn* db) {
+int get_total_events(PGconn* db, int organizer_id) {
 	CHECK_DB(db, 0);
 
-	PGresult* res = PQexecPrepared(db, "get_total_events", 0, NULL, NULL, NULL, 0);
+	char id_str[16];
+	const char* params[1];
+	if (organizer_id > 0) {
+		snprintf(id_str, sizeof(id_str), "%d", organizer_id);
+		params[0] = id_str;
+	}
+	else {
+		params[0] = NULL;
+	}
+
+	PGresult* res = PQexecPrepared(db, "get_total_events", 1, params, NULL, NULL, 0);
 	CHECK_QUERY(res, db, 0);
 
 	int total = atoi(PQgetvalue(res, 0, 0));
@@ -366,29 +377,39 @@ int get_total_events(PGconn* db) {
 
 	return total;
 }
-
-int get_events_growth(PGconn* db, int type, StatGrowth** out) {
+int get_events_growth(PGconn* db, int type, int organizer_id, StatGrowth** out) {
 	CHECK_DB(db, 0);
-	PGresult* res;
-	if (type == 0) {
-		res = PQexecPrepared(db, "get_events_growth_monthly",
-			0, NULL, NULL, NULL, 0);
+
+	const char* query_name;
+
+	if (type == STAT_MONTHLY) {
+		query_name = "get_events_growth_monthly";
 	}
-	else if (type == 1) {
-		res = PQexecPrepared(db, "get_events_growth_monthly_all",
-			0, NULL, NULL, NULL, 0);
+	else if (type == STAT_MONTHLY_ALL) {
+		query_name = "get_events_growth_monthly_all";
 	}
-	else if (type == 2) {
-		res = PQexecPrepared(db, "get_events_growth_daily",
-			0, NULL, NULL, NULL, 0);
+	else if (type == STAT_DAILY) {
+		query_name = "get_events_growth_daily";
 	}
 	else {
 		return 0;
 	}
 
-	CHECK_QUERY(res, db, 0);
-	int count = PQntuples(res);
+	char id_str[16];
+	const char* params[1];
 
+	if (organizer_id > 0) {
+		snprintf(id_str, sizeof(id_str), "%d", organizer_id);
+		params[0] = id_str;
+	}
+	else {
+		params[0] = NULL;
+	}
+
+	PGresult* res = PQexecPrepared(db, query_name, 1, params, NULL, NULL, 0);
+	CHECK_QUERY(res, db, 0);
+
+	int count = PQntuples(res);
 	*out = malloc(count * sizeof(StatGrowth));
 	if (*out == NULL && count > 0) {
 		PQclear(res);

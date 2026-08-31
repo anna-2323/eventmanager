@@ -143,27 +143,34 @@ const char* SQL_GET_CATEGORIES =
 
 const char* SQL_TOTAL_EVENTS =
 "SELECT COUNT(*) "
-"FROM data.events;";
+"FROM data.events e "
+"WHERE ($1::integer IS NULL OR e.organizer_id = $1);";
 
 const char* SQL_EVENTS_GROWTH_MONTHLY =
-"SELECT DATE_TRUNC('month', e.uploaded_at) AS month, "
+"SELECT "
+"DATE_TRUNC('month', e.uploaded_at) AS month, "
 "COUNT(*) AS event_count "
 "FROM data.events e "
 "WHERE e.uploaded_at >= CURRENT_DATE - INTERVAL '12 months' "
+"AND ($1::integer IS NULL OR e.organizer_id = $1) "
 "GROUP BY DATE_TRUNC('month', e.uploaded_at) "
-"ORDER BY month; ";
+"ORDER BY month;";
 
 const char* SQL_EVENTS_GROWTH_DAILY =
-"SELECT DATE_TRUNC('day', e.uploaded_at) AS day, "
+"SELECT "
+"DATE_TRUNC('day', e.uploaded_at) AS day, "
 "COUNT(*) AS event_count "
 "FROM data.events e "
 "WHERE e.uploaded_at >= CURRENT_DATE - INTERVAL '30 days' "
+"AND ($1::integer IS NULL OR e.organizer_id = $1) "
 "GROUP BY DATE_TRUNC('day', e.uploaded_at) "
-"ORDER BY day; ";
+"ORDER BY day;";
 
 const char* SQL_EVENTS_GROWTH_MONTHLY_ALL =
-"SELECT DATE_TRUNC('month', e.uploaded_at) AS month, "
+"SELECT "
+"DATE_TRUNC('month', e.uploaded_at) AS month, "
 "COUNT(*) AS event_count "
 "FROM data.events e "
+"WHERE ($1::integer IS NULL OR e.organizer_id = $1) "
 "GROUP BY DATE_TRUNC('month', e.uploaded_at) "
-"ORDER BY month; ";
+"ORDER BY month;";

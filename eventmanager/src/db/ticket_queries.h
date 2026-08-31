@@ -70,106 +70,124 @@ const char* SQL_GET_TICKET_FOR_HTML =
 
 const char* SQL_TOTAL_TICKETS =
 "SELECT COUNT(*) "
-"FROM data.tickets;";
+"FROM data.tickets t "
+"JOIN data.events e ON t.event_id = e.id "
+"WHERE ($1::integer IS NULL OR e.organizer_id = $1);";
 
 const char* SQL_TICKETS_GROWTH_MONTHLY =
 "SELECT "
 "DATE_TRUNC('month', t.purchased_at) AS month, "
 "COUNT(*) AS ticket_count "
 "FROM data.tickets t "
+"JOIN data.events e ON t.event_id = e.id "
 "WHERE t.purchased_at >= CURRENT_DATE - INTERVAL '12 months' "
+"AND ($1::integer IS NULL OR e.organizer_id = $1) "
 "GROUP BY DATE_TRUNC('month', t.purchased_at) "
-"ORDER BY month; ";
+"ORDER BY month;";
 
 const char* SQL_TICKETS_GROWTH_MONTHLY_ALL =
 "SELECT "
 "DATE_TRUNC('month', t.purchased_at) AS month, "
 "COUNT(*) AS ticket_count "
 "FROM data.tickets t "
-"WHERE t.purchased_at >= CURRENT_DATE - INTERVAL '12 months' "
+"JOIN data.events e ON t.event_id = e.id "
+"WHERE ($1::integer IS NULL OR e.organizer_id = $1) "
 "GROUP BY DATE_TRUNC('month', t.purchased_at) "
-"ORDER BY month; ";
+"ORDER BY month;";
 
 const char* SQL_TICKETS_GROWTH_DAILY =
 "SELECT "
 "DATE_TRUNC('day', t.purchased_at) AS day, "
 "COUNT(*) AS ticket_count "
 "FROM data.tickets t "
+"JOIN data.events e ON t.event_id = e.id "
 "WHERE t.purchased_at >= CURRENT_DATE - INTERVAL '30 days' "
+"AND ($1::integer IS NULL OR e.organizer_id = $1) "
 "GROUP BY DATE_TRUNC('day', t.purchased_at) "
-"ORDER BY day; ";
+"ORDER BY day;";
 
 const char* SQL_TOTAL_REVENUE =
 "SELECT SUM(es.price) AS total_revenue "
 "FROM data.tickets t "
+"JOIN data.events e ON t.event_id = e.id "
 "JOIN data.event_sectors es "
 "ON es.event_id = t.event_id "
-"AND es.sector_id = t.sector_id; ";
+"AND es.sector_id = t.sector_id "
+"WHERE ($1::integer IS NULL OR e.organizer_id = $1);";
 
 const char* SQL_REVENUE_DAILY =
-"SELECT DATE_TRUNC('day', t.purchased_at) AS day, "
+"SELECT "
+"DATE_TRUNC('day', t.purchased_at) AS day, "
 "SUM(es.price) AS revenue, "
 "COUNT(*) AS ticket_count "
 "FROM data.tickets t "
 "JOIN data.event_sectors es "
 "ON es.event_id = t.event_id "
-"WHERE t.purchased_at >= CURRENT_DATE - INTERVAL '30 days' "
 "AND es.sector_id = t.sector_id "
+"JOIN data.events e ON t.event_id = e.id "
+"WHERE t.purchased_at >= CURRENT_DATE - INTERVAL '30 days' "
+"AND ($1::integer IS NULL OR e.organizer_id = $1) "
 "GROUP BY day "
-"ORDER BY day; ";
+"ORDER BY day;";
 
 const char* SQL_REVENUE_MONTHLY =
 "SELECT "
-"    DATE_TRUNC('month', t.purchased_at) AS month, "
-"    SUM(es.price) AS revenue, "
-"	COUNT(*) AS ticket_count "
+"DATE_TRUNC('month', t.purchased_at) AS month, "
+"SUM(es.price) AS revenue, "
+"COUNT(*) AS ticket_count "
 "FROM data.tickets t "
 "JOIN data.event_sectors es "
-"    ON es.event_id = t.event_id "
-"   AND es.sector_id = t.sector_id "
+"ON es.event_id = t.event_id "
+"AND es.sector_id = t.sector_id "
+"JOIN data.events e ON t.event_id = e.id "
 "WHERE t.purchased_at >= CURRENT_DATE - INTERVAL '12 months' "
+"AND ($1::integer IS NULL OR e.organizer_id = $1) "
 "GROUP BY month "
 "ORDER BY month;";
 
 const char* SQL_REVENUE_MONTHLY_ALL =
 "SELECT "
-"    DATE_TRUNC('month', t.purchased_at) AS month, "
-"    SUM(es.price) AS revenue, "
-"    COUNT(*) AS tickets_sold "
+"DATE_TRUNC('month', t.purchased_at) AS month, "
+"SUM(es.price) AS revenue, "
+"COUNT(*) AS tickets_sold "
 "FROM data.tickets t "
 "JOIN data.event_sectors es "
-"    ON es.event_id = t.event_id "
-"   AND es.sector_id = t.sector_id "
+"ON es.event_id = t.event_id "
+"AND es.sector_id = t.sector_id "
+"JOIN data.events e ON t.event_id = e.id "
+"WHERE ($1::integer IS NULL OR e.organizer_id = $1) "
 "GROUP BY month "
 "ORDER BY month;";
 
 const char* SQL_REVENUE_BY_VENUE_MONTHLY =
 "SELECT "
-"    DATE_TRUNC('month', t.purchased_at) AS month, "
-"    SUM(es.price) AS revenue, "
-"    COUNT(*) AS tickets_sold, "
-"    v.id AS venue_id "
+"DATE_TRUNC('month', t.purchased_at) AS month, "
+"SUM(es.price) AS revenue, "
+"COUNT(*) AS tickets_sold, "
+"v.id AS venue_id "
 "FROM data.tickets t "
 "JOIN data.event_sectors es "
-"    ON es.event_id = t.event_id "
-"   AND es.sector_id = t.sector_id "
+"ON es.event_id = t.event_id "
+"AND es.sector_id = t.sector_id "
 "JOIN data.events e ON e.id = t.event_id "
 "JOIN data.venues v ON v.id = e.venue_id "
 "WHERE t.purchased_at >= CURRENT_DATE - INTERVAL '12 months' "
+"AND ($1::integer IS NULL OR e.organizer_id = $1) "
 "GROUP BY v.id, month "
 "ORDER BY v.id, month;";
 
 const char* SQL_REVENUE_BY_VENUE_MONTHLY_ALL =
 "SELECT "
-"    DATE_TRUNC('month', t.purchased_at) AS month, "
-"    SUM(es.price) AS revenue, "
-"    COUNT(*) AS tickets_sold, "
-"    v.id AS venue_id "
+"DATE_TRUNC('month', t.purchased_at) AS month, "
+"SUM(es.price) AS revenue, "
+"COUNT(*) AS tickets_sold, "
+"v.id AS venue_id "
 "FROM data.tickets t "
 "JOIN data.event_sectors es "
-"    ON es.event_id = t.event_id "
-"   AND es.sector_id = t.sector_id "
+"ON es.event_id = t.event_id "
+"AND es.sector_id = t.sector_id "
 "JOIN data.events e ON e.id = t.event_id "
 "JOIN data.venues v ON v.id = e.venue_id "
+"WHERE ($1::integer IS NULL OR e.organizer_id = $1) "
 "GROUP BY v.id, month "
 "ORDER BY v.id, month;";

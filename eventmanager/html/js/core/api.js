@@ -51,6 +51,24 @@ export const api = {
     delete: (data) => request('/profile', { method: 'DELETE', body: JSON.stringify(data) })
   },
 
+  stats: {
+    monthly: () => request('/stats/monthly'),
+    daily: () => request('/stats/daily'),
+    totals: () => request('/stats/totals'),
+    revenue: {
+      monthly: () => request('/stats/revenue/monthly'),
+      daily: () => request('/stats/revenue/daily'),
+      byVenues: () => request('/stats/revenue/venues')
+    },
+    // export: {
+    //   users: () =>  request('/stats/export/users'),
+    //   events: () => request('/stats/export/events'),
+    //   tickets: () => request('/stats/export/tickets'),
+    //   revenueMonthly: () => request('/stats/export/revenue'),
+    //   revenueVenues: () => request('/stats/export/revenue/venues')
+    // }
+  },
+
   admin: {
     users: {
       list: () => request('/admin/users'),
@@ -70,23 +88,6 @@ export const api = {
       create: (data) => request('/admin/venues', { method: 'POST', body: JSON.stringify(data) }),
       edit: (id, data) => request(`/admin/venues/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
     },
-    stats: {
-      monthly: () => request('/admin/stats/monthly'),
-      daily: () => request('/admin/stats/daily'),
-      totals: () => request('/admin/stats/totals'),
-      revenue: {
-        monthly: () => request('/admin/stats/revenue/monthly'),
-        daily: () => request('/admin/stats/revenue/daily'),
-        byVenues: () => request('/admin/stats/revenue/venues')
-      },
-      export: {
-        users: () =>  request('/admin/stats/export/users'),
-        events: () => request('/admin/stats/export/events'),
-        tickets: () => request('/admin/stats/export/tickets'),
-        revenueMonthly: () => request('/admin/stats/export/revenue'),
-        revenueVenues: () => request('/admin/stats/export/revenue/venues')
-      }
-    }
   },
   organizer: {
     venues: {

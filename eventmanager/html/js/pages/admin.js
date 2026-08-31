@@ -1,7 +1,7 @@
 import { api } from "../core/api.js";
 import { $ } from "../core/dom.js";
 import { header } from "../components/header.js";
-import { createLineChart, createBarChart } from "../components/graph.js";
+import { createMultiLineChart, createBarChart } from "../components/graph.js";
 
 header();
 
@@ -14,9 +14,11 @@ if (!user.logged_in || user.role !== 0) {
         </div>
     </section>`;
 } else {
-  const monthlyStats = await api.admin.stats.monthly();
-  const dailyStats = await api.admin.stats.daily();
-  const totals = await api.admin.stats.totals();
+  const monthlyStats = await api.stats.monthly();
+  const dailyStats = await api.stats.daily();
+  const totals = await api.stats.totals();
+  const monthlyRev = await api.stats.revenue.monthly();
+  const venueRev = await api.stats.revenue.byVenues();
 
   const monthNames = [
     "Яну",
@@ -35,6 +37,7 @@ if (!user.logged_in || user.role !== 0) {
 
   fillTotalValues();
   fillCharts(monthlyStats);
+  setupTabs();
 
   function fillTotalValues() {
     $("#total-users").innerHTML = totals.users;
@@ -43,22 +46,66 @@ if (!user.logged_in || user.role !== 0) {
     $("#total-tickets").innerHTML = totals.tickets;
   }
 
-  function fillChart(id, timePeriods, count, name) {
+  function fillBarChart(id, timePeriods, count, name) {
     createBarChart(id, timePeriods, count, name);
   }
 
   function fillCharts() {
     const months1 = toMonths(monthlyStats.events_growth)
     const event_count = monthlyStats.events_growth.map((x) => x.count);
-    fillChart("events-chart", months1, event_count, "Събития");
+    fillBarChart("events-chart", months1, event_count, "Събития");
 
     const months2 = toMonths(monthlyStats.users_growth)
     const user_count = monthlyStats.users_growth.map((x) => x.count);
-    fillChart("users-chart", months2, user_count, "Потребители");
+    fillBarChart("users-chart", months2, user_count, "Потребители");
 
     const months3 = toMonths(monthlyStats.tickets_growth)
     const ticket_count = monthlyStats.tickets_growth.map((x) => x.count);
-    fillChart("tickets-chart", months3, ticket_count, "Билети");
+    fillBarChart("tickets-chart", months3, ticket_count, "Билети");
+
+    const revenues = monthlyRev.revenue.map((x) => x.revenue);
+    fillBarChart("revenue-chart", months3, revenues, "Месечен приход (€)");
+
+    const months4 = [...new Set(venueRev.revenue.map((x) => x.period))].sort();
+    const venueIds = [...new Set(venueRev.revenue.map((x) => x.venue_id))];
+
+    const datasets = venueIds.map((venueId) => ({
+      label: `Зала ${venueId}`,
+      data: months4.map((month) => {
+        const entry = venueRev.revenue.find(
+          (x) => x.venue_id === venueId && x.period === month,
+        );
+
+        return entry ? entry.revenue : 0;
+      }),
+    }));
+
+    createMultiLineChart("revenue-venue-chart", months4, datasets);
+
+  }
+
+  function setupTabs() {
+    const tabs = document.querySelectorAll(".tabs li[data-tab]");
+    const contents = document.querySelectorAll("#tab-content > div");
+  
+    tabs.forEach(tab => {
+        tab.addEventListener("click", () => {
+            const target = tab.dataset.tab;
+        
+            // Активира се избрания раздел
+            tabs.forEach(t => {
+                t.classList.toggle("is-active", t === tab);
+            });
+          
+            // Показва се избраното съдържание
+            contents.forEach(content => {
+                content.classList.toggle(
+                    "is-hidden",
+                    content.id !== target
+                );
+            });
+        });
+    });
   }
 
   document.addEventListener("change", async (event) => {
@@ -71,17 +118,13 @@ if (!user.logged_in || user.role !== 0) {
         if (value === "monthly") {
           // събития помесечно
           const months = toMonths(monthlyStats.events_growth);
-          const event_count = monthlyStats.events_growth.map(
-            (x) => x.count,
-          );
-          fillChart("events-chart", months, event_count, "Събития");
+          const event_count = monthlyStats.events_growth.map((x) => x.count);
+          fillBarChart("events-chart", months, event_count, "Събития");
         } else {
           // събития подневно
           const days = toDays(dailyStats.events_growth);
-          const event_count = dailyStats.events_growth.map(
-            (x) => x.count,
-          );
-          fillChart("events-chart", days, event_count, "Събития");
+          const event_count = dailyStats.events_growth.map((x) => x.count);
+          fillBarChart("events-chart", days, event_count, "Събития");
         }
         break;
 
@@ -89,17 +132,13 @@ if (!user.logged_in || user.role !== 0) {
         if (value === "monthly") {
           // потребители помесечно
           const months = toMonths(monthlyStats.users_growth);
-          const user_count = monthlyStats.users_growth.map(
-            (x) => x.count,
-          );
-          fillChart("users-chart", months, user_count, "Потребители");
+          const user_count = monthlyStats.users_growth.map((x) => x.count);
+          fillBarChart("users-chart", months, user_count, "Потребители");
         } else {
           // потребители подневно
           const days = toDays(dailyStats.events_growth);
-          const user_count = dailyStats.users_growth.map(
-            (x) => x.count,
-          );
-          fillChart("users-chart", days, user_count, "Потребители");
+          const user_count = dailyStats.users_growth.map((x) => x.count);
+          fillBarChart("users-chart", days, user_count, "Потребители");
         }
         break;
 
@@ -108,16 +147,14 @@ if (!user.logged_in || user.role !== 0) {
           // билети помесечно
           const months = toMonths(monthlyStats.tickets_growth);
           const ticket_count = monthlyStats.tickets_growth.map(
-            (x) => x.count,
+            (x) => x.ticket_count,
           );
-          fillChart("tickets-chart", months, ticket_count, "Билети");
+          fillBarChart("tickets-chart", months, ticket_count, "Билети");
         } else {
           // билети подневно
           const days = toDays(dailyStats.tickets_growth);
-          const ticket_count = dailyStats.tickets_growth.map(
-            (x) => x.count,
-          );
-          fillChart("ticket-chart", days, ticket_count, "Билети");
+          const ticket_count = dailyStats.tickets_growth.map((x) => x.count);
+          fillBarChart("tickets-chart", days, ticket_count, "Билети");
         }
         break;
     }

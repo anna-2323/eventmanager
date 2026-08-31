@@ -76,3 +76,50 @@ export function createPieChart(canvasId, labels, data, label) {
         label
     );
 }
+
+export function createMultiLineChart(canvasId, labels, datasets) {
+    const canvas = document.getElementById(canvasId);
+
+    if (!canvas) {
+        console.error(`graph.js: #${canvasId} not found`);
+        return null;
+    }
+
+    if (chartInstances[canvasId]) {
+        chartInstances[canvasId].destroy();
+    }
+
+    chartInstances[canvasId] = new Chart(canvas, {
+        type: "line",
+
+        data: {
+            labels: labels,
+            datasets: datasets.map(dataset => ({
+                label: dataset.label,
+                data: dataset.data,
+                borderWidth: 2,
+                tension: 0.3,
+                fill: false
+            }))
+        },
+
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            plugins: {
+                legend: {
+                    display: true
+                }
+            },
+
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    return chartInstances[canvasId];
+}

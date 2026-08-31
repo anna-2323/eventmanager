@@ -42,7 +42,7 @@ int get_user_tickets(PGconn* db, int user_id, TicketView** out);
 int ticket_belongs_to_user(PGconn* db, int user_id, int ticket_id);
 int generate_ticket_html(PGconn* db, int ticket_id, const char* qr_path, char* out_path, size_t out_size);
 
-int get_total_tickets(PGconn* db);
-int get_tickets_growth(PGconn* db, int type, StatGrowth** out);
+int get_total_tickets(PGconn* db, int organizer_id);
+int get_tickets_growth(PGconn* db, int type, int organizer_id, StatGrowth** out);
 
-int get_revenue(PGconn* db, int type, StatRevenue* out);
+int get_revenue(PGconn* db, int type, int organizer_id, StatRevenue* out);

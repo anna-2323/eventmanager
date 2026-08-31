@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "../util.h"
+#include "../controllers/stats_controller.h"
 
 static void ticket_from_query(PGresult* res, TicketView* t, int i) {
     snprintf(t->event_name, sizeof(t->event_name), "%s", PQgetvalue(res, i, 0));
@@ -218,11 +219,21 @@ int ticket_belongs_to_user(PGconn* db, int user_id, int ticket_id) {
     return 1;
 }
 
-int get_total_tickets(PGconn* db) {
-    CHECK_DB(db, NULL);
+int get_total_tickets(PGconn* db, int organizer_id) {
+    CHECK_DB(db, 0);
 
-    PGresult* res = PQexecPrepared(db, "get_total_tickets", 0, NULL, NULL, NULL, 0);
-    CHECK_QUERY(res, db, NULL);
+    char id_str[16];
+    const char* params[1];
+    if (organizer_id > 0) {
+        snprintf(id_str, sizeof(id_str), "%d", organizer_id);
+        params[0] = id_str;
+    }
+    else {
+        params[0] = NULL;
+    }
+
+    PGresult* res = PQexecPrepared(db, "get_total_tickets", 1, params, NULL, NULL, 0);
+    CHECK_QUERY(res, db, 0);
 
     int total = atoi(PQgetvalue(res, 0, 0));
     PQclear(res);
@@ -230,25 +241,42 @@ int get_total_tickets(PGconn* db) {
     return total;
 }
 
-int get_tickets_growth(PGconn* db, int type, StatGrowth** out) {
+int get_tickets_growth(PGconn* db, StatType type, int organizer_id, StatGrowth** out) {
     CHECK_DB(db, 0);
-    PGresult* res = NULL;
-    if (type == 0) {
-        res = PQexecPrepared(db, "get_tickets_growth_monthly",
-            0, NULL, NULL, NULL, 0);
-    }
-    else if (type == 1) {
-        res = PQexecPrepared(db, "get_tickets_growth_monthly_all",
-            0, NULL, NULL, NULL, 0);
-    }
-    else if (type == 2) {
-        res = PQexecPrepared(db, "get_tickets_growth_daily",
-            0, NULL, NULL, NULL, 0);
+
+    const char* query_name;
+    switch (type) {
+    case STAT_MONTHLY:
+        query_name = "get_tickets_growth_monthly";
+        break;
+
+    case STAT_MONTHLY_ALL:
+        query_name = "get_tickets_growth_monthly_all";
+        break;
+
+    case STAT_DAILY:
+        query_name = "get_tickets_growth_daily";
+        break;
+
+    default:
+        return 0;
     }
 
+    char id_str[16];
+    const char* params[1];
+
+    if (organizer_id > 0) {
+        snprintf(id_str, sizeof(id_str), "%d", organizer_id);
+        params[0] = id_str;
+    }
+    else {
+        params[0] = NULL;
+    }
+
+    PGresult* res = PQexecPrepared(db, query_name, 1, params, NULL, NULL, 0);
     CHECK_QUERY(res, db, 0);
-    int count = PQntuples(res);
 
+    int count = PQntuples(res);
     *out = malloc(count * sizeof(StatGrowth));
     if (*out == NULL && count > 0) {
         PQclear(res);
@@ -264,32 +292,50 @@ int get_tickets_growth(PGconn* db, int type, StatGrowth** out) {
     return count;
 }
 
-int get_revenue(PGconn* db, int type, StatRevenue** out) {
+int get_revenue(PGconn* db, StatType type, int organizer_id, StatRevenue** out) {
     CHECK_DB(db, 0);
-    PGresult* res;
 
-    if (type == 0) {
-        res = PQexecPrepared(db, "get_revenue_monthly", 0, NULL, NULL, NULL, 0);
-    }
-    else if (type == 1) {
-        res = PQexecPrepared(db, "get_revenue_monthly_all", 0, NULL, NULL, NULL, 0);
-    }
-    else if (type == 2) {
-        res = PQexecPrepared(db, "get_revenue_daily", 0, NULL, NULL, NULL, 0);
-    }
-    else if (type == 3) {
-        res = PQexecPrepared(db, "get_revenue_by_venue_monthly", 0, NULL, NULL, NULL, 0);
-    }
-    else if (type == 4) {
-        res = PQexecPrepared(db, "get_revenue_by_venue_monthly_all", 0, NULL, NULL, NULL, 0);
-    }
-    else {
+    const char* query_name;
+    switch (type) {
+    case STAT_MONTHLY:
+        query_name = "get_revenue_monthly";
+        break;
+
+    case STAT_MONTHLY_ALL:
+        query_name = "get_revenue_monthly_all";
+        break;
+
+    case STAT_DAILY:
+        query_name = "get_revenue_daily";
+        break;
+
+    case STAT_BY_VENUE:
+        query_name = "get_revenue_by_venue_monthly";
+        break;
+
+    case STAT_BY_VENUE_ALL:
+        query_name = "get_revenue_by_venue_monthly_all";
+        break;
+
+    default:
         return 0;
     }
 
-    CHECK_QUERY(res, db, 0);
-    int count = PQntuples(res);
+    char id_str[16];
+    const char* params[1];
 
+    if (organizer_id > 0) {
+        snprintf(id_str, sizeof(id_str), "%d", organizer_id);
+        params[0] = id_str;
+    }
+    else {
+        params[0] = NULL;
+    }
+
+    PGresult* res = PQexecPrepared(db, query_name, 1, params, NULL, NULL, 0);
+    CHECK_QUERY(res, db, 0);
+
+    int count = PQntuples(res);
     *out = malloc(count * sizeof(StatRevenue));
     if (*out == NULL && count > 0) {
         PQclear(res);
@@ -298,10 +344,15 @@ int get_revenue(PGconn* db, int type, StatRevenue** out) {
 
     for (int i = 0; i < count; i++) {
         snprintf((*out)[i].period, sizeof((*out)[i].period), "%s", PQgetvalue(res, i, 0));
+
         (*out)[i].revenue = atof(PQgetvalue(res, i, 1));
         (*out)[i].count = atoi(PQgetvalue(res, i, 2));
-        if(!PQgetisnull(res, i, 3))
+
+        // за STAT_BY_VENUE или STAT_BY_VENUE_ALL
+        if (!PQgetisnull(res, i, 3))
             (*out)[i].venue_id = atoi(PQgetvalue(res, i, 3));
+        else
+            (*out)[i].venue_id = 0;
     }
 
     PQclear(res);

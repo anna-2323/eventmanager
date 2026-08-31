@@ -71,5 +71,5 @@ int delete_event(PGconn* db, int id);
 
 int get_categories(PGconn* db, Category** out);
 
-int get_total_events(PGconn* db);
-int get_events_growth(PGconn* db, int type, StatGrowth** out);
+int get_total_events(PGconn* db, int organizer_id);
+int get_events_growth(PGconn* db, int type, int organizer_id, StatGrowth** out);
