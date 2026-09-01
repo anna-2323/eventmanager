@@ -75,6 +75,8 @@ void set_handlers(struct mg_context* ctx) {
     mg_set_request_handler(ctx, "/reset", html_controller, NULL);
     mg_set_request_handler(ctx, "/admin", html_controller, NULL);
     mg_set_request_handler(ctx, "/admin/**", html_controller, NULL);
+    mg_set_request_handler(ctx, "/organizer", html_controller, NULL);
+    mg_set_request_handler(ctx, "/organizer/**", html_controller, NULL);
 
     mg_set_request_handler(ctx, "/api/events/seatmap", api_event_seatmap, db);
     mg_set_request_handler(ctx, "/api/events/**", api_events, db);

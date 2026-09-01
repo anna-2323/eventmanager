@@ -6,7 +6,7 @@ import { createMultiLineChart, createBarChart } from "../components/graph.js";
 header();
 
 const user = await api.auth.getUser();
-if (!user.logged_in || user.role !== 0) {
+if (!user.logged_in || user.role == 2) {
   $("#main").innerHTML = `<section class="section">
         <div class="container has-text-centered">
             <h1 class="title has-text-danger">Нямате права за достъп до тази страница</h1>
@@ -40,9 +40,11 @@ if (!user.logged_in || user.role !== 0) {
   setupTabs();
 
   function fillTotalValues() {
-    $("#total-users").innerHTML = totals.users;
+    if(user.role == 0) {
+      $("#total-users").innerHTML = totals.users;
+      $("#total-venues").innerHTML = totals.venues;
+    }
     $("#total-events").innerHTML = totals.events;
-    $("#total-venues").innerHTML = totals.venues;
     $("#total-tickets").innerHTML = totals.tickets;
   }
 
@@ -55,9 +57,11 @@ if (!user.logged_in || user.role !== 0) {
     const event_count = monthlyStats.events_growth.map((x) => x.count);
     fillBarChart("events-chart", months1, event_count, "Събития");
 
-    const months2 = toMonths(monthlyStats.users_growth)
-    const user_count = monthlyStats.users_growth.map((x) => x.count);
-    fillBarChart("users-chart", months2, user_count, "Потребители");
+    if(user.role == 0) {
+      const months2 = toMonths(monthlyStats.users_growth)
+      const user_count = monthlyStats.users_growth.map((x) => x.count);
+      fillBarChart("users-chart", months2, user_count, "Потребители");
+    }
 
     const months3 = toMonths(monthlyStats.tickets_growth)
     const ticket_count = monthlyStats.tickets_growth.map((x) => x.count);

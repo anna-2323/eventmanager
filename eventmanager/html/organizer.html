@@ -30,50 +30,34 @@
         <h1 class="title mt-4">Контролен панел</h1>
 
         <div class="columns is-multiline is-centered mt-4">
-            <a class="button is-info column is-2 mx-4" href="/admin/users">
-                <i class="fa-solid fa-user mr-1" aria-hidden="true"></i>Потребители</a>
             <a class="button is-info column is-2 mx-4" href="/admin/events">
-                <i class="fa-solid fa-calendar mr-1" aria-hidden="true"></i>Събития</a>
+                <i class="fa-solid fa-calendar mr-1" aria-hidden="true"></i>Управление на събития</a>
             <a class="button is-info column is-2 mx-4" href="/admin/tickets">
-                <i class="fa-solid fa-ticket mr-1" aria-hidden="true"></i>Билети</a>
+                <i class="fa-solid fa-ticket mr-1" aria-hidden="true"></i>Управление на билети</a>
             <a class="button is-info column is-2 mx-4" href="/admin/venues">
-                <i class="fa-solid fa-location-dot mr-1" aria-hidden="true"></i>Зали</a>
+                <i class="fa-solid fa-location-dot mr-1" aria-hidden="true"></i>Управление на зали</a>
         </div>
 
         <div class="columns is-multiline is-centered mt-4">
-            <a class="button is-success column is-2 mx-4" href="/admin/events/create">Ново събитие</a>
-            <a class="button is-success column is-2 mx-4" href="/admin/venues/create">Нова зала</a>
+            <a class="button is-success column is-2 mx-4" href="/events/create">Ново събитие</a>
+            <a class="button is-success column is-2 mx-4" href="/venues/create">Нова зала</a>
         </div>
-        
-        <div id="admin-summary" class="columns is-multiline is-centered">
-                    <div class="column is-2">
-                        <div class="box has-text-centered">
-                            <p class="heading">Потребители</p>
-                            <p id="total-users" class="title">0</p>
-                        </div>
-                    </div>
 
-                    <div class="column is-2">
-                        <div class="box has-text-centered">
-                            <p class="heading">Зали</p>
-                            <p id="total-venues" class="title">0</p>
-                        </div>
-                    </div>
-
-                    <div class="column is-2">
-                        <div class="box has-text-centered">
-                            <p class="heading">Събития</p>
-                            <p id="total-events" class="title">0</p>
-                        </div>
-                    </div>
-
-                    <div class="column is-2">
-                        <div class="box has-text-centered">
-                            <p class="heading">Билети</p>
-                            <p id="total-tickets" class="title">0</p>
-                        </div>
-                    </div>
+        <div id="organizer-summary" class="columns is-multiline is-centered">
+            <div class="column is-2">
+                <div class="box has-text-centered">
+                    <p class="heading">Събития</p>
+                    <p id="total-events" class="title">0</p>
                 </div>
+            </div>
+
+            <div class="column is-2">
+                <div class="box has-text-centered">
+                    <p class="heading">Билети</p>
+                    <p id="total-tickets" class="title">0</p>
+                </div>
+            </div>
+        </div>
 
         <div class="tabs is-centered">
             <ul>
@@ -95,7 +79,6 @@
 
         <div id="tab-content">
             <div id="revenue">
-
                 <div class="columns is-centered is-variable is-4">
                     <div class="column is-5">
                         <div class="box">
@@ -119,19 +102,6 @@
             </div>
             <div id="growth" class="is-hidden">
                 <div class="columns is-centered is-variable is-4">
-                    <div class="column is-3">
-                        <div class="box">
-                            <h2 class="title is-6">Регистрирани потребители</h2>
-                            <div>
-                                <input type="radio" value="monthly" name="user-growth" checked>По месеци</input>
-                                <input type="radio" value="daily" name="user-growth">По дни</input>
-                            </div>
-                            <div style="height: 200px;">
-                                <canvas id="users-chart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="column is-3">
                         <div class="box">
                             <h2 class="title is-6">Публикувани събития</h2>
@@ -159,8 +129,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-
 
     </main>
 

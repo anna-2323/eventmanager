@@ -12,6 +12,7 @@ export async function checkProfile() {
                     </a>
                     <div class="navbar-dropdown is-right">
                         ${user.role == 0 ? '<a class="navbar-item" href="/admin">Контролен панел</a>' : ""}
+                        ${user.role == 1 ? '<a class="navbar-item" href="/organizer">Контролен панел</a>' : ""}
                         <a class="navbar-item" href="/profile">Профил</a>
                         <hr class="navbar-divider">
                         <a class="navbar-item" id="logout-btn">Изход</a>

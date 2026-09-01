@@ -67,5 +67,8 @@ int html_controller(struct mg_connection* conn, void* data) {
         if (*end == '\0')
             return send_html(conn, "html/admin_venue.html");
     }
+
+    if (strcmp(uri, "/organizer") == 0)
+        return send_html(conn, "html/organizer.html");
 }
 
