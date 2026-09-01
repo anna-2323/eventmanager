@@ -47,7 +47,7 @@ export function userCard(u) {
                             Редактирай
                         </button>
                         <button class="button is-warning" id="deactivate-btn">
-                            Деактивирай
+                            ${u.active ? "Деактивирай" : "Активирай"}
                         </button>
                         <button class="button is-danger" id="delete-btn">
                             Изтрий
@@ -57,7 +57,7 @@ export function userCard(u) {
             </div>`;
 }
 
-export function eventCard(e) {
+export function eventCard(e, role) {
     return `<div class="box">
                     <h2 class="subtitle">Информация</h2>
 
@@ -94,9 +94,11 @@ export function eventCard(e) {
                         <button class="button is-info" id="edit-btn">
                             Редактирай
                         </button>
-                        <button class="button is-warning" id="verify-btn">
-                            ${e.verified ? 'Отмени одобряване' : 'Одобри'}
-                        </button>
+                        ${role == 0 ? 
+                            `<button class="button is-warning" id="verify-btn">
+                                ${e.verified ? 'Отмени одобряване' : 'Одобри'}
+                            </button>` : ''
+                        }
                         <button class="button is-danger" id="delete-btn">
                             Изтрий
                         </button>
@@ -105,7 +107,7 @@ export function eventCard(e) {
             </div>`;
 }
 
-export function venueCard(v) {
+export function venueCard(v, role) {
     return `<div class="box">
                     <h2 class="subtitle">Информация</h2>
 
@@ -139,12 +141,71 @@ export function venueCard(v) {
                         <button class="button is-info" id="edit-btn">
                             Редактирай
                         </button>
-                        <button class="button is-warning" id="verify-btn">
-                            ${v.active ? 'Отмени одобряване' : 'Одобри'}
-                        </button>
-                        <button class="button is-danger" id="delete-btn">
+                        ${role == 0 ? 
+                            `<button class="button is-warning" id="verify-btn">
+                                ${v.active ? 'Отмени одобряване' : 'Одобри'}
+                            </button>` : ''
+                        }
+                        ${role == 0 ? 
+                        `<button class="button is-danger" id="delete-btn">
                             Изтрий
+                        </button>` : ''
+                        }
+                    </div>
+                </div>
+            </div>`;
+}
+
+export function ticketCard(t, role) {
+    return `<div class="box">
+                    <h2 class="subtitle">Информация</h2>
+
+                    <table class="table is-fullwidth">
+                        <tbody>
+                            <tr><th>ID</th>
+                                <td id="ticket-id">${t.id}</td>
+                            </tr>
+                            <tr><th>Име</th>
+                                <td id="ticket-names">${t.first_name} ${t.last_name}</td>
+                            </tr>
+                            <tr><th>Събитие</th>
+                                <td id="ticket-event">${t.event_name}</td>
+                            </tr>
+                            <tr><th>Зала</th>
+                                <td id="ticket-venue">${t.venue_name}, гр. ${t.venue_city}</td>
+                            </tr>
+                            <tr><th>Сектор</th>
+                                <td id="ticket-sector">${t.sector_name ? t.sector_name : "-"}</td>
+                            </tr>
+                            <tr><th>Статус</th>
+                                <td id="ticket-verified">${t.cancelled ? 
+                                    "<span style='color:#ff6685;'>Отменен</span>" : 
+                                    "<span style='color:#00d1b2;'>Активен</span>"}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+
+                    <div class="buttons mt-4">
+                        <a href="/admin/events/${t.event_id}"><button class="button is-primary" id="event-btn">
+                            Преглед на събитие
+                        </button></a>
+                        ${(role == 0 && t.user_id) ? 
+                        `<a href="/admin/users/${t.user_id}"><button class="button is-primary" id="event-btn">
+                            Преглед на потребител
+                        </button></a>` : ''
+                        }
+                        <button class="button is-info" id="edit-btn">
+                            Редактирай
                         </button>
+                        <button class="button is-warning" id="verify-btn">
+                            ${t.active ? 'Деактивирай' : 'Активирай'}
+                        </button>
+                        ${role == 0 ?
+                            `<button class="button is-danger" id="delete-btn">
+                                Изтрий
+                            </button>` : ''
+                        }
                     </div>
                 </div>
             </div>`;

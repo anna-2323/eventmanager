@@ -8,7 +8,7 @@ import { loadSeatMap } from "../components/seatMap.js";
 header();
 
 const user = await api.auth.getUser();
-if (!user.logged_in || user.role !== 0) {
+if (!user.logged_in || user.role == 2) {
   $("#main").innerHTML = `<section class="section">
         <div class="container has-text-centered">
             <h1 class="title has-text-danger">Нямате права за достъп до тази страница</h1>
@@ -22,7 +22,7 @@ if (!user.logged_in || user.role !== 0) {
   renderLayout();
 
   async function renderEvent() {
-    $("#event-card").innerHTML = eventCard(event);
+    $("#event-card").innerHTML = eventCard(event, user.role);
   }
 
   document.addEventListener("click", (e) => {

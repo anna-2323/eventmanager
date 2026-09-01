@@ -21,7 +21,7 @@ if (!user.logged_in || user.role == 2) {
   renderEvents();
 
   async function renderVenue() {
-    $("#venue-card").innerHTML = venueCard(venue);
+    $("#venue-card").innerHTML = venueCard(venue, user.role);
   }
 
   document.addEventListener("click", (e) => {
@@ -30,9 +30,9 @@ if (!user.logged_in || user.role == 2) {
       renderEvents();
     if(e.target.matches("#edit-btn"))
       renderEdit();
-    if(e.target.matches("#verify-btn"))
+    if(user.role == 0 && e.target.matches("#verify-btn"))
       verify();
-    if(e.target.matches("#delete-btn"))
+    if(user.role == 0 && e.target.matches("#delete-btn"))
       renderDelete();
 
     // Редактиране на данни за събитие
@@ -124,7 +124,7 @@ if (!user.logged_in || user.role == 2) {
     });
   });
 
-  $().addEventListener("click", async function () {
+  $("#confirm-delete-btn").addEventListener("click", async function () {
       const res = await api.admin.events.delete(id);
       if (res.success) {
         localStorage.setItem("success_message", "Успешно изтрито събитие.");

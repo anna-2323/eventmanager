@@ -76,7 +76,6 @@ void set_handlers(struct mg_context* ctx) {
     mg_set_request_handler(ctx, "/admin", html_controller, NULL);
     mg_set_request_handler(ctx, "/admin/**", html_controller, NULL);
     mg_set_request_handler(ctx, "/organizer", html_controller, NULL);
-    mg_set_request_handler(ctx, "/organizer/**", html_controller, NULL);
 
     mg_set_request_handler(ctx, "/api/events/seatmap", api_event_seatmap, db);
     mg_set_request_handler(ctx, "/api/events/**", api_events, db);
@@ -89,6 +88,7 @@ void set_handlers(struct mg_context* ctx) {
     mg_set_request_handler(ctx, "/api/admin/users", api_users, db);
     mg_set_request_handler(ctx, "/api/admin/events", api_admin_events, db);
     mg_set_request_handler(ctx, "/api/admin/venues", api_admin_venues, db);
+    mg_set_request_handler(ctx, "/api/admin/tickets", api_admin_tickets, db);
 
     // mg_set_request_handler(ctx, "/api/stats/export", api_admin_stats_export, db);
     // mg_set_request_handler(ctx, "/api/stats/export/**", api_admin_stats_export, db);

@@ -14,7 +14,7 @@ if (!user.logged_in || user.role == 2) {
     </section>`;
 } else {
   $(".container").innerHTML = `
-    <h1 class="title mt-4" id="table-title">Управление на събития</h1>
+    <h1 class="title mt-4" id="table-title">Управление на билети</h1>
     <table class="table is-fullwidth is-striped is-hoverable">
         <thead>
             <tr>
@@ -24,26 +24,26 @@ if (!user.logged_in || user.role == 2) {
                     <i class="change-icon fas"></i>
                   </span>
                 </th>
-                <th class="sortable" data-sort="title">
+                <th class="sortable" data-sort="names">
                   <span class="sortable-span">Име</span>
                   <span class="icon">
                     <i class="change-icon fas"></i>
                   </span>
                 </th>
-                <th class="sortable" data-sort="begins-at">
-                  <span class="sortable-span">Време</span>
+                <th class="sortable" data-sort="title">
+                  <span class="sortable-span">Събитие</span>
                   <span class="icon">
                     <i class="change-icon fas"></i>
                   </span>
                 </th>
                 <th class="sortable" data-sort="location">
-                  <span>Локация</span>
+                  <span class="sortable-span">Зала</span>
                   <span class="icon">
                     <i class="change-icon fas"></i>
                   </span>
                 </th>
-                <th class="sortable" data-sort="seats-left">
-                  <span>Останали места</span>
+                <th class="sortable" data-sort="sector">
+                  <span>Сектор</span>
                   <span class="icon">
                     <i class="change-icon fas"></i>
                   </span>
@@ -51,15 +51,15 @@ if (!user.logged_in || user.role == 2) {
                 <th></th>
             </tr>
         </thead>
-        <tbody id="events-table">
+        <tbody id="tickets-table">
             <tr>
                 <td colspan="4">Зареждане...</td>
             </tr>
         </tbody>
     </table>`
 
-  const events = await api.admin.events.list();
-  renderEvents();
+  const tickets = await api.admin.tickets.list();
+  renderTickets();
 
   let currentSort = {
     field: null,
@@ -90,15 +90,15 @@ if (!user.logged_in || user.role == 2) {
         currentSort.ascending ? "fa-chevron-up" : "fa-chevron-down",
       );
 
-      sortEvents();
-      renderEvents();
+      sortTickets();
+      renderTickets();
     });
   });
 
-  function sortEvents() {
+  function sortTickets() {
     const { field, ascending } = currentSort;
 
-    events.sort((a, b) => {
+    tickets.sort((a, b) => {
       let av, bv;
 
       switch (field) {
@@ -107,14 +107,14 @@ if (!user.logged_in || user.role == 2) {
           bv = b.id;
           break;
 
-        case "title":
-          av = a.title.replace(" ", "").toLowerCase();
-          bv = b.title.replace(" ", "").toLowerCase();
+        case "names":
+          av = `${a.first_name} ${a.last_name}`.toLowerCase();
+          bv = `${b.first_name} ${b.last_name}`.toLowerCase();
           break;
 
-        case "begins-at":
-          av = a.begins_at.replace(" ", "T");
-          bv = b.begins_at.replace(" ", "T");
+        case "title":
+          av = a.event_name.replace(" ", "").toLowerCase();
+          bv = b.event_name.replace(" ", "").toLowerCase();
           break;
 
         case "location":
@@ -122,9 +122,9 @@ if (!user.logged_in || user.role == 2) {
           bv = `${b.venue_name}, ${b.city}`.toLowerCase();
           break;
 
-        case "seats-left":
-          av = a.seats_left;
-          bv = b.seats_left;
+        case "sector":
+          av = a.sector_name.toLowerCase();
+          bv = b.sector_name.toLowerCase();
           break;
       }
 
@@ -134,20 +134,24 @@ if (!user.logged_in || user.role == 2) {
     });
   }
   
-  function renderEvents() {
-    $("#events-table").innerHTML = events
-      .map(
-        (e) =>
-          `<td>${e.id}</td>
-              <td>${e.title}</td>
-              <td>${toDate(e.begins_at)}</td>
-              <td>${e.venue_name}, ${e.city}</td>
-              <td>${e.seats_left}</td>
-              <td>
-                  <a href="/admin/events/${e.id}"><button class="button is-link view-btn">Преглед</button></a>
-              </td>
-            </tr>`,
-      )
-      .join("");
+  function renderTickets() {
+    if(tickets.length > 0)
+        $("#tickets-table").innerHTML = tickets
+          .map(
+            (t) =>
+              `<td>${t.id}</td>
+                  <td>${t.first_name} ${t.last_name}</td>
+                  <td>${t.event_name}</td>
+                  <td>${t.venue_name}, ${t.venue_city}</td>
+                  <td>${t.sector_name ? t.sector_name : ""}</td>
+                  <td>
+                      <a href="/admin/tickets/${t.id}"><button class="button is-link view-btn">Преглед</button></a>
+                  </td>
+                </tr>`,
+          )
+          .join("");
+    else {
+        $("#tickets-table").innerHTML = "";
+    }
   }
 }

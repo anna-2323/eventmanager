@@ -68,7 +68,7 @@ int api_confirm_ticket(struct mg_connection* conn, void* data) {
     if (!get_ticket(db, ticket_id, &ticket)) { mg_send_http_error(conn, 404, "Not found"); return 404; }
 
     char pdf_path[128];
-    snprintf(pdf_path, sizeof(pdf_path), "tickets/ticket_%s.pdf", ticket.token);
+    snprintf(pdf_path, sizeof(pdf_path), "html/tickets/ticket_%s.pdf", ticket.token);
 
     // Проверка има ли вече генериран PDF билет
     FILE* check = fopen(pdf_path, "rb");
@@ -104,6 +104,48 @@ int api_confirm_ticket(struct mg_connection* conn, void* data) {
     }
     json_t* res = ticket_to_json(&ticket);
     return send_json(conn, res);
+}
+
+int api_admin_tickets(struct mg_connection* conn, void* data) {
+    if (check_role(conn, ROLE_USER)) {
+        mg_send_http_error(conn, 403, "Forbidden");
+        return 403;
+    }
+
+    PGconn* db = (PGconn*)data;
+    const struct mg_request_info* info = mg_get_request_info(conn);
+
+    // /api/admin/events
+    if (strcmp(info->local_uri, "/api/admin/tickets") == 0) {
+        if (strcmp(info->request_method, "GET") == 0) {
+            Session* s = get_session(conn);
+            int organizer_id = 0;
+            if (s->role == 1) organizer_id = s->user_id;
+            TicketView* tickets = NULL;
+            int count = get_tickets((PGconn*)data, organizer_id, &tickets);
+
+            json_t* json = json_array();
+            for (size_t i = 0; i < count; i++) {
+                json_array_append_new(json, ticket_to_json(&tickets[i]));
+            }
+
+            return send_json(conn, json);
+        }
+    }
+    // /api/admin/tickets/{id}
+    const char* id_str = info->local_uri + strlen("/api/admin/tickets/");
+    int id = atoi(id_str);
+
+    if (id <= 0) {
+        mg_send_http_error(conn, 404, "Not found");
+        return 404;
+    }
+
+    if (strcmp(info->request_method, "GET") == 0) {
+        TicketView t;
+        if (get_ticket(db, id, &t))
+            return send_json(conn, ticket_to_json(&t));
+    }
 }
 
 int api_my_tickets(struct mg_connection* conn, void* data) {

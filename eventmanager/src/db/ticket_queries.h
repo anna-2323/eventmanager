@@ -19,13 +19,14 @@ const char* SQL_ADD_TICKET_GUEST =
 "VALUES ($1, $2, $3, $4, $5, $6) RETURNING id";
 
 const char* SQL_GET_TICKET =
-"SELECT e.title, e.begins_at, v.venue_name, v.city, v.address, "
+"SELECT t.id, e.title, e.begins_at, v.venue_name, v.city, v.address, "
 "       t.first_name, t.last_name, t.email, t.phone, "
 "       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name, "
-"		t.access_token "
+"		t.access_token, t.price, e.id, u.id  "
 "FROM data.tickets t "
 "JOIN data.events e ON t.event_id = e.id "
 "JOIN data.venues v ON e.venue_id = v.id "
+"LEFT JOIN data.users u ON t.user_id = u.id "
 "LEFT JOIN data.event_sectors es "
 "    ON es.event_id = t.event_id "
 "   AND es.sector_id = t.sector_id "
@@ -33,8 +34,21 @@ const char* SQL_GET_TICKET =
 "    ON s.id = t.sector_id "
 "WHERE t.id = $1;";
 
+const char* SQL_GET_TICKETS =
+"SELECT t.id, e.title, e.begins_at, v.venue_name, v.city, v.address, "
+"       t.first_name, t.last_name, t.email, t.phone, "
+"       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name, "
+"       t.access_token "
+"FROM data.tickets t "
+"JOIN data.events e ON t.event_id = e.id "
+"JOIN data.venues v ON e.venue_id = v.id "
+"LEFT JOIN data.sectors s "
+"    ON s.id = t.sector_id "
+"WHERE ($1::integer IS NULL OR e.organizer_id = $1) "
+"ORDER BY e.begins_at;";
+
 const char* SQL_GET_USER_TICKETS =
-"SELECT e.title, e.begins_at, v.venue_name, v.city, v.address, "
+"SELECT t.id, e.title, e.begins_at, v.venue_name, v.city, v.address, "
 "       t.first_name, t.last_name, t.email, t.phone, "
 "       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name, "
 "		t.access_token "
@@ -58,7 +72,7 @@ const char* SQL_TICKET_BELONGS_TO_USER =
 "); ";
 
 const char* SQL_GET_TICKET_FOR_HTML =
-"SELECT e.title, e.begins_at, v.venue_name, v.city, v.address, "
+"SELECT t.id, e.title, e.begins_at, v.venue_name, v.city, v.address, "
 "       t.first_name, t.last_name, t.email, t.phone, "
 "       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name, "
 "		t.access_token "

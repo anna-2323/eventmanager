@@ -53,7 +53,13 @@ int prepare_queries(PGconn* db)
         return 0;
     if (!prepare_query(db, "add_ticket_guest", SQL_ADD_TICKET_GUEST, 6))
         return 0;
+    if (!prepare_query(db, "get_tickets", SQL_GET_TICKETS, 1))
+        return 0;
     if (!prepare_query(db, "get_ticket", SQL_GET_TICKET, 1))
+        return 0;
+    if (!prepare_query(db, "get_user_tickets", SQL_GET_USER_TICKETS, 1))
+        return 0;
+    if (!prepare_query(db, "ticket_belongs_to_user", SQL_TICKET_BELONGS_TO_USER, 1))
         return 0;
     if (!prepare_query(db, "get_ticket_for_html", SQL_GET_TICKET_FOR_HTML, 1))
         return 0;

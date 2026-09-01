@@ -142,51 +142,27 @@ int api_admin_events(struct mg_connection* conn, void* data) {
     // /api/admin/events
     if (strcmp(info->local_uri, "/api/admin/events") == 0) {
         if (strcmp(info->request_method, "GET") == 0) {
-            EventFilters filters = { 0 };
+            Session* s = get_session(conn);
+            Event* events = NULL;
+            int count = 0;
+            if (s->role == 0) {
+                EventFilters filters = { 0 };
+                filters.upcoming = 0;
+                char search[256] = "";
+                char city[128] = "";
+                char category[32] = "";
 
-            filters.upcoming = 0;
-
-            char search[256] = "";
-            char city[128] = "";
-            char category[32] = "";
-
-            if (info->query_string) {
-                mg_get_var(
-                    info->query_string,
-                    strlen(info->query_string),
-                    "search",
-                    search,
-                    sizeof(search)
-                );
-
-                mg_get_var(
-                    info->query_string,
-                    strlen(info->query_string),
-                    "city",
-                    city,
-                    sizeof(city)
-                );
-
-                mg_get_var(
-                    info->query_string,
-                    strlen(info->query_string),
-                    "category",
-                    category,
-                    sizeof(category)
-                );
+                count = get_events((PGconn*)data, &filters, &events);
             }
-
-            filters.search = search;
-            filters.city = city;
-            filters.category_id = atoi(category);
-
-            Event* events;
-            int count = get_events((PGconn*)data, &filters, &events);
+            else if (s->role == 1) {
+                count = get_user_events(db, s->user_id, &events);
+            }
             json_t* json = json_array();
             for (size_t i = 0; i < count; i++) {
                 json_array_append_new(json, event_to_json(&events[i]));
             }
 
+            free(events);
             return send_json(conn, json);
         }
         if (strcmp(info->request_method, "POST") == 0) {

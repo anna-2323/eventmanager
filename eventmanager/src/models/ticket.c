@@ -5,18 +5,21 @@
 #include "../controllers/stats_controller.h"
 
 static void ticket_from_query(PGresult* res, TicketView* t, int i) {
-    snprintf(t->event_name, sizeof(t->event_name), "%s", PQgetvalue(res, i, 0));
-    snprintf(t->begins_at, sizeof(t->begins_at), "%s", PQgetvalue(res, i, 1));
-    snprintf(t->venue_name, sizeof(t->venue_name), "%s", PQgetvalue(res, i, 2));
-    snprintf(t->venue_city, sizeof(t->venue_city), "%s", PQgetvalue(res, i, 3));
-    snprintf(t->venue_address, sizeof(t->venue_address), "%s", PQgetvalue(res, i, 4));
-    snprintf(t->first_name, sizeof(t->first_name), "%s", PQgetvalue(res, i, 5));
-    snprintf(t->last_name, sizeof(t->last_name), "%s", PQgetvalue(res, i, 6));
-    snprintf(t->email, sizeof(t->email), "%s", PQgetvalue(res, i, 7));
-    snprintf(t->phone, sizeof(t->phone), "%s", PQgetvalue(res, i, 8));
-    snprintf(t->sector, sizeof(t->sector), "%s", PQgetvalue(res, i, 9));
-    if(!PQgetisnull(res, i, 10)) snprintf(t->token, sizeof(t->token), "%s", PQgetvalue(res, i, 10));
-    if (!PQgetisnull(res, i, 11)) t->price = atof(PQgetvalue(res, i, 11));
+    t->id = atoi(PQgetvalue(res, i, 0));
+    snprintf(t->event_name, sizeof(t->event_name), "%s", PQgetvalue(res, i, 1));
+    snprintf(t->begins_at, sizeof(t->begins_at), "%s", PQgetvalue(res, i, 2));
+    snprintf(t->venue_name, sizeof(t->venue_name), "%s", PQgetvalue(res, i, 3));
+    snprintf(t->venue_city, sizeof(t->venue_city), "%s", PQgetvalue(res, i, 4));
+    snprintf(t->venue_address, sizeof(t->venue_address), "%s", PQgetvalue(res, i, 5));
+    snprintf(t->first_name, sizeof(t->first_name), "%s", PQgetvalue(res, i, 6));
+    snprintf(t->last_name, sizeof(t->last_name), "%s", PQgetvalue(res, i, 7));
+    snprintf(t->email, sizeof(t->email), "%s", PQgetvalue(res, i, 8));
+    snprintf(t->phone, sizeof(t->phone), "%s", PQgetvalue(res, i, 9));
+    snprintf(t->sector, sizeof(t->sector), "%s", PQgetvalue(res, i, 10));
+    if(!PQgetisnull(res, i, 11)) snprintf(t->token, sizeof(t->token), "%s", PQgetvalue(res, i, 11));
+    if (!PQgetisnull(res, i, 12)) t->price = atof(PQgetvalue(res, i, 12));
+    if (!PQgetisnull(res, i, 13)) t->event_id = atoi(PQgetvalue(res, i, 13));
+    if (!PQgetisnull(res, i, 14)) t->user_id = atoi(PQgetvalue(res, i, 14));
 }
 
 // Открива първия {{шалбон}} и го заменя с дадената стойност
@@ -94,6 +97,42 @@ int purchase_ticket(PGconn* db, TicketData* data, int* ticket_id_out) {
     return 1;
 }
 
+int get_tickets(PGconn* db, int organizer_id, TicketView** out) {
+    CHECK_DB(db, 0);
+
+    char id_str[16];
+    const char* params[1];
+
+    if (organizer_id > 0) {
+        snprintf(id_str, sizeof(id_str), "%d", organizer_id);
+        params[0] = id_str;
+    }
+    else {
+        params[0] = NULL;
+    }
+
+    PGresult* res = PQexecPrepared(db, "get_tickets", 1, params, NULL, NULL, 0);
+    CHECK_QUERY(res, db, 0);
+
+    if (PQntuples(res) == 0) {
+        PQclear(res);
+        return 0;
+    }
+
+    int count = PQntuples(res);
+    *out = malloc(count * sizeof(TicketView));
+    if (*out == NULL && count > 0) {
+        PQclear(res);
+        return 0;
+    }
+    for (int i = 0; i < count; i++) {
+        ticket_from_query(res, &(*out)[i], i);
+    }
+
+    PQclear(res);
+    return count;
+}
+
 int get_ticket(PGconn* db, int ticket_id, TicketView* out) {
     CHECK_DB(db, 0);
     char id_str[16];
@@ -102,6 +141,10 @@ int get_ticket(PGconn* db, int ticket_id, TicketView* out) {
 
     PGresult* res = PQexecPrepared(db, "get_ticket", 1, params, NULL, NULL, 0);
     CHECK_QUERY(res, db, 0);
+
+    printf("Prepared: status=%s rows=%d\n",
+        PQresStatus(PQresultStatus(res)),
+        PQntuples(res));
 
     if (PQntuples(res) == 0) {
         PQclear(res);

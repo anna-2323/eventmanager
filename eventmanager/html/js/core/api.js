@@ -88,12 +88,11 @@ export const api = {
       create: (data) => request('/admin/venues', { method: 'POST', body: JSON.stringify(data) }),
       edit: (id, data) => request(`/admin/venues/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
     },
-  },
-  organizer: {
-    venues: {
-      list: () => request('organizer/venues')
+    tickets: {
+      list: () => request('/admin/tickets'),
+      get: (id) => request(`/admin/tickets/${id}`)
     }
-  }
+  },
 };
 
 function toQuery(params) {
