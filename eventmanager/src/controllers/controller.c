@@ -39,7 +39,7 @@ int check_role(struct mg_connection* conn, int role) {
 
 void set_result(json_t* res, int result)
 {
-    if (result == 1) {
+    if (result >= 1) {
         json_object_set_new(res, "success", json_true());
     }
     else {

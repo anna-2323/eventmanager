@@ -51,6 +51,23 @@
                         <input class="input" type="number" id="capacity">
                     </div>
                 </div>
+                <div class="field">
+                    <label class="label">Описание</label>
+                    <div class="control">
+                        <textarea class="textarea" id="description"
+                                  placeholder="Описание на събитието"
+                                  maxlength="512"></textarea>
+                    </div>
+                </div>
+                
+                <div class="field">
+                    <label class="label">Изображение</label>
+                    <div class="control">
+                        <input class="input" type="file" id="image"
+                               accept="image/jpeg,image/png,image/webp">
+                    </div>
+                    <p class="help">JPG, PNG или WebP.</p>
+                </div>
                 <button class="button is-primary is-fullwidth" id="submit">Създаване</button>
             </div>
             <p class="help is-danger mt-2" id="error" style="display:none"></p>

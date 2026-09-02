@@ -25,6 +25,8 @@ typedef struct {
 	int venue_id;
 	char title[256];
 	char begins_at[256];
+	char img_path[256];
+	char description[512];
 	double price;
 	int capacity;
 } EventData;
@@ -54,6 +56,22 @@ typedef struct {
 	int user_id;
 } EventFilters;
 
+typedef struct {
+	char venue_id[16];
+	char title[256];
+	char description[513];
+	char begins_at[256];
+	char price[32];
+	char capacity[32];
+
+	char image_path[256];       // /res/...
+	char image_disk_path[512];  // .\html\res\...
+	int image_uploaded;
+
+	int verified;
+	int verified_set;
+} CreateEventForm;
+
 int get_events(PGconn* db, const EventFilters* filters, Event** out);
 int get_event(PGconn* db, int id, Event* out);
 int get_event_seatmap(PGconn* db, int id, SeatMap* out);
@@ -64,6 +82,8 @@ int add_event(PGconn* db, EventData* data);
 
 int admin_update_title(PGconn* db, int id, const char* title);
 int admin_update_begins_at(PGconn* db, int id, const char* begins_at);
+int admin_update_description(PGconn* db, int id, const char* description);
+int admin_update_image(PGconn* db, int event_id, const char* img_path);
 
 int verify_event(PGconn* db, int id);
 int unverify_event(PGconn* db, int id);

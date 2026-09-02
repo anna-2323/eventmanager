@@ -1,4 +1,26 @@
 #include "event_api_controller.h"
+#include <windows.h>
+#include <bcrypt.h>
+#pragma comment(lib, "bcrypt.lib")
+
+static int create_event_field_found(const char* key,
+    const char* filename,
+    char* path,
+    size_t pathlen,
+    void* user_data);
+
+static int create_event_field_get(const char* key,
+    const char* value,
+    size_t valuelen,
+    void* user_data);
+
+static int create_event_field_store(const char* path,
+    long long file_size,
+    void* user_data);
+
+static int make_image_filename(const char* filename,
+    char* path,
+    size_t pathlen);
 
 // GET /api/events
 int api_events(struct mg_connection* conn, void* data) {
@@ -166,32 +188,67 @@ int api_admin_events(struct mg_connection* conn, void* data) {
             return send_json(conn, json);
         }
         if (strcmp(info->request_method, "POST") == 0) {
-            if (check_role(conn, ROLE_USER)) {
-                mg_send_http_error(conn, 403, "Forbidden");
-                return 403;
-            }
-
-            json_t* req = get_json(conn);
-            if (!req) return 400;
-
-            json_t* res = json_object();
-
             Session* s = get_session(conn);
 
-            EventData data;
-            data.organizer_id = s->user_id;
-            data.venue_id = json_integer_value(json_object_get(req, "venue_id"));
-            snprintf(data.title, sizeof(data.title), "%s", json_string_value(json_object_get(req, "title")));
-            snprintf(data.begins_at, sizeof(data.begins_at), "%s", json_string_value(json_object_get(req, "begins_at")));
-            data.price = json_number_value(json_object_get(req, "price"));
-            data.capacity = json_integer_value(json_object_get(req, "capacity"));
-            int result = add_event(db, &data);
+            CreateEventForm form = { 0 };
 
-            set_result(res, result);
-            json_decref(req);
+            struct mg_form_data_handler fdh = {
+                .field_found = create_event_field_found,
+                .field_get = create_event_field_get,
+                .field_store = create_event_field_store,
+                .user_data = &form
+            };
+
+            int result = mg_handle_form_request(conn, &fdh);
+
+            if (result < 0) {
+                mg_send_http_error(conn, 400, "Invalid form data");
+                return 400;
+            }
+
+            if (!form.venue_id[0] || !form.title[0] ||
+                !form.begins_at[0] || !form.price[0] ||
+                !form.capacity[0]) {
+
+                if (form.image_uploaded)
+                    remove(form.image_disk_path);
+
+                mg_send_http_error(conn, 400, "Missing required fields");
+                return 400;
+            }
+
+            EventData data = { 0 };
+
+            data.organizer_id = s->user_id;
+            data.venue_id = atoi(form.venue_id);
+            snprintf(data.title, sizeof(data.title), "%s", form.title);
+            snprintf(data.description, sizeof(data.description), "%s", form.description);
+            snprintf(data.begins_at, sizeof(data.begins_at), "%s", form.begins_at);
+            data.price = strtof(form.price, NULL);
+            data.capacity = atoi(form.capacity);
+
+            if (form.image_uploaded) {
+                snprintf(data.img_path, sizeof(data.img_path), "%s", form.image_path);
+            }
+            else {
+                snprintf(data.img_path, sizeof(data.img_path), "/res/default1.png");
+            }
+
+            int event_id = add_event(db, &data);
+            if (!event_id) {
+                if (form.image_uploaded)
+                    remove(form.image_path);
+
+                json_t* res = json_object();
+                set_result(res, 0);
+                return send_json(conn, res);
+            }
+
+            json_t* res = json_object();
+            set_result(res, event_id);
+
             return send_json(conn, res);
         }
-
     }
 
     // /api/admin/events/{id}
@@ -210,41 +267,245 @@ int api_admin_events(struct mg_connection* conn, void* data) {
     }
 
     if (strcmp(info->request_method, "PATCH") == 0) {
-        json_t* req = get_json(conn);
-        if (!req)
-            return 400;
 
-        json_t* res = json_object();
-        int result = 0;
+        const char* content_type = mg_get_header(conn, "Content-Type");
 
-        const char* title = json_string_value(json_object_get(req, "title"));
-        if (title)
-            result = admin_update_title(db, id, title);
+        // Редактиране на изображение
+        if (content_type &&
+            strncmp(content_type, "multipart/form-data", 19) == 0) {
 
-        const char* begins_at = json_string_value(json_object_get(req, "begins_at"));
-        if (begins_at)
-            result = admin_update_begins_at(db, id, begins_at);
+            CreateEventForm form = { 0 };
 
-        json_t* verified_json = json_object_get(req, "verified");
-        if (!json_is_boolean(verified_json))
-            result = 0;
-        else if (json_boolean_value(verified_json))
-            result = verify_event(db, id);
-        else
-            result = unverify_event(db, id);
+            struct mg_form_data_handler fdh = {
+                .field_found = create_event_field_found,
+                .field_get = create_event_field_get,
+                .field_store = create_event_field_store,
+                .user_data = &form
+            };
+            int result = mg_handle_form_request(conn, &fdh);
 
-        set_result(res, result);
+            if (result < 0) {
+                mg_send_http_error(conn, 400, "Invalid form data");
+                return 400;
+            }
+            if (!form.image_uploaded) {
+                mg_send_http_error(conn, 400, "No image uploaded");
+                return 400;
+            }
 
-        json_decref(req);
-        return send_json(conn, res);
+            // Търсене на старото изображение
+            char old_image[256] = { 0 };
+            if (!get_event_image_path(db, id, old_image, sizeof(old_image))) {
+                remove(form.image_disk_path);
+                mg_send_http_error(conn, 404, "Event not found");
+                return 404;
+            }
+
+            // Смяна с новото изображение
+            result = admin_update_image(db, id, form.image_path);
+            if (!result) {
+                remove(form.image_disk_path);
+                json_t* res = json_object();
+                set_result(res, 0);
+                return send_json(conn, res);
+            }
+
+            // Ако старото изображение не е default1.png, да се изтрие
+            if (old_image[0] && strcmp(old_image, "/res/default1.png") != 0) {
+                char old_disk_path[512];
+                snprintf(old_disk_path, sizeof(old_disk_path), ".\\html%s", old_image);
+                remove(old_disk_path);
+            }
+
+            json_t* res = json_object();
+            set_result(res, 1);
+            return send_json(conn, res);
+        }
+        // Редактиране на заглавие, дата на започване
+        else {
+            json_t* req = get_json(conn);
+            if (!req)
+                return 400;
+
+            json_t* res = json_object();
+            int result = 0;
+
+            const char* title = json_string_value(json_object_get(req, "title"));
+            if (title)
+                result = admin_update_title(db, id, title);
+
+            const char* begins_at = json_string_value(json_object_get(req, "begins_at"));
+            if (begins_at)
+                result = admin_update_begins_at(db, id, begins_at);
+
+            const char* description = json_string_value(json_object_get(req, "description"));
+            if (description)
+                result = admin_update_description(db, id, description);
+
+            json_t* verified_json = json_object_get(req, "verified");
+            if (!json_is_boolean(verified_json))
+                result = 0;
+            else if (json_boolean_value(verified_json))
+                result = verify_event(db, id);
+            else
+                result = unverify_event(db, id);
+
+            set_result(res, result);
+
+            json_decref(req);
+            return send_json(conn, res);
+        }
     }
 
     if (strcmp(info->request_method, "DELETE") == 0) {
+        char image_path[256] = { 0 };
+
+        // Изображението трябва да се изтрие от диска заедно със събитието от БД
+        int image_found = get_event_image_path(db, id, image_path, sizeof(image_path));
+
+        int result = delete_event(db, id);
+
+        if (result && image_found && image_path[0] &&
+            strcmp(image_path, "/res/default1.png") != 0) {
+
+            char image_disk_path[512];
+            snprintf(image_disk_path, sizeof(image_disk_path), ".\\html%s", image_path);
+
+            remove(image_disk_path);
+        }
+
         json_t* res = json_object();
-        set_result(res, delete_event(db, id));
+        set_result(res, result);
         return send_json(conn, res);
     }
 
     mg_send_http_error(conn, 405, "Method Not Allowed");
     return 405;
+}
+
+static int create_event_field_found(const char* key, const char* filename,
+    char* path, size_t pathlen, void* user_data) {
+
+    CreateEventForm* form = user_data;
+
+    if (strcmp(key, "image") == 0) {
+        if (!filename || !filename[0])
+            return MG_FORM_FIELD_STORAGE_SKIP;
+
+        char fname[40];
+
+        if (!make_image_filename(filename, fname, sizeof(fname)))
+            return MG_FORM_FIELD_STORAGE_SKIP;
+
+        // Път, в който civetweb ще запази файла
+        snprintf(path, pathlen, ".\\html\\res\\%s", fname);
+
+        // Път, който ще се запише в БД, спрямо document_root
+        snprintf(form->image_path, sizeof(form->image_path), "/res/%s", fname);
+
+        // Запазва се пътя към файла за remove().
+        snprintf(form->image_disk_path, sizeof(form->image_disk_path), "%s", path);
+
+        return MG_FORM_FIELD_STORAGE_STORE;
+    }
+
+    if (strcmp(key, "venue_id") == 0 ||
+        strcmp(key, "title") == 0 ||
+        strcmp(key, "description") == 0 ||
+        strcmp(key, "begins_at") == 0 ||
+        strcmp(key, "price") == 0 ||
+        strcmp(key, "capacity") == 0) {
+        return MG_FORM_FIELD_STORAGE_GET;
+    }
+
+    return MG_FORM_FIELD_STORAGE_SKIP;
+}
+
+static int create_event_field_get(const char* key, const char* value,
+    size_t valuelen, void* user_data) {
+    CreateEventForm* form = user_data;
+
+    char* destination = NULL;
+    size_t destination_size = 0;
+
+    if (strcmp(key, "venue_id") == 0) {
+        destination = form->venue_id;
+        destination_size = sizeof(form->venue_id);
+    }
+    else if (strcmp(key, "title") == 0) {
+        destination = form->title;
+        destination_size = sizeof(form->title);
+    }
+    else if (strcmp(key, "description") == 0) {
+        destination = form->description;
+        destination_size = sizeof(form->description);
+    }
+    else if (strcmp(key, "begins_at") == 0) {
+        destination = form->begins_at;
+        destination_size = sizeof(form->begins_at);
+    }
+    else if (strcmp(key, "price") == 0) {
+        destination = form->price;
+        destination_size = sizeof(form->price);
+    }
+    else if (strcmp(key, "capacity") == 0) {
+        destination = form->capacity;
+        destination_size = sizeof(form->capacity);
+    }
+    else {
+        return MG_FORM_FIELD_HANDLE_NEXT;
+    }
+
+    if (valuelen >= destination_size)
+        return MG_FORM_FIELD_HANDLE_ABORT;
+
+    memcpy(destination, value, valuelen);
+    destination[valuelen] = '\0';
+
+    return MG_FORM_FIELD_HANDLE_NEXT;
+}
+
+static int create_event_field_store(const char* path,
+    long long file_size, void* user_data) {
+    if (file_size <= 0 ||
+        file_size > 10 * 1024 * 1024) {
+        return MG_FORM_FIELD_HANDLE_ABORT;
+    }
+
+    CreateEventForm* form = user_data;
+
+    if (!path || !path[0])
+        return MG_FORM_FIELD_HANDLE_ABORT;
+
+    form->image_uploaded = 1;
+
+    return MG_FORM_FIELD_HANDLE_NEXT;
+}
+
+
+static int make_image_filename(const char* filename, char* path, size_t pathlen) {
+    const char* ext = strrchr(filename, '.');
+    if (!ext)
+        return 0;
+
+    if (_stricmp(ext, ".jpg") != 0 &&
+        _stricmp(ext, ".jpeg") != 0 &&
+        _stricmp(ext, ".png") != 0 &&
+        _stricmp(ext, ".webp") != 0) {
+        return 0;
+    }
+
+    unsigned char rnd[16];
+    if (BCryptGenRandom(NULL, rnd, sizeof(rnd),
+        BCRYPT_USE_SYSTEM_PREFERRED_RNG) != 0) {
+        return 0;
+    }
+
+    char hex_str[33]; // 16 байта -> 32 hex символа + null
+    for (int i = 0; i < 16; i++) {
+        snprintf(hex_str + i * 2, 3, "%02x", rnd[i]);
+    }
+
+    snprintf(path, pathlen, "%s%s", hex_str, ext);
+    return 1;
 }

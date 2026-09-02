@@ -216,13 +216,25 @@ int add_event(PGconn* db, EventData* data) {
 
 	// 1. Добавяне на ново събитие
 	char venue_id_str[16];
-	snprintf(venue_id_str, sizeof(venue_id_str), "%d", data->venue_id);
 	char organizer_id_str[16];
-	snprintf(organizer_id_str, sizeof(organizer_id_str), "%d", data->organizer_id);
-	const char* params1[4] = { data->title, data->begins_at, 
-		venue_id_str, organizer_id_str };
 
-	PGresult* res = PQexecPrepared(db, "add_event", 4, params1, NULL, NULL, 0);
+	snprintf(venue_id_str, sizeof(venue_id_str),
+		"%d", data->venue_id);
+
+	snprintf(organizer_id_str, sizeof(organizer_id_str),
+		"%d", data->organizer_id);
+
+	const char* params1[6] = {
+		data->title,
+		data->description,
+		data->begins_at,
+		venue_id_str,
+		organizer_id_str,
+		data->img_path
+	};
+
+	PGresult* res =
+		PQexecPrepared(db, "add_event", 6, params1, NULL, NULL, 0);
 	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
 		PQclear(res);
 		fprintf(stderr, "Грешка във функцията add_event: %s\n", PQerrorMessage(db));
@@ -287,6 +299,55 @@ int admin_update_begins_at(PGconn* db, int id, const char* begins_at) {
 
 	PGresult* res = PQexecPrepared(db, "update_event_begins_at", 2, params, NULL, NULL, 0);
 	CHECK_COMMAND_QUERY(res, db, 0);
+
+	PQclear(res);
+	return 1;
+}
+
+int admin_update_description(PGconn* db, int id, const char* description) {
+	CHECK_DB(db, 0);
+
+	char id_str[16];
+	snprintf(id_str, sizeof(id_str), "%d", id);
+	const char* params[2] = { description, id_str };
+
+	PGresult* res = PQexecPrepared(db, "update_event_description", 2, params, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
+
+	PQclear(res);
+	return 1;
+}
+
+int admin_update_image(PGconn* db, int event_id, const char* img_path) {
+	CHECK_DB(db, 0);
+
+	char id_str[16];
+	snprintf(id_str, sizeof(id_str), "%d", event_id);
+	const char* params[2] = { img_path, id_str };
+
+	PGresult* res = PQexecPrepared(db, "admin_update_event_image", 2, params, NULL, NULL, 0);
+	CHECK_COMMAND_QUERY(res, db, 0);
+
+	PQclear(res);
+	return 1;
+}
+
+int get_event_image_path(PGconn* db, int event_id, char* path, size_t pathlen) {
+	CHECK_DB(db, 0);
+
+	char id_str[16];
+	snprintf(id_str, sizeof(id_str), "%d", event_id);
+	const char* params[1] = { id_str };
+
+	PGresult* res = PQexecPrepared(db, "get_event_image_path", 1, params, NULL, NULL, 0);
+	CHECK_QUERY(res, db, 0);
+
+	if (PQntuples(res) == 0) {
+		PQclear(res);
+		return 0;
+	}
+
+	snprintf(path, pathlen, "%s", PQgetvalue(res, 0, 0));
 
 	PQclear(res);
 	return 1;

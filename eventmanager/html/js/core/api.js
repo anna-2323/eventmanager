@@ -10,6 +10,15 @@ async function request(path = {}, options = {}) {
   return res.status === 204 ? null : res.json();
 }
 
+async function create(path, data, method) {
+    const res = await fetch(BASE_URL + path, {
+        method: method,
+        body: data
+    });
+
+    return await res.json();
+}
+
 export const api = {
   auth: {
     getUser: () => request('/me'),
@@ -80,8 +89,9 @@ export const api = {
     events: {
       list: () => request('/admin/events'),
       get: (id) => request(`/admin/events/${id}`),
-      create: (data) => request('/admin/events', { method: 'POST', body: JSON.stringify(data) }),
+      create: (data) => create('/admin/events', data, "POST"),
       edit: (id, data) => request(`/admin/events/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+      editImage: (id, data) => create(`/admin/events/${id}`, data, "PATCH"),
       delete: (id) => request(`/admin/events/${id}`, { method: 'DELETE' })
     },
     venues: {

@@ -45,6 +45,16 @@ if (!user.logged_in || user.role == 2) {
       const time = $("#new-time").value;
       editEvent({ time }, "Времето е сменено успешно.");
     }
+    if(e.target.matches("#change-description-btn")) {
+      const description = $("#new-description").value;
+      editEvent({ description }, "Описанието е сменено успешно.");
+    }
+    if(e.target.matches("#change-image-btn")) {
+      const image = $("#new-image").files[0];
+      const formData = new FormData();
+      formData.append("image", image);
+      editEventImage(formData, "Изображението е сменено успешно.");
+    } 
   });
 
   function renderLayout() {
@@ -82,7 +92,26 @@ if (!user.logged_in || user.role == 2) {
         </button>
         `,
       )}
-        `;
+
+      ${editSection(
+        "Промяна на описание",
+        "change-description-form",
+        `${input("Ново описание", "new-description",)}
+        <button class="button is-link" id="change-description-btn">
+            Запази
+        </button>
+        `,
+      )}
+
+      ${editSection(
+        "Промяна на изображение",
+        "change-image-form",
+        `${input("Ново изображение", "new-image", "file")}
+        <p class="help">JPG, PNG или WebP.</p>
+        <button class="button is-link" id="change-image-btn">
+            Запази
+        </button>`
+      )}`;
 
     activateToggles();
   }
@@ -135,5 +164,22 @@ if (!user.logged_in || user.role == 2) {
       window.location.reload();
     }
     window.location.reload();
+  }
+
+  async function editEventImage(data, message) {
+    try {
+        const res = await api.admin.events.editImage(id, data);
+        if (res.success) {
+          localStorage.setItem("success_message", message);
+          window.location.reload();
+        } else {
+          $("#error").textContent = res.error || "Възникна грешка.";
+          $("#error").style.display = "block";
+        }
+      } catch (err) {
+        console.error(err);
+        $("#error").textContent = "Възникна грешка.";
+        $("#error").style.display = "block";
+      }
   }
 }

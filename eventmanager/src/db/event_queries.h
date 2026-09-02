@@ -114,8 +114,9 @@ const char* SQL_GET_SEATMAP =
 "ORDER BY s.display_order;";
 
 const char* SQL_ADD_EVENT =
-"INSERT INTO data.events (title, begins_at, venue_id, organizer_id, img_path) "
-"VALUES ($1, $2, $3, $4, '/res/default1.png') "
+"INSERT INTO data.events "
+"    (title, description, begins_at, venue_id, organizer_id, img_path) "
+"VALUES ($1, $2, $3, $4, $5, $6) "
 "RETURNING id";
 
 const char* SQL_ADD_EVENT_SECTORS =
@@ -128,6 +129,15 @@ const char* SQL_UPDATE_EVENT_TITLE =
 
 const char* SQL_UPDATE_EVENT_BEGINS_AT =
 "UPDATE data.events SET begins_at = $1 WHERE id = $2";
+
+const char* SQL_UPDATE_EVENT_DESCRIPTION =
+"UPDATE data.events SET description = $1 WHERE id = $2";
+
+const char* SQL_ADMIN_UPDATE_EVENT_IMAGE =
+"UPDATE data.events SET img_path = $1 WHERE id = $2;";
+
+const char* SQL_GET_EVENT_IMAGE_PATH =
+"SELECT img_path FROM data.events WHERE id = $1;";
 
 const char* SQL_VERIFY_EVENT =
 "UPDATE data.events SET verified = TRUE WHERE id = $1";

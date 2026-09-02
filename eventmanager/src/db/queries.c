@@ -30,13 +30,19 @@ int prepare_queries(PGconn* db)
         return 0;
     if (!prepare_query(db, "get_seatmap", SQL_GET_SEATMAP, 1))
         return 0;
-    if (!prepare_query(db, "add_event", SQL_ADD_EVENT, 4))
+    if (!prepare_query(db, "add_event", SQL_ADD_EVENT, 6))
         return 0;
     if (!prepare_query(db, "add_event_sectors", SQL_ADD_EVENT_SECTORS, 4))
         return 0;
     if (!prepare_query(db, "update_event_title", SQL_UPDATE_EVENT_TITLE, 2))
         return 0;
     if (!prepare_query(db, "update_event_begins_at", SQL_UPDATE_EVENT_BEGINS_AT, 2))
+        return 0;
+    if (!prepare_query(db, "update_event_description", SQL_UPDATE_EVENT_DESCRIPTION, 2))
+        return 0;
+    if (!prepare_query(db, "admin_update_event_image", SQL_ADMIN_UPDATE_EVENT_IMAGE, 2))
+        return 0;
+    if (!prepare_query(db, "get_event_image_path", SQL_GET_EVENT_IMAGE_PATH, 1))
         return 0;
     if (!prepare_query(db, "verify_event", SQL_VERIFY_EVENT, 1))
         return 0;

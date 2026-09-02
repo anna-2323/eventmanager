@@ -27,40 +27,48 @@ else {
     `;
 
     $("#submit").addEventListener("click", async () => {
-    const venue_id = Number($("#venue").value);
-    const title = $("#title").value.trim();
-    const begins_at = $("#begins-at").value.trim();
-    const price = Number($("#price").value);
-    const capacity = Number($("#capacity").value);
+      const venue_id = Number($("#venue").value);
+      const title = $("#title").value.trim();
+      const description = $("#description").value.trim();
+      const begins_at = $("#begins-at").value.trim();
+      const price = Number($("#price").value);
+      const capacity = Number($("#capacity").value);
+      const image = $("#image").files[0];
 
-    $("#error").style.display = "none";
+      $("#error").style.display = "none";
 
-    if (!venue_id || !title || !begins_at || !price || !capacity) {
-      $("#error").textContent = "Моля, попълнете всички полета.";
-      $("#error").style.display = "block";
-      return;
-    }
+      if (!venue_id || !title || !begins_at || !price || !capacity) {
+        $("#error").textContent = "Моля, попълнете всички полета.";
+        $("#error").style.display = "block";
+        return;
+      }
 
-    try {
-      const res = await api.admin.events.create({
-        venue_id,
-        title,
-        begins_at,
-        price,
-        capacity
-      });
+      const formData = new FormData();
 
-      if (res.success) {
-        window.location.href = "/admin/events";
-      } else {
-        $("#error").textContent =
-          res.error || "Възникна грешка.";
+      formData.append("venue_id", venue_id);
+      formData.append("title", title);
+      formData.append("description", description);
+      formData.append("begins_at", begins_at);
+      formData.append("price", price);
+      formData.append("capacity", capacity);
+
+      if (image) {
+        formData.append("image", image);
+      }
+
+      try {
+        const res = await api.admin.events.create(formData);
+
+        if (res.success) {
+          window.location.href = "/admin/events";
+        } else {
+          $("#error").textContent = res.error || "Възникна грешка.";
+          $("#error").style.display = "block";
+        }
+      } catch (err) {
+        console.error(err);
+        $("#error").textContent = "Възникна грешка при добавянето.";
         $("#error").style.display = "block";
       }
-    } catch (err) {
-      console.error(err);
-      $("#error").textContent = "Възникна грешка при добавянето.";
-      $("#error").style.display = "block";
-    }
-  });
+    });
 }
