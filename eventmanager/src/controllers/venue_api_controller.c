@@ -5,8 +5,6 @@
 int api_cities(struct mg_connection* conn, void* data) {
 	char** cities;
 	int count = get_cities((PGconn*)data, &cities);
-	if (count == 0)
-		return 500;
 
 	json_t* res = json_array();
 	for (int i = 0; i < count; i++) {
@@ -33,6 +31,10 @@ int api_venues(struct mg_connection* conn, void* data) {
 			}
 			free(venues);
 			return send_json(conn, res);
+		}
+		else {
+			mg_send_http_error(conn, 405, "Method Not Allowed");
+			return 405;
 		}
 	}
 	
@@ -78,7 +80,7 @@ int api_venues(struct mg_connection* conn, void* data) {
 
 // POST, PATCH /api/admin/venues
 int api_admin_venues(struct mg_connection* conn, void* data) {
-	if (check_role(conn, ROLE_USER)) {
+	if (!check_role(conn, ROLE_ADMIN) && !check_role(conn, ROLE_ORGANIZATOR)) {
 		mg_send_http_error(conn, 403, "Forbidden");
 		return 403;
 	}
@@ -108,7 +110,12 @@ int api_admin_venues(struct mg_connection* conn, void* data) {
 			json_decref(req);
 			return send_json(conn, res);
 		}
+		else {
+			mg_send_http_error(conn, 405, "Method Not Allowed");
+			return 405;
+		}
 	}
+	
 	const char* id_str = info->local_uri + strlen("/api/admin/venues/");
 	char* end;
 	long id = strtol(id_str, &end, 10);
@@ -152,5 +159,8 @@ int api_admin_venues(struct mg_connection* conn, void* data) {
 		json_decref(req);
 		return send_json(conn, res);
 	}
-
+	else {
+		mg_send_http_error(conn, 405, "Method Not Allowed");
+		return 405;
+	}
 }

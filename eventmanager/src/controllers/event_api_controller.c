@@ -26,78 +26,87 @@ static int make_image_filename(const char* filename,
 int api_events(struct mg_connection* conn, void* data) {
     const struct mg_request_info* info = mg_get_request_info(conn);
 
-    if (strcmp(info->local_uri, "/api/events") == 0) {
-        EventFilters filters = { 0 };
+    if (strcmp(info->request_method, "GET") == 0) {
+        // /api/events
+        if (strcmp(info->local_uri, "/api/events") == 0) {
+            EventFilters filters = { 0 };
 
-        filters.upcoming = 1;
+            filters.upcoming = 1;
 
-        char search[256] = "";
-        char city[128] = "";
-        char category[32] = "";
+            char search[256] = "";
+            char city[128] = "";
+            char category[32] = "";
 
-        if (info->query_string) {
-            mg_get_var(
-                info->query_string,
-                strlen(info->query_string),
-                "search",
-                search,
-                sizeof(search)
-            );
+            if (info->query_string) {
+                mg_get_var(
+                    info->query_string,
+                    strlen(info->query_string),
+                    "search",
+                    search,
+                    sizeof(search)
+                );
 
-            mg_get_var(
-                info->query_string,
-                strlen(info->query_string),
-                "city",
-                city,
-                sizeof(city)
-            );
+                mg_get_var(
+                    info->query_string,
+                    strlen(info->query_string),
+                    "city",
+                    city,
+                    sizeof(city)
+                );
 
-            mg_get_var(
-                info->query_string,
-                strlen(info->query_string),
-                "category",
-                category,
-                sizeof(category)
-            );
-        }
+                mg_get_var(
+                    info->query_string,
+                    strlen(info->query_string),
+                    "category",
+                    category,
+                    sizeof(category)
+                );
+            }
 
-        filters.search = search;
-        filters.city = city;
-        filters.category_id = atoi(category);
+            filters.search = search;
+            filters.city = city;
+            filters.category_id = atoi(category);
 
-        Event* events;
-        int count = get_events((PGconn*)data, &filters, &events);
-        json_t* json = json_array();
-        for (size_t i = 0; i < count; i++) {
-            json_array_append_new(json, event_to_json(&events[i]));
-        }
-        free(events);
-        return send_json(conn, json);
-    }
-    else {
-        const char* id_str = info->local_uri + strlen("/api/events/");
-        int id = atoi(id_str);
-        if (id <= 0) {
-            mg_send_http_error(conn, 404, "Not found");
-            return 404;
-        }
-
-        Event e;
-        if (get_event((PGconn*)data, id, &e)) {
-            json_t* json = event_to_json(&e);
+            Event* events;
+            int count = get_events((PGconn*)data, &filters, &events);
+            json_t* json = json_array();
+            for (size_t i = 0; i < count; i++) {
+                json_array_append_new(json, event_to_json(&events[i]));
+            }
+            free(events);
             return send_json(conn, json);
         }
-    }
+        // /api/events/{id}
+        else {
+            const char* id_str = info->local_uri + strlen("/api/events/");
+            int event_id = atoi(id_str);
 
-    return 0;
+            if (event_id <= 0) {
+                mg_send_http_error(conn, 404, "Not found");
+                return 404;
+            }
+
+            Event e;
+            if (get_event((PGconn*)data, event_id, &e)) {
+                json_t* json = event_to_json(&e);
+                return send_json(conn, json);
+            }
+            else {
+                mg_send_http_error(conn, 404, "Not found");
+                return 404;
+            }
+        }
+    }
+    else {
+        mg_send_http_error(conn, 405, "Method Not Allowed");
+        return 405;
+    }
 }
 
 // GET /api/categories
 int api_categories(struct mg_connection* conn, void* data) {
     Category* categories = NULL;
     int count = get_categories((PGconn*)data, &categories);
-    if (!count)
-        return 500;
     json_t* res = json_array();
     for (int i = 0; i < count; i++) {
         json_t* c = json_object();
@@ -113,58 +122,65 @@ int api_event_seatmap(struct mg_connection* conn, void* data) {
     PGconn* db = (PGconn*)data;
     const struct mg_request_info* info = mg_get_request_info(conn);
 
-    const char* id_str = info->local_uri + strlen("/api/events/seatmap/");
-    int id = atoi(id_str);
-    if (id <= 0) {
-        mg_send_http_error(conn, 404, "Not found");
-        return 404;
-    }
+    if (strcmp(info->request_method, "GET") == 0) {
+        const char* id_str = info->local_uri + strlen("/api/events/seatmap/");
+        int event_id = atoi(id_str);
 
-    SeatMap* seatMap = NULL;
-    if (get_event_seatmap((PGconn*)data, id, &seatMap)) {
-        json_t* res = json_object();
-        json_object_set_new(res, "has_sectors", json_boolean(seatMap->has_sectors));
-        if (seatMap->has_sectors) {
-            json_object_set_new(res, "background_svg", 
-                seatMap->background_svg ? json_string(seatMap->background_svg) : json_null());
-            json_object_set_new(res, "viewbox", 
-                seatMap->viewbox ? json_string(seatMap->viewbox) : json_null());
-            json_t* sectors = json_array();
-            for (int i = 0; i < seatMap->sector_count; i++) {
-                json_t* sector = json_object();
-                json_object_set_new(sector, "id", json_integer(seatMap->sectors[i].id));
-                json_object_set_new(sector, "name", json_string(seatMap->sectors[i].name));
-                json_object_set_new(sector, "capacity", json_integer(seatMap->sectors[i].capacity));
-                json_object_set_new(sector, "price", json_real(seatMap->sectors[i].price));
-                json_object_set_new(sector, "color", json_string(seatMap->sectors[i].color));
-                json_object_set_new(sector, "svg_path", json_string(seatMap->sectors[i].svg_path));
-                json_object_set_new(sector, "available", json_integer(seatMap->sectors[i].available));
-                json_array_append(sectors, sector);
+        if (event_id <= 0) {
+            mg_send_http_error(conn, 404, "Not found");
+            return 404;
+        }
+
+        SeatMap* seatMap = NULL;
+        if (get_event_seatmap((PGconn*)data, event_id, &seatMap)) {
+            json_t* res = json_object();
+            json_object_set_new(res, "has_sectors", json_boolean(seatMap->has_sectors));
+            if (seatMap->has_sectors) {
+                json_object_set_new(res, "background_svg",
+                    seatMap->background_svg ? json_string(seatMap->background_svg) : json_null());
+                json_object_set_new(res, "viewbox",
+                    seatMap->viewbox ? json_string(seatMap->viewbox) : json_null());
+                json_t* sectors = json_array();
+                for (int i = 0; i < seatMap->sector_count; i++) {
+                    json_t* sector = json_object();
+                    json_object_set_new(sector, "id", json_integer(seatMap->sectors[i].id));
+                    json_object_set_new(sector, "name", json_string(seatMap->sectors[i].name));
+                    json_object_set_new(sector, "capacity", json_integer(seatMap->sectors[i].capacity));
+                    json_object_set_new(sector, "price", json_real(seatMap->sectors[i].price));
+                    json_object_set_new(sector, "color", json_string(seatMap->sectors[i].color));
+                    json_object_set_new(sector, "svg_path", json_string(seatMap->sectors[i].svg_path));
+                    json_object_set_new(sector, "available", json_integer(seatMap->sectors[i].available));
+                    json_array_append(sectors, sector);
+                }
+                json_object_set_new(res, "sectors", sectors);
             }
-            json_object_set_new(res, "sectors", sectors);
+            else {
+                json_object_set_new(res, "no_sector_id", json_integer(seatMap->sectors[0].id));
+                json_object_set_new(res, "sectors", json_null());
+            }
+            return send_json(conn, res);
         }
-        else {
-            json_object_set_new(res, "no_sector_id", json_integer(seatMap->sectors[0].id));
-            json_object_set_new(res, "sectors", json_null());
-        }
-        return send_json(conn, res);
+    }
+    else {
+        mg_send_http_error(conn, 405, "Method Not Allowed");
+        return 405;
     }
 }
 
-// GET/PATCH/DELETE /api/admin/events
+// GET, POST, PATCH /api/admin/events
 int api_admin_events(struct mg_connection* conn, void* data) {
-    if (check_role(conn, ROLE_USER)) {
+    if (!check_role(conn, ROLE_ADMIN) && !check_role(conn, ROLE_ORGANIZATOR)) {
         mg_send_http_error(conn, 403, "Forbidden");
         return 403;
     }
 
     PGconn* db = (PGconn*)data;
     const struct mg_request_info* info = mg_get_request_info(conn);
+    Session* s = get_session(conn);
 
     // /api/admin/events
     if (strcmp(info->local_uri, "/api/admin/events") == 0) {
         if (strcmp(info->request_method, "GET") == 0) {
-            Session* s = get_session(conn);
             Event* events = NULL;
             int count = 0;
             if (s->role == 0) {
@@ -188,8 +204,6 @@ int api_admin_events(struct mg_connection* conn, void* data) {
             return send_json(conn, json);
         }
         if (strcmp(info->request_method, "POST") == 0) {
-            Session* s = get_session(conn);
-
             CreateEventForm form = { 0 };
 
             struct mg_form_data_handler fdh = {
@@ -250,7 +264,6 @@ int api_admin_events(struct mg_connection* conn, void* data) {
             return send_json(conn, res);
         }
     }
-
     // /api/admin/events/{id}
     const char* id_str = info->local_uri + strlen("/api/admin/events/");
     int id = atoi(id_str);
@@ -264,6 +277,10 @@ int api_admin_events(struct mg_connection* conn, void* data) {
         Event e;
         if(get_event(db, id, &e))
             return send_json(conn, event_to_json(&e));
+        else {
+            mg_send_http_error(conn, 404, "Not found");
+            return 404;
+        }
     }
 
     if (strcmp(info->request_method, "PATCH") == 0) {
@@ -362,28 +379,6 @@ int api_admin_events(struct mg_connection* conn, void* data) {
             json_decref(req);
             return send_json(conn, res);
         }
-    }
-
-    if (strcmp(info->request_method, "DELETE") == 0) {
-        char image_path[256] = { 0 };
-
-        // Изображението трябва да се изтрие от диска заедно със събитието от БД
-        int image_found = get_event_image_path(db, id, image_path, sizeof(image_path));
-
-        int result = delete_event(db, id);
-
-        if (result && image_found && image_path[0] &&
-            strcmp(image_path, "/res/default1.png") != 0) {
-
-            char image_disk_path[512];
-            snprintf(image_disk_path, sizeof(image_disk_path), ".\\html%s", image_path);
-
-            remove(image_disk_path);
-        }
-
-        json_t* res = json_object();
-        set_result(res, result);
-        return send_json(conn, res);
     }
 
     mg_send_http_error(conn, 405, "Method Not Allowed");
@@ -488,7 +483,6 @@ static int create_event_field_store(const char* path,
 
     return MG_FORM_FIELD_HANDLE_NEXT;
 }
-
 
 static int make_image_filename(const char* filename, char* path, size_t pathlen) {
     const char* ext = strrchr(filename, '.');

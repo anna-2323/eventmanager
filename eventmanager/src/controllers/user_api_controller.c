@@ -17,34 +17,33 @@ int api_users(struct mg_connection* conn, void* data) {
 	PGconn* db = (PGconn*)data;
 	const struct mg_request_info* info = mg_get_request_info(conn);
 
+	// /api/admin/users
 	if (strcmp(info->local_uri, "/api/admin/users") == 0) {
-		User* users;
-		int count = get_all_users(db, &users);
-		json_t* res = json_array();
-		for (int i = 0; i < count; i++) {
-			json_array_append(res, user_to_json(&users[i]));
-		}
-		free(users);
-		return send_json(conn, res);
-	}
-	else {
-		const char* id_str = info->local_uri + strlen("/api/admin/users/");
-		char* end;
-		long id = strtol(id_str, &end, 10);
-		if (strcmp(end, "/events") == 0) {
-			Event* events = NULL;
-			int count = get_user_events(db, id, &events);
+		if (strcmp(info->request_method, "GET") == 0) {
+			User* users;
+			int count = get_all_users(db, &users);
 			json_t* res = json_array();
 			for (int i = 0; i < count; i++) {
-				json_array_append(res, event_to_json(&events[i]));
+				json_array_append(res, user_to_json(&users[i]));
 			}
-			free(events);
+			free(users);
 			return send_json(conn, res);
 		}
-		if (*end != '\0') {
+		else {
+			mg_send_http_error(conn, 405, "Method Not Allowed");
+			return 405;
+		}
+	}
+	// /api/admin/users/{id}
+	else {
+		const char* id_str = info->local_uri + strlen("/api/admin/users/");
+		int id = atoi(id_str);
+
+		if (id <= 0) {
 			mg_send_http_error(conn, 404, "Not found");
 			return 404;
 		}
+
 		if (strcmp(info->request_method, "GET") == 0) {
 			User user;
 			if(get_user(db, id, &user))
@@ -142,18 +141,82 @@ int api_me(struct mg_connection* conn, void* data) {
 
 // POST /api/login
 int api_login(struct mg_connection* conn, void* data) {
-	json_t* req = get_json(conn);
-	if (!req) return 400;
-	const char* email = json_string_value(json_object_get(req, "email"));
-	const char* password = json_string_value(json_object_get(req, "password"));
+	const struct mg_request_info* info = mg_get_request_info(conn);
 
-	User user = { 0 };
-	int ok = verify_user((PGconn*)data, email, password, &user);
+	if (strcmp(info->request_method, "POST") == 0) {
+		json_t* req = get_json(conn);
+		if (!req) return 400;
 
-	json_t* res = json_object();
-	if (ok > 0) {
-		// Създава се бисквитка
-		Session* s = session_create(&user);
+		const char* email = json_string_value(json_object_get(req, "email"));
+		const char* password = json_string_value(json_object_get(req, "password"));
+
+		User user = { 0 };
+		int ok = verify_user((PGconn*)data, email, password, &user);
+
+		json_t* res = json_object();
+		if (ok > 0) {
+			// Създава се бисквитка
+			Session* s = session_create(&user);
+			mg_printf(conn,
+				"HTTP/1.1 200 OK\r\n"
+				"Content-Type: application/json\r\n"
+				"Set-Cookie: session=%s; HttpOnly; Path=/; Max-Age=86400\r\n\r\n",
+				s->token);
+
+			json_object_set_new(res, "success", json_true());
+			json_object_set_new(res, "email", json_string(user.email));
+			json_object_set_new(res, "phone", json_string(user.phone));
+			json_object_set_new(res, "first_name", json_string(user.first_name));
+			json_object_set_new(res, "last_name", json_string(user.last_name));
+			json_object_set_new(res, "role", json_integer(user.role));
+		}
+		else {
+			json_object_set_new(res, "success", json_false());
+			json_object_set_new(res, "error", json_string("Невалиден имейл или парола."));
+		}
+		return send_json(conn, res);
+	}
+	else {
+		mg_send_http_error(conn, 405, "Method Not Allowed");
+		return 405;
+	}
+}
+
+// POST /api/signup
+int api_signup(struct mg_connection* conn, void* data) {
+	const struct mg_request_info* info = mg_get_request_info(conn);
+
+	if (strcmp(info->request_method, "POST") == 0) {
+		json_t* req = get_json(conn);
+		if (!req) return 400;
+
+		User u;
+		snprintf(u.first_name, sizeof(u.first_name), "%s", json_string_value(json_object_get(req, "first_name")));
+		snprintf(u.last_name, sizeof(u.last_name), "%s", json_string_value(json_object_get(req, "last_name")));
+		snprintf(u.email, sizeof(u.email), "%s", json_string_value(json_object_get(req, "email")));
+		snprintf(u.phone, sizeof(u.phone), "%s", json_string_value(json_object_get(req, "phone")));
+		if (!u.phone) snprintf(u.phone, sizeof(u.phone), "%s", "");
+		const char* password = json_string_value(json_object_get(req, "password"));
+		json_t* role_json = json_object_get(req, "role");
+		u.role = role_json ? json_integer_value(role_json) : 0;
+		json_decref(req);
+
+		if (!u.first_name || !u.last_name || !u.email || !u.phone || !password) {
+			json_decref(req);
+			return 400;
+		}
+
+		json_t* res = json_object();
+		u.id = add_user((PGconn*)data, &u, password);
+		if (!u.id) {
+			json_object_set_new(res, "success", json_false());
+			json_object_set_new(res, "error", json_string("Имейлът вече е регистриран."));
+			return send_json(conn, res);
+		}
+
+		// Създаване на бисквитка за новия потребител
+		json_t* user = user_to_json(&u);
+		Session* s = session_create(&u);
 		mg_printf(conn,
 			"HTTP/1.1 200 OK\r\n"
 			"Content-Type: application/json\r\n"
@@ -161,90 +224,47 @@ int api_login(struct mg_connection* conn, void* data) {
 			s->token);
 
 		json_object_set_new(res, "success", json_true());
-		json_object_set_new(res, "email", json_string(user.email));
-		json_object_set_new(res, "phone", json_string(user.phone));
-		json_object_set_new(res, "first_name", json_string(user.first_name));
-		json_object_set_new(res, "last_name", json_string(user.last_name));
-		json_object_set_new(res, "role", json_integer(user.role));
+		json_decref(user);
+		return send_json(conn, res);
 	}
 	else {
-		mg_printf(conn, "HTTP/1.1 401 Unauthorized\r\nContent-Type: application/json\r\n\r\n");
-		json_object_set_new(res, "success", json_false());
-		json_object_set_new(res, "error", json_string("Невалиден имейл или парола."));
+		mg_send_http_error(conn, 405, "Method Not Allowed");
+		return 405;
 	}
-
-	return send_json(conn, res);
 }
 
-// POST /api/signup
-int api_signup(struct mg_connection* conn, void* data) {
-	json_t* req = get_json(conn);
-	if (!req) return 400;
-
-	User u;
-	snprintf(u.first_name, sizeof(u.first_name), "%s", json_string_value(json_object_get(req, "first_name")));
-	snprintf(u.last_name, sizeof(u.last_name), "%s", json_string_value(json_object_get(req, "last_name")));
-	snprintf(u.email, sizeof(u.email), "%s", json_string_value(json_object_get(req, "email")));
-	snprintf(u.phone, sizeof(u.phone), "%s", json_string_value(json_object_get(req, "phone")));
-	if (!u.phone) snprintf(u.phone, sizeof(u.phone), "%s", "");
-	const char* password = json_string_value(json_object_get(req, "password"));
-	json_t* role_json = json_object_get(req, "role");
-	u.role = role_json ? json_integer_value(role_json) : 0;
-	json_decref(req);
-
-	if (!u.first_name || !u.last_name || !u.email || !u.phone || !password) {
-		json_decref(req);
-		mg_send_http_error(conn, 400, "Липсват данни");
-		return 400;
-	}
-
-	json_t* res = json_object();
-	u.id = add_user((PGconn*)data, &u, password);
-	if (!u.id) {
-		json_object_set_new(res, "success", json_false());
-		json_object_set_new(res, "error", json_string("Имейлът вече е регистриран."));
-		char* json_str = json_dumps(res, JSON_COMPACT);
-		mg_send_http_error(conn, 409, "%s", json_str);
-		free(json_str);
-		json_decref(res);
-		return 409;
-	}
-
-	// Създаване на бисквитка за новия потребител
-	json_t* user = user_to_json(&u);
-	Session* s = session_create(&u);
-	mg_printf(conn,
-		"HTTP/1.1 200 OK\r\n"
-		"Content-Type: application/json\r\n"
-		"Set-Cookie: session=%s; HttpOnly; Path=/; Max-Age=86400\r\n\r\n",
-		s->token);
-
-	json_object_set_new(res, "success", json_true());
-	json_decref(user);
-	return send_json(conn, res);
-}
-
-// GET /api/logout
+// POST /api/logout
 int api_logout(struct mg_connection* conn, void* data) {
-	Session* s = get_session(conn);
-	if (s) session_delete(s->token);
+	const struct mg_request_info* info = mg_get_request_info(conn);
 
-	// Max-Age = 0
-	mg_printf(conn,
-		"HTTP/1.1 200 OK\r\n"
-		"Content-Type: application/json\r\n"
-		"Set-Cookie: session=; HttpOnly; Path=/; Max-Age=0\r\n\r\n"
-		"{\"success\":true}");
+	if (strcmp(info->request_method, "POST") == 0) {
+		Session* s = get_session(conn);
+		if (s) session_delete(s->token);
 
-	return 1;
+		// Max-Age = 0
+		mg_printf(conn,
+			"HTTP/1.1 200 OK\r\n"
+			"Content-Type: application/json\r\n"
+			"Set-Cookie: session=; HttpOnly; Path=/; Max-Age=0\r\n\r\n"
+			"{\"success\":true}");
+
+		return 1;
+	}
+	else {
+		mg_send_http_error(conn, 405, "Method Not Allowed");
+		return 405;
+	}
 }
 
 // PATCH/DELETE /api/profile
-int api_profile(struct mg_connection* conn, void* cbdata) {
+int api_profile(struct mg_connection* conn, void* data) {
 	Session* s = get_session(conn);
-	if (!s) { mg_send_http_error(conn, 401, "Unauthorized"); return 401; }
+	if (!s) { 
+		mg_send_http_error(conn, 401, "Unauthorized");
+		return 401;
+	}
 
-	PGconn* db = (PGconn*)cbdata;
+	PGconn* db = (PGconn*)data;
 	const struct mg_request_info* info = mg_get_request_info(conn);
 
 	json_t* req = get_json(conn);
@@ -261,8 +281,12 @@ int api_profile(struct mg_connection* conn, void* cbdata) {
 		else if (json_object_get(req, "new_password"))
 			result = handle_password(db, s, req, res);
 	}
-	if (strcmp(info->request_method, "DELETE") == 0)
+	else if (strcmp(info->request_method, "DELETE") == 0)
 		result = handle_delete(db, s, req, res);
+	else {
+		mg_send_http_error(conn, 405, "Method Not Allowed");
+		return 405;
+	}
 
 	json_decref(req);
 
@@ -274,58 +298,73 @@ int api_profile(struct mg_connection* conn, void* cbdata) {
 
 // POST /api/forgot
 int api_forgot(struct mg_connection* conn, void* data) {
-	json_t* req = get_json(conn);
-	if (!req) return 400;
-	const char* email = json_string_value(json_object_get(req, "email"));
+	const struct mg_request_info* info = mg_get_request_info(conn);
 
-	json_t* res = json_object();
-	json_object_set_new(res, "success", json_true());
-	json_object_set_new(res, "message", json_string("Ако имейлът е регистриран, ще получите линк за смяна на паролата."));
+	if (strcmp(info->request_method, "PATCH") == 0) {
+		json_t* req = get_json(conn);
+		if (!req) return 400;
+		const char* email = json_string_value(json_object_get(req, "email"));
 
-	int user_id = verify_email((PGconn*)data, email);
-	if (user_id > 0) {
-		char* token = create_reset_token((PGconn*)data, user_id);
-		if (token) {
-			char link[512];
-			snprintf(link, sizeof(link),
-				"<p>Може да смените паролата си като <a href='http://localhost:8080/reset?token=%s'>натиснете тук.</а></p>", token);
-			send_forgot_email(email, "Забравена парола", link);
-			free(token);
+		json_t* res = json_object();
+		json_object_set_new(res, "success", json_true());
+		json_object_set_new(res, "message", json_string("Ако имейлът е регистриран, ще получите линк за смяна на паролата."));
+
+		int user_id = verify_email((PGconn*)data, email);
+		if (user_id > 0) {
+			char* token = create_reset_token((PGconn*)data, user_id);
+			if (token) {
+				char link[512];
+				snprintf(link, sizeof(link),
+					"<p>Може да смените паролата си като <a href='http://localhost:8080/reset?token=%s'>натиснете тук.</а></p>", token);
+				send_forgot_email(email, "Забравена парола", link);
+				free(token);
+			}
 		}
+		json_decref(req);
+		return send_json(conn, res);
+		return 1;
 	}
-
-	json_decref(req);
-	return send_json(conn, res);
-	return 1;
+	else {
+		mg_send_http_error(conn, 405, "Method Not Allowed");
+		return 405;
+	}
 }
 
 // POST /api/reset
-int api_reset_password(struct mg_connection* conn, void* cbdata) {
-	json_t* req = get_json(conn);
-	if (!req) return 400;
-	const char* token = json_string_value(json_object_get(req, "token"));
-	const char* new_password = json_string_value(json_object_get(req, "new_password"));
+int api_reset_password(struct mg_connection* conn, void* data) {
+	const struct mg_request_info* info = mg_get_request_info(conn);
 
-	PGconn* db = (PGconn*)cbdata;
-	json_t* res = json_object();
-	int result = reset_password(db, token, new_password);
+	if (strcmp(info->request_method, "POST") == 0) {
+		json_t* req = get_json(conn);
+		if (!req) return 400;
+		const char* token = json_string_value(json_object_get(req, "token"));
+		const char* new_password = json_string_value(json_object_get(req, "new_password"));
 
-	if (result == 1) {
-		json_object_set_new(res, "success", json_true());
-	}
-	else if (result == -1) {
-		json_object_set_new(res, "success", json_false());
-		json_object_set_new(res, "error",
-			json_string("Линкът е невалиден или изтекъл."));
+		PGconn* db = (PGconn*)data;
+		json_t* res = json_object();
+		int result = reset_password(db, token, new_password);
+
+		if (result == 1) {
+			json_object_set_new(res, "success", json_true());
+		}
+		else if (result == -1) {
+			json_object_set_new(res, "success", json_false());
+			json_object_set_new(res, "error",
+				json_string("Линкът е невалиден или изтекъл."));
+		}
+		else {
+			json_object_set_new(res, "success", json_false());
+			json_object_set_new(res, "error", json_string("Възникна грешка."));
+		}
+
+		json_decref(req);
+		return send_json(conn, res);
+		return 1;
 	}
 	else {
-		json_object_set_new(res, "success", json_false());
-		json_object_set_new(res, "error", json_string("Възникна грешка."));
+		mg_send_http_error(conn, 405, "Method Not Allowed");
+		return 405;
 	}
-
-	json_decref(req);
-	return send_json(conn, res);
-	return 1;
 }
 
 static int missing_fields(json_t* res)
