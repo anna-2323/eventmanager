@@ -5,10 +5,10 @@ static void venue_from_query(PGresult* res, Venue* v, int i) {
     snprintf(v->city, sizeof(v->city), "%s", PQgetvalue(res, i, 1));
     snprintf(v->address, sizeof(v->address), "%s", PQgetvalue(res, i, 2));
     snprintf(v->venue_name, sizeof(v->venue_name), "%s", PQgetvalue(res, i, 3));
-    if(!PQgetisnull(res, i, 4))
-        v->active = atoi(PQgetvalue(res, i, 4));
-    if (!PQgetisnull(res, i, 5))
-        v->has_sectors = atoi(PQgetvalue(res, i, 5));
+    if (!PQgetisnull(res, i, 4))
+        v->has_sectors = (strcmp(PQgetvalue(res, i, 4), "t") == 0);
+    if(!PQgetisnull(res, i, 5))
+        v->active = (strcmp(PQgetvalue(res, i, 5), "t") == 0);
 }
 
 int get_venues(PGconn* db, Venue** out) {
@@ -148,29 +148,33 @@ int update_venue_name(PGconn* db, int id, const char* venue_name) {
     return 1;
 }
 
-int soft_delete_venue(PGconn* db, int id) {
+int update_venue_address(PGconn* db, int id, const char* address) {
     CHECK_DB(db, 0);
 
-    // Залата не се изтрива напълно за да се предотвратят конфликти в минали записи, свързани с тази зала
     char venue_id_str[16];
     snprintf(venue_id_str, sizeof(venue_id_str), "%d", id);
-    const char* params[1] = { venue_id_str };
+    const char* params[2] = { address, venue_id_str };
 
-    PGresult* res = PQexecPrepared(db, "deactivate_venue", 1, params, NULL, NULL, 0);
+    PGresult* res = PQexecPrepared(db, "update_venue_address", 2, params, NULL, NULL, 0);
     CHECK_COMMAND_QUERY(res, db, 0);
 
     PQclear(res);
     return 1;
 }
 
-int restore_venue(PGconn* db, int id) {
+int set_venue_active(PGconn* db, int id, int active) {
     CHECK_DB(db, 0);
 
     char venue_id_str[16];
     snprintf(venue_id_str, sizeof(venue_id_str), "%d", id);
+
     const char* params[1] = { venue_id_str };
 
-    PGresult* res = PQexecPrepared(db, "restore_venue", 1, params, NULL, NULL, 0);
+    const char* query_name = active
+        ? "activate_venue"
+        : "deactivate_venue";
+
+    PGresult* res = PQexecPrepared(db, query_name, 1, params, NULL, NULL, 0);
     CHECK_COMMAND_QUERY(res, db, 0);
 
     PQclear(res);

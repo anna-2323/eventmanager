@@ -331,24 +331,31 @@ int api_admin_events(struct mg_connection* conn, void* data) {
             int result = 0;
 
             const char* title = json_string_value(json_object_get(req, "title"));
-            if (title)
-                result = admin_update_title(db, id, title);
-
             const char* begins_at = json_string_value(json_object_get(req, "begins_at"));
-            if (begins_at)
-                result = admin_update_begins_at(db, id, begins_at);
-
             const char* description = json_string_value(json_object_get(req, "description"));
-            if (description)
-                result = admin_update_description(db, id, description);
+            json_t* active_json = json_object_get(req, "active");
 
-            json_t* verified_json = json_object_get(req, "verified");
-            if (!json_is_boolean(verified_json))
-                result = 0;
-            else if (json_boolean_value(verified_json))
-                result = verify_event(db, id);
-            else
-                result = unverify_event(db, id);
+            if (active_json) {
+                if (!json_is_boolean(active_json)) {
+                    result = 0;
+                }
+                else if (!check_role(conn, ROLE_ADMIN)) {
+                    mg_send_http_error(conn, 403, "Forbidden");
+                    json_decref(req);
+                    return 403;
+                }
+                else {
+                    result = set_event_active(db, id, json_boolean_value(active_json));
+                }
+            }
+            else {
+                if (title)
+                    result = admin_update_title(db, id, title);
+                if (begins_at)
+                    result = admin_update_begins_at(db, id, begins_at);
+                if (description)
+                    result = admin_update_description(db, id, description);
+            }
 
             set_result(res, result);
 

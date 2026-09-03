@@ -22,7 +22,7 @@ const char* SQL_GET_TICKET =
 "SELECT t.id, e.title, e.begins_at, v.venue_name, v.city, v.address, "
 "       t.first_name, t.last_name, t.email, t.phone, "
 "       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name, "
-"		t.access_token, t.price, e.id, u.id  "
+"		t.access_token, t.price, e.id, u.id, t.active  "
 "FROM data.tickets t "
 "JOIN data.events e ON t.event_id = e.id "
 "JOIN data.venues v ON e.venue_id = v.id "
@@ -62,6 +62,12 @@ const char* SQL_GET_USER_TICKETS =
 "    ON s.id = t.sector_id "
 "JOIN data.users u on t.user_id = u.id "
 "WHERE u.id = $1;";
+
+const char* SQL_ACTIVATE_TICKET =
+"UPDATE data.tickets SET active = TRUE WHERE id = $1";
+
+const char* SQL_DEACTIVATE_TICKET =
+"UPDATE data.tickets SET active = FALSE WHERE id = $1";
 
 const char* SQL_TICKET_BELONGS_TO_USER =
 "SELECT EXISTS( "

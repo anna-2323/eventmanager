@@ -59,7 +59,7 @@ json_t* event_to_json(Event* e) {
     json_object_set_new(obj, "venue_name", json_string(e->venue.venue_name));
     json_object_set_new(obj, "city", json_string(e->venue.city));
     json_object_set_new(obj, "seats_left", json_integer(e->seats_left));
-    json_object_set_new(obj, "verified", json_integer(e->verified));
+    json_object_set_new(obj, "active", json_integer(e->active));
     json_object_set_new(obj, "description", json_string(e->description));
     return obj;
 }
@@ -81,6 +81,7 @@ json_t* ticket_to_json(TicketView* t) {
     json_object_set_new(obj, "price", json_real(t->price));
     json_object_set_new(obj, "user_id", json_integer(t->user_id));
     json_object_set_new(obj, "event_id", json_integer(t->event_id));
+    json_object_set_new(obj, "active", json_integer(t->active));
     return obj;
 }
 

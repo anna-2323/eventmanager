@@ -64,7 +64,7 @@ const char* SQL_GET_VENUE_EVENTS =
 "SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
 "       MIN(es.price) AS price, "
 "       SUM(es.capacity) - COUNT(t.id) AS seats_left, "
-"       e.verified::int "
+"       e.active "
 "FROM data.events e "
 "LEFT JOIN data.event_sectors es ON es.event_id = e.id "
 "LEFT JOIN data.tickets t "
@@ -72,15 +72,14 @@ const char* SQL_GET_VENUE_EVENTS =
 "   AND t.sector_id = es.sector_id "
 "JOIN data.venues v ON e.venue_id = v.id "
 "WHERE e.venue_id = $1 "
-"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, e.verified "
+"GROUP BY e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, e.active "
 "ORDER BY e.begins_at ASC;";
 
 const char* SQL_GET_EVENT =
 "SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
 "MIN(es.price) AS price, "
 "SUM(es.capacity) - COUNT(t.id) AS seats_left, "
-"e.verified::int, "
-"e.description "
+"e.description, e.active "
 "FROM data.events e "
 "JOIN data.venues v ON e.venue_id = v.id "
 "LEFT JOIN data.event_sectors es ON es.event_id = e.id "
@@ -139,14 +138,11 @@ const char* SQL_ADMIN_UPDATE_EVENT_IMAGE =
 const char* SQL_GET_EVENT_IMAGE_PATH =
 "SELECT img_path FROM data.events WHERE id = $1;";
 
-const char* SQL_VERIFY_EVENT =
-"UPDATE data.events SET verified = TRUE WHERE id = $1";
+const char* SQL_ACTIVATE_EVENT =
+"UPDATE data.events SET active = TRUE WHERE id = $1";
 
-const char* SQL_UNVERIFY_EVENT =
-"UPDATE data.events SET verified = FALSE WHERE id = $1";
-
-const char* SQL_DELETE_EVENT =
-"DELETE FROM data.events WHERE id = $1 ";
+const char* SQL_DEACTIVATE_EVENT =
+"UPDATE data.events SET active = FALSE WHERE id = $1";
 
 const char* SQL_GET_CATEGORIES =
 "SELECT id, title FROM data.categories;";

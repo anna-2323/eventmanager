@@ -57,35 +57,45 @@ int api_users(struct mg_connection* conn, void* data) {
 			json_t* res = json_object();
 			int result = 0;
 
+			json_t* active_json = json_object_get(req, "active");
 			const char* email = json_string_value(json_object_get(req, "email"));
 			const char* phone = json_string_value(json_object_get(req, "phone"));
 			const char* first_name = json_string_value(json_object_get(req, "first_name"));
 			const char* last_name = json_string_value(json_object_get(req, "last_name"));
-
-			int role = -1;
-
 			json_t* role_json = json_object_get(req, "role");
-			if (json_is_integer(role_json))
-				role = json_integer_value(role_json);
-			char role_str[2];
-			snprintf(role_str, sizeof(role_str), "%d", role);
 
-			json_t* active_json = json_object_get(req, "active");
-			if (!json_is_boolean(active_json))
-				result = 0;
-			else if (json_boolean_value(active_json))
-				result = activate_user(db, id);
-			else
-				result = deactivate_user(db, id);
-
-			if (email)
+			if (active_json) {
+				if (!json_is_boolean(active_json)) {
+					result = 0;
+				}
+				else {
+					result = set_user_active(db, id, json_boolean_value(active_json));
+				}
+			}
+			else if (email) {
 				result = admin_update_email(db, id, email);
-			if (phone)
+			}
+			else if (phone) {
 				result = admin_update_phone(db, id, phone);
-			if (first_name)
-				result = admin_update_name(db, id, first_name, last_name);
-			if (role >= 0)
+			}
+			else if (first_name || last_name) {
+				if (!first_name || !last_name) {
+					result = 0;
+				}
+				else {
+					result = admin_update_name(db, id, first_name, last_name);
+				}
+			}
+			else if (json_is_integer(role_json)) {
+				int role = json_integer_value(role_json);
+
+				char role_str[2];
+				snprintf(role_str, sizeof(role_str), "%d", role);
+
 				result = admin_update_role(db, id, role_str);
+			}
+			else
+				result = 0;
 
 			set_result(res, result);
 

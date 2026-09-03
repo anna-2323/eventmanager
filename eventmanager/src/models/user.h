@@ -26,9 +26,7 @@ int admin_update_email(PGconn* db, int user_id, const char* email);
 int admin_update_phone(PGconn* db, int user_id, const char* phone);
 int admin_update_name(PGconn* db, int user_id, const char* first_name, const char* last_name);
 int admin_update_role(PGconn* db, int user_id, const char* role);
-
-int deactivate_user(PGconn* db, int user_id);
-int activate_user(PGconn* db, int user_id);
+int set_user_active(PGconn* db, int user_id, int active);
 
 int update_email(PGconn* db, int user_id, const char* email, const char* password);
 int update_phone(PGconn* db, int user_id, const char* email, const char* password);

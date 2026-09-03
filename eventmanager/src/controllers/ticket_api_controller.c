@@ -146,6 +146,35 @@ int api_admin_tickets(struct mg_connection* conn, void* data) {
         if (get_ticket(db, id, &t))
             return send_json(conn, ticket_to_json(&t));
     }
+    if (strcmp(info->request_method, "PATCH") == 0) {
+        json_t* req = get_json(conn);
+        if (!req)
+            return 400;
+
+        json_t* res = json_object();
+        int result = 0;
+
+        json_t* active_json = json_object_get(req, "active");
+
+        if (active_json) {
+            if (!json_is_boolean(active_json)) {
+                result = 0;
+            }
+            else if (!check_role(conn, ROLE_ADMIN)) {
+                mg_send_http_error(conn, 403, "Forbidden");
+                json_decref(req);
+                return 403;
+            }
+            else {
+                result = set_ticket_active(db, id, json_boolean_value(active_json));
+            }
+        }
+
+        set_result(res, result);
+
+        json_decref(req);
+        return send_json(conn, res);
+    }
 }
 
 int api_my_tickets(struct mg_connection* conn, void* data) {

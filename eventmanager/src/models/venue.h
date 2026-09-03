@@ -21,7 +21,8 @@ int get_cities(PGconn* db, char** out);
 
 int add_venue(PGconn* db, Venue* v);
 int update_venue_name(PGconn* db, int id, const char* venue_name);
-int soft_delete_venue(PGconn* db, int id);
-int restore_venue(PGconn* db, int id);
+int update_venue_address(PGconn* db, int id, const char* address);
+// Залата не се изтрива напълно за да се предотвратят конфликти в минали записи, свързани с тази зала
+int set_venue_active(PGconn* db, int id, int active);
 
 int get_total_venues(PGconn* db);

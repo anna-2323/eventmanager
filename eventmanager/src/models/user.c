@@ -41,6 +41,8 @@ static void user_from_query(PGresult * res, User * u, int i) {
 	snprintf(u->phone, sizeof(u->phone), "%s", PQgetvalue(res, i, 4));
 	u->role = atoi(PQgetvalue(res, i, 5));
 	snprintf(u->deleted_on, sizeof(u->deleted_on), "%s", PQgetvalue(res, i, 6));
+	if (!PQgetisnull(res, i, 7))
+		u->active = (strcmp(PQgetvalue(res, i, 7), "t") == 0);
 }
 
 int get_all_users(PGconn* db, User** out) {
@@ -342,28 +344,18 @@ int soft_delete_user(PGconn* db, int user_id, const char* password) {
 	return 1;
 }
 
-int deactivate_user(PGconn* db, int user_id) {
+int set_user_active(PGconn* db, int user_id, int active) {
 	CHECK_DB(db, 0);
 
 	char id_str[16];
 	snprintf(id_str, sizeof(id_str), "%d", user_id);
 	const char* params[1] = { id_str };
 
-	PGresult* res = PQexecPrepared(db, "deactivate_user", 1, params, NULL, NULL, 0);
-	CHECK_COMMAND_QUERY(res, db, 0);
+	const char* query_name = active
+		? "activate_user"
+		: "deactivate_user";
 
-	PQclear(res);
-	return 1;
-}
-
-int activate_user(PGconn* db, int user_id) {
-	CHECK_DB(db, 0);
-
-	char id_str[16];
-	snprintf(id_str, sizeof(id_str), "%d", user_id);
-	const char* params[1] = { id_str };
-
-	PGresult* res = PQexecPrepared(db, "activate_user", 1, params, NULL, NULL, 0);
+	PGresult* res = PQexecPrepared(db, query_name, 1, params, NULL, NULL, 0);
 	CHECK_COMMAND_QUERY(res, db, 0);
 
 	PQclear(res);

@@ -5,7 +5,7 @@ const char* SQL_GET_USERS =
 "FROM data.users; ";
 
 const char* SQL_GET_USER_BY_ID =
-"SELECT id, email, first_name, last_name, phone, role, deleted_on, active::int "
+"SELECT id, email, first_name, last_name, phone, role, deleted_on, active "
 "FROM data.users "
 "WHERE id = $1; ";
 

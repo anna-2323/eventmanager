@@ -16,7 +16,7 @@ typedef struct {
 	char uploaded_on[256];
 	char description[512];
 	int organizer_id;
-	int verified;
+	int active;
 	Venue venue;
 } Event;
 
@@ -84,10 +84,8 @@ int admin_update_title(PGconn* db, int id, const char* title);
 int admin_update_begins_at(PGconn* db, int id, const char* begins_at);
 int admin_update_description(PGconn* db, int id, const char* description);
 int admin_update_image(PGconn* db, int event_id, const char* img_path);
-
-int verify_event(PGconn* db, int id);
-int unverify_event(PGconn* db, int id);
-int delete_event(PGconn* db, int id);
+// Събитието не се изтрива напълно за да се предотвратят конфликти в минали записи, свързани с това събитие
+int set_event_active(PGconn* db, int id, int active);
 
 int get_categories(PGconn* db, Category** out);
 

@@ -11,8 +11,10 @@ static void event_from_query(PGresult* res, Event* e, int i) {
 	snprintf(e->venue.city, sizeof(e->venue.city), "%s", PQgetvalue(res, i, 5));
 	e->price = atof(PQgetvalue(res, i, 6));
 	e->seats_left = atoi(PQgetvalue(res, i, 7));
-	if (!PQgetisnull(res, i, 8)) e->verified = atoi(PQgetvalue(res, i, 8));
-	if (!PQgetisnull(res, i, 9)) snprintf(e->description, sizeof(e->description), "%s", PQgetvalue(res, i, 9));
+	if (!PQgetisnull(res, i, 8))
+		snprintf(e->description, sizeof(e->description), "%s", PQgetvalue(res, i, 8));
+	if (!PQgetisnull(res, i, 9))
+		e->active = (strcmp(PQgetvalue(res, i, 9), "t") == 0);
 }
 
 int get_events(PGconn* db, const EventFilters* filters, Event** out) {
@@ -353,28 +355,18 @@ int get_event_image_path(PGconn* db, int event_id, char* path, size_t pathlen) {
 	return 1;
 }
 
-int verify_event(PGconn* db, int id) {
+int set_event_active(PGconn* db, int id, int active) {
 	CHECK_DB(db, 0);
 
 	char id_str[16];
 	snprintf(id_str, sizeof(id_str), "%d", id);
 	const char* params[1] = { id_str };
 
-	PGresult* res = PQexecPrepared(db, "verify_event", 1, params, NULL, NULL, 0);
-	CHECK_COMMAND_QUERY(res, db, 0);
+	const char* query_name = active
+		? "activate_event"
+		: "deactivate_event";
 
-	PQclear(res);
-	return 1;
-}
-
-int unverify_event(PGconn* db, int id) {
-	CHECK_DB(db, 0);
-
-	char id_str[16];
-	snprintf(id_str, sizeof(id_str), "%d", id);
-	const char* params[1] = { id_str };
-
-	PGresult* res = PQexecPrepared(db, "unverify_event", 1, params, NULL, NULL, 0);
+	PGresult* res = PQexecPrepared(db, query_name, 1, params, NULL, NULL, 0);
 	CHECK_COMMAND_QUERY(res, db, 0);
 
 	PQclear(res);

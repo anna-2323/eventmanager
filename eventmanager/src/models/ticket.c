@@ -16,10 +16,16 @@ static void ticket_from_query(PGresult* res, TicketView* t, int i) {
     snprintf(t->email, sizeof(t->email), "%s", PQgetvalue(res, i, 8));
     snprintf(t->phone, sizeof(t->phone), "%s", PQgetvalue(res, i, 9));
     snprintf(t->sector, sizeof(t->sector), "%s", PQgetvalue(res, i, 10));
-    if(!PQgetisnull(res, i, 11)) snprintf(t->token, sizeof(t->token), "%s", PQgetvalue(res, i, 11));
-    if (!PQgetisnull(res, i, 12)) t->price = atof(PQgetvalue(res, i, 12));
-    if (!PQgetisnull(res, i, 13)) t->event_id = atoi(PQgetvalue(res, i, 13));
-    if (!PQgetisnull(res, i, 14)) t->user_id = atoi(PQgetvalue(res, i, 14));
+    if(!PQgetisnull(res, i, 11)) 
+        snprintf(t->token, sizeof(t->token), "%s", PQgetvalue(res, i, 11));
+    if (!PQgetisnull(res, i, 12)) 
+        t->price = atof(PQgetvalue(res, i, 12));
+    if (!PQgetisnull(res, i, 13)) 
+        t->event_id = atoi(PQgetvalue(res, i, 13));
+    if (!PQgetisnull(res, i, 14))
+        t->user_id = atoi(PQgetvalue(res, i, 14));
+    if (!PQgetisnull(res, i, 15))
+        t->active = (strcmp(PQgetvalue(res, i, 15), "t") == 0);
 }
 
 // Открива първия {{шалбон}} и го заменя с дадената стойност
@@ -142,10 +148,6 @@ int get_ticket(PGconn* db, int ticket_id, TicketView* out) {
     PGresult* res = PQexecPrepared(db, "get_ticket", 1, params, NULL, NULL, 0);
     CHECK_QUERY(res, db, 0);
 
-    printf("Prepared: status=%s rows=%d\n",
-        PQresStatus(PQresultStatus(res)),
-        PQntuples(res));
-
     if (PQntuples(res) == 0) {
         PQclear(res);
         return 0;
@@ -259,6 +261,24 @@ int ticket_belongs_to_user(PGconn* db, int user_id, int ticket_id) {
         return 0;
     }
 
+    return 1;
+}
+
+int set_ticket_active(PGconn* db, int id, int active) {
+    CHECK_DB(db, 0);
+
+    char id_str[16];
+    snprintf(id_str, sizeof(id_str), "%d", id);
+    const char* params[1] = { id_str };
+
+    const char* query_name = active
+        ? "activate_ticket"
+        : "deactivate_ticket";
+
+    PGresult* res = PQexecPrepared(db, query_name, 1, params, NULL, NULL, 0);
+    CHECK_COMMAND_QUERY(res, db, 0);
+
+    PQclear(res);
     return 1;
 }
 

@@ -109,7 +109,7 @@ int api_admin_venues(struct mg_connection* conn, void* data) {
 			return send_json(conn, res);
 		}
 	}
-	const char* id_str = info->local_uri + strlen("/api/venues/");
+	const char* id_str = info->local_uri + strlen("/api/admin/venues/");
 	char* end;
 	long id = strtol(id_str, &end, 10);
 
@@ -123,22 +123,30 @@ int api_admin_venues(struct mg_connection* conn, void* data) {
 		int result = 0;
 
 		json_t* active_json = json_object_get(req, "active");
-		if (!json_is_boolean(active_json))
-			result = 0;
-		else {
-			if (!check_role(conn, ROLE_ADMIN)) {
+		const char* venue_name = json_string_value(json_object_get(req, "venue_name"));
+		const char* address = json_string_value(json_object_get(req, "address"));
+
+		if (active_json) {
+			if (!json_is_boolean(active_json)) {
+				result = 0;
+			}
+			else if (!check_role(conn, ROLE_ADMIN)) {
 				mg_send_http_error(conn, 403, "Forbidden");
+				json_decref(req);
 				return 403;
 			}
-			if (json_boolean_value(active_json))
-				result = soft_delete_venue(db, id);
-			else
-				result = restore_venue(db, id);
+			else {
+				result = set_venue_active(db, id, json_boolean_value(active_json));
+			}
 		}
-
-		const char* venue_name = json_string_value(json_object_get(req, "venue_name"));
-		if (venue_name)
-			result = update_venue_name(db, id, venue_name);
+		else {
+			if (venue_name) {
+				result = update_venue_name(db, id, venue_name);
+			}
+			if (address) {
+				result = update_venue_address(db, id, address);
+			}
+		}
 
 		set_result(res, result);
 		json_decref(req);

@@ -25,7 +25,8 @@ CREATE TABLE data.users (
     last_name varchar(255),
     phone varchar(255),
     deleted_on timestamp with time zone,
-    active DEFAULT true
+    active DEFAULT true,
+    created_at timestamp with time zone DEFAULT now()
 );
 
 CREATE TABLE data.venues (
@@ -77,8 +78,14 @@ CREATE TABLE data.tickets (
     last_name varchar(255) NOT NULL,
     email varchar(255) NOT NULL,
     phone varchar(50) NOT NULL,
+    price numeric(10,2),
+    active boolean DEFAULT true,
     purchased_at timestamp with time zone DEFAULT now(),
-    access_token UUID NOT NULL DEFAULT gen_random_uuid()
+    access_token UUID NOT NULL DEFAULT gen_random_uuid(),
+    
+    FOREIGN KEY (user_id)
+    REFERENCES data.users(id)
+    ON DELETE SET NULL
 );
 
 CREATE TABLE data.password_resets (

@@ -20,6 +20,7 @@ typedef struct {
     float price;
     int user_id;
     int event_id;
+    int active;
 } TicketView;
 
 typedef struct {
@@ -45,6 +46,8 @@ int get_tickets(PGconn* db, int organizer_id, TicketView** out);
 int get_user_tickets(PGconn* db, int user_id, TicketView** out);
 int ticket_belongs_to_user(PGconn* db, int user_id, int ticket_id);
 int generate_ticket_html(PGconn* db, int ticket_id, const char* qr_path, char* out_path, size_t out_size);
+
+int set_ticket_active(PGconn* db, int id, int active);
 
 int get_total_tickets(PGconn* db, int organizer_id);
 int get_tickets_growth(PGconn* db, int type, int organizer_id, StatGrowth** out);

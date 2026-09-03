@@ -44,11 +44,9 @@ int prepare_queries(PGconn* db)
         return 0;
     if (!prepare_query(db, "get_event_image_path", SQL_GET_EVENT_IMAGE_PATH, 1))
         return 0;
-    if (!prepare_query(db, "verify_event", SQL_VERIFY_EVENT, 1))
+    if (!prepare_query(db, "activate_event", SQL_ACTIVATE_EVENT, 1))
         return 0;
-    if (!prepare_query(db, "unverify_event", SQL_UNVERIFY_EVENT, 1))
-        return 0;
-    if (!prepare_query(db, "delete_event", SQL_DELETE_EVENT, 1))
+    if (!prepare_query(db, "deactivate_event", SQL_DEACTIVATE_EVENT, 1))
         return 0;
     if (!prepare_query(db, "get_categories", SQL_GET_CATEGORIES, 1))
         return 0;
@@ -64,6 +62,10 @@ int prepare_queries(PGconn* db)
     if (!prepare_query(db, "get_ticket", SQL_GET_TICKET, 1))
         return 0;
     if (!prepare_query(db, "get_user_tickets", SQL_GET_USER_TICKETS, 1))
+        return 0;
+    if (!prepare_query(db, "activate_ticket", SQL_ACTIVATE_TICKET, 1))
+        return 0;
+    if (!prepare_query(db, "deactivate_ticket", SQL_DEACTIVATE_TICKET, 1))
         return 0;
     if (!prepare_query(db, "ticket_belongs_to_user", SQL_TICKET_BELONGS_TO_USER, 1))
         return 0;
@@ -84,9 +86,11 @@ int prepare_queries(PGconn* db)
         return 0;
     if (!prepare_query(db, "update_venue_name", SQL_UPDATE_VENUE_NAME, 2))
         return 0;
+    if (!prepare_query(db, "update_venue_address", SQL_UPDATE_VENUE_ADDRESS, 2))
+        return 0;
     if (!prepare_query(db, "deactivate_venue", SQL_DEACTIVATE_VENUE, 1))
         return 0;
-    if (!prepare_query(db, "restore_venue", SQL_RESTORE_VENUE, 1))
+    if (!prepare_query(db, "activate_venue", SQL_ACTIVATE_VENUE, 1))
         return 0;
 
     if (!prepare_query(db, "get_users", SQL_GET_USERS, 0))
