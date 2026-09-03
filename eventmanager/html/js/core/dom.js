@@ -35,3 +35,23 @@ export function toDatetime(d) {
 export function toPrice(p) {
   return p.toLocaleString("bg-BG", { style: "currency", currency: "EUR" });
 }
+
+export function showSuccess() {
+  const success_message = localStorage.getItem("success_message");
+  if (success_message) {
+    const el = $("#success-message");
+    el.textContent = success_message;
+    show(el);
+    localStorage.removeItem("success_message");
+  }
+}
+
+export function showError() {
+  const error_message = localStorage.getItem("error_message");
+  if (error_message) {
+    const el = $("#error-message");
+    el.textContent = error_message;
+    show(el);
+    localStorage.removeItem("error_message");
+  }
+}

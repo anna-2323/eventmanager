@@ -100,7 +100,8 @@ export const api = {
     },
     tickets: {
       list: () => request('/admin/tickets'),
-      get: (id) => request(`/admin/tickets/${id}`)
+      get: (id) => request(`/admin/tickets/${id}`),
+      edit: (id, data) => request(`/admin/tickets/${id}`, {method: 'PATCH', body: JSON.stringify(data)})
     }
   },
 };

@@ -1,5 +1,5 @@
 import { api } from "../core/api.js";
-import { $, $$, toDate } from "../core/dom.js";
+import { $, showSuccess, showError } from "../core/dom.js";
 import { header } from "../components/header.js";
 import { input, editSection, activateToggles } from "../components/form.js";
 import { eventCard } from "../components/adminCards.js";
@@ -21,18 +21,20 @@ if (!user.logged_in || user.role == 2) {
   renderEvent();
   renderLayout();
 
+  showSuccess();
+  showError();
+
   async function renderEvent() {
     $("#event-card").innerHTML = eventCard(event, user.role);
   }
 
   document.addEventListener("click", (e) => {
-    // Смяна на изглед
     if(e.target.matches("#layout-btn"))
       renderLayout();
     if(e.target.matches("#edit-btn"))
       renderEdit();
-    if(e.target.matches("#verify-btn"))
-      verify();
+    if(e.target.matches("#activate-btn"))
+      toggle_active();
     if(e.target.matches("#delete-btn"))
       renderDelete();
 
@@ -41,9 +43,9 @@ if (!user.logged_in || user.role == 2) {
       const title = $("#new-title").value;
       editEvent({ title }, "Името е сменено успешно.");
     }
-    if(e.target.matches("#change-time-btn")) {
-      const time = $("#new-time").value;
-      editEvent({ time }, "Времето е сменено успешно.");
+    if(e.target.matches("#change-begins-at-btn")) {
+      const begins_at = $("#new-begins-at").value;
+      editEvent({ begins_at }, "Времето е сменено успешно.");
     }
     if(e.target.matches("#change-description-btn")) {
       const description = $("#new-description").value;
@@ -85,9 +87,9 @@ if (!user.logged_in || user.role == 2) {
 
       ${editSection(
         "Промяна на време",
-        "change-time-form",
-        `${input("Ново време на започване", "new-time", "datetime-local")}
-        <button class="button is-link" id="change-time-btn">
+        "change-begins-at-form",
+        `${input("Ново време на започване", "new-begins-at", "datetime-local")}
+        <button class="button is-link" id="change-begins-at-btn">
             Запази
         </button>
         `,
@@ -116,43 +118,14 @@ if (!user.logged_in || user.role == 2) {
     activateToggles();
   }
 
-  function verify() {
-    if(event.verified) {
-        editEvent(({ verified: false }), "Одобряването на събитието е отменено.");
+  function toggle_active() {
+    if(event.active) {
+        editEvent(({ active: false }), "Събитието е успешно деактивирано.");
     }
     else {
-        editEvent(({ verified: true }), "Събитието е одобрено.");
+        editEvent(({ active: true }), "Събитието е успешно активирано.");
     }
   }
-  // Модал
-  function openModal(modal) {
-  if (!modal.classList.contains("is-active")) modal.classList.add("is-active");
-  }
-
-  function closeModal(modal) {
-    if (modal.classList.contains("is-active"))
-      modal.classList.remove("is-active");
-  }
-
-  function renderDelete() {
-    openModal($("#delete-modal"));
-  }
-
-  ($$(".modal-background, #modal-close, #modal-cancel") || []).forEach((x) => {
-    x.addEventListener("click", () => {
-      closeModal(x.closest(".modal"));
-    });
-  });
-
-  $("#confirm-delete-btn").addEventListener("click", async function () {
-      const res = await api.admin.events.delete(id);
-      if (res.success) {
-        localStorage.setItem("success_message", "Успешно изтрито събитие.");
-        window.location.href = `/admin/events`;
-      } else {
-        localStorage.setItem("error_message", res.error || "Възникна грешка.");
-      }
-  });
   
   async function editEvent(json, message) {
     const res = await api.admin.events.edit(id, json);

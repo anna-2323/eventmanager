@@ -1,5 +1,5 @@
 import { api } from "../core/api.js";
-import { $, $$, toDate } from "../core/dom.js";
+import { $, $$, showError, showSuccess, toDate } from "../core/dom.js";
 import { header } from "../components/header.js";
 import { input, editSection, activateToggles } from "../components/form.js";
 import { userCard } from "../components/adminCards.js";
@@ -17,22 +17,23 @@ if (!user.logged_in || user.role !== 0) {
 } else {
   const id = window.location.pathname.split("/").pop();
   const user = await api.admin.users.get(id);
-
   renderUser();
   renderEvents();
+  
+  showSuccess();
+  showError();
 
   async function renderUser() {
     $("#user-card").innerHTML = userCard(user);
   }
 
   document.addEventListener("click", (e) => {
-    // Смяна на изглед
     if(e.target.matches("#events-btn"))
       renderEvents();
     if(e.target.matches("#edit-btn"))
       renderEdit();
-    if(e.target.matches("#deactivate-btn"))
-      renderDeactivate();
+    if(e.target.matches("#activate-btn"))
+      set_active();
     if(e.target.matches("#delete-btn"))
       renderDelete();
 
@@ -51,14 +52,8 @@ if (!user.logged_in || user.role !== 0) {
       editUser({ phone }, "Телефонът е сменен успешно.");
     }
     if(e.target.matches("#change-role-btn")) {
-      const phone = $("#new-phone").value;
-      editUser({ phone }, "Телефонът е сменен успешно.");
-    }
-    if(e.target.matches("#confirm-deactivate-btn")) {
-      if(user.active)
-        editUser({ active: false }, "Акаунт успещно деактивиран.");
-      else
-        editUser({ active: true }, "Акаунт успещно активиран.");
+      const role = Number($("#role").value);
+      editUser({ role }, "Ролята е сменена успешно.");
     }
     if(e.target.matches("#confirm-delete-btn")) {
       deleteUser();
@@ -101,7 +96,7 @@ if (!user.logged_in || user.role !== 0) {
               </tr>`,
         ).join("");
     } else {
-      $("#changeable").innerHTML += "<p>Все още няма резервирани събития.</p>";
+      $("#changeable").innerHTML += "<p>Все още няма събития.</p>";
     }
   }
 
@@ -163,13 +158,20 @@ if (!user.logged_in || user.role !== 0) {
             </div>
           </div>
         </div>
-        <button class="button is-link" id="change-email-btn">
+        <button class="button is-link" id="change-role-btn">
             Запази
         </button>`
       )}
         `;
 
     activateToggles();
+  }
+
+  function set_active() {
+    if(user.active)
+        editUser({ active: false }, "Акаунт успещно деактивиран.");
+      else
+        editUser({ active: true }, "Акаунт успещно активиран.");
   }
 
   // Модал
@@ -180,10 +182,6 @@ if (!user.logged_in || user.role !== 0) {
   function closeModal(modal) {
     if (modal.classList.contains("is-active"))
       modal.classList.remove("is-active");
-  }
-
-  function renderDeactivate() {
-    openModal($("#deactivate-modal"));
   }
 
   function renderDelete() {

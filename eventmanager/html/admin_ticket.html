@@ -22,6 +22,8 @@
 
     <main id="main" class="main is-max-tablet">
         <div class="container">
+            <p class="notification is-danger is-light mt-3" id="error-message" style="display:none"></p>
+            <p class="notification is-success is-light mt-3" id="success-message" style="display:none"></p>
             <h1 class="title mt-4">Билет</h1>
 
             <div class="columns">
@@ -30,24 +32,6 @@
             </div>
         </div>
     </main>
-
-    <div class="modal" id="delete-modal">
-      <div class="modal-background"></div>
-      <div class="modal-card">
-        <header class="modal-card-head">
-          <p class="modal-card-title">Потвърждение</p>
-          <button class="delete" id="modal-close"></button>
-        </header>
-        <section class="modal-card-body">
-          <p>Това действие е необратимо. Сигурни ли сте, че искате да изтриете този билет?</p>
-        </section>
-        <footer class="modal-card-foot">
-          <button class="button is-danger" id="confirm-delete-btn">Изтрий</button>
-          <button class="button" id="modal-cancel">Отказ</button>
-        </footer>
-      </div>
-    </div>
-    </div>
 
     <script src="/js/pages/admin_ticket.js" type="module"></script>
 </body>

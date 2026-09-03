@@ -25,7 +25,10 @@ export function userCard(u) {
                             </tr>
                             <tr><th>Статус</th>
                                 <td>
-                                    ${u.active ? "Активен" : "Деактивиран"}
+                                    ${u.active ? 
+                                        "<span style='color:#00d1b2;'>Активeн</span>" : 
+                                        "<span style='color:#ff6685;'>Деактивиран</span>"
+                                    }
                                 </td>
                             </tr>
                             <tr>
@@ -46,7 +49,7 @@ export function userCard(u) {
                         <button class="button is-info" id="edit-btn">
                             Редактирай
                         </button>
-                        <button class="button is-warning" id="deactivate-btn">
+                        <button class="button is-warning" id="activate-btn">
                             ${u.active ? "Деактивирай" : "Активирай"}
                         </button>
                         <button class="button is-danger" id="delete-btn">
@@ -78,10 +81,10 @@ export function eventCard(e, role) {
                             <tr><th>Останали места</th>
                                 <td id="event-seats-left">${e.seats_left}</td>
                             </tr>
-                            <tr><th>Одобрено</th>
-                                <td id="event-verified">${e.verified ? 
-                                    "<span style='color:#00d1b2;'>Да</span>" : 
-                                    "<span style='color:#ff6685;'>Не</span>"}</td>
+                            <tr><th>Статус</th>
+                                <td id="event-verified">${e.active ? 
+                                    "<span style='color:#00d1b2;'>Активно</span>" : 
+                                    "<span style='color:#ff6685;'>Деактивирано</span>"}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -95,13 +98,10 @@ export function eventCard(e, role) {
                             Редактирай
                         </button>
                         ${role == 0 ? 
-                            `<button class="button is-warning" id="verify-btn">
-                                ${e.verified ? 'Отмени одобряване' : 'Одобри'}
+                            `<button class="button is-warning" id="activate-btn">
+                                ${e.active ? 'Деактивирай' : 'Активирай'}
                             </button>` : ''
                         }
-                        <button class="button is-danger" id="delete-btn">
-                            Изтрий
-                        </button>
                     </div>
                 </div>
             </div>`;
@@ -125,10 +125,10 @@ export function venueCard(v, role) {
                             <tr><th>Адрес</th>
                                 <td id="event-venue-name">${v.address}</td>
                             </tr>
-                            <tr><th>Активна</th>
+                            <tr><th>Статус</th>
                                 <td id="event-verified">${v.active ? 
-                                    "<span style='color:#00d1b2;'>Да</span>" : 
-                                    "<span style='color:#ff6685;'>Не</span>"}</td>
+                                    "<span style='color:#00d1b2;'>Активна</span>" : 
+                                    "<span style='color:#ff6685;'>Деактивирана</span>"}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -142,14 +142,9 @@ export function venueCard(v, role) {
                             Редактирай
                         </button>
                         ${role == 0 ? 
-                            `<button class="button is-warning" id="verify-btn">
-                                ${v.active ? 'Отмени одобряване' : 'Одобри'}
+                            `<button class="button is-warning" id="activate-btn">
+                                ${v.active ? 'Деактивирай' : 'Активирай'}
                             </button>` : ''
-                        }
-                        ${role == 0 ? 
-                        `<button class="button is-danger" id="delete-btn">
-                            Изтрий
-                        </button>` : ''
                         }
                     </div>
                 </div>
@@ -178,9 +173,9 @@ export function ticketCard(t, role) {
                                 <td id="ticket-sector">${t.sector_name ? t.sector_name : "-"}</td>
                             </tr>
                             <tr><th>Статус</th>
-                                <td id="ticket-verified">${t.cancelled ? 
-                                    "<span style='color:#ff6685;'>Отменен</span>" : 
-                                    "<span style='color:#00d1b2;'>Активен</span>"}</td>
+                                <td id="ticket-verified">${t.active ? 
+                                    "<span style='color:#00d1b2;'>Активен</span>" : 
+                                    "<span style='color:#ff6685;'>Деактивиран</span>"}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -195,17 +190,9 @@ export function ticketCard(t, role) {
                             Преглед на потребител
                         </button></a>` : ''
                         }
-                        <button class="button is-info" id="edit-btn">
-                            Редактирай
-                        </button>
-                        <button class="button is-warning" id="verify-btn">
+                        <button class="button is-warning" id="activate-btn">
                             ${t.active ? 'Деактивирай' : 'Активирай'}
                         </button>
-                        ${role == 0 ?
-                            `<button class="button is-danger" id="delete-btn">
-                                Изтрий
-                            </button>` : ''
-                        }
                     </div>
                 </div>
             </div>`;

@@ -1,5 +1,5 @@
 import { api } from "../core/api.js";
-import { $, $$ } from "../core/dom.js";
+import { $, showError, showSuccess } from "../core/dom.js";
 import { header } from "../components/header.js";
 import { ticketCard } from "../components/adminCards.js";
 
@@ -17,33 +17,35 @@ if (!user.logged_in || user.role == 2) {
   const id = window.location.pathname.split("/").pop();
   const ticket = await api.admin.tickets.get(id);
   renderTicket();
+  
+  showSuccess();
+  showError();
+
+   document.addEventListener("click", (e) => {
+      if(e.target.matches("#activate-btn"))
+        toggle_active();
+   });
 
   async function renderTicket() {
     $("#ticket-card").innerHTML = ticketCard(ticket, user.role);
   }
 
-  document.addEventListener("click", (e) => {
-    if(e.target.matches("#delete-btn"))
-      renderDelete();
-  });
-
-  // Модал
-  function openModal(modal) {
-  if (!modal.classList.contains("is-active")) modal.classList.add("is-active");
+  function toggle_active() {
+    if(ticket.active)
+        editTicket({ active: false }, "Билет успешно деактивиран.");
+      else
+        editTicket({ active: true }, "Билет успешно активиран.");
   }
 
-  function closeModal(modal) {
-    if (modal.classList.contains("is-active"))
-      modal.classList.remove("is-active");
+  async function editTicket(json, message) {
+    const res = await api.admin.tickets.edit(id, json);
+    if (res.success) {
+      localStorage.setItem("success_message", message);
+      window.location.reload();
+    } else {
+      localStorage.setItem("error_message", res.error || "Възникна грешка.");
+      window.location.reload();
+    }
+    window.location.reload();
   }
-
-  function renderDelete() {
-    openModal($("#delete-modal"));
-  }
-
-  ($$(".modal-background, #modal-close, #modal-cancel") || []).forEach((x) => {
-    x.addEventListener("click", () => {
-      closeModal(x.closest(".modal"));
-    });
-  });
 }

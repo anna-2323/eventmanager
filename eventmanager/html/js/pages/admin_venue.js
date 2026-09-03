@@ -1,5 +1,5 @@
 import { api } from "../core/api.js";
-import { $, $$, toDate } from "../core/dom.js";
+import { $, showError, showSuccess, toDate } from "../core/dom.js";
 import { header } from "../components/header.js";
 import { input, editSection, activateToggles } from "../components/form.js";
 import { venueCard } from "../components/adminCards.js";
@@ -19,32 +19,30 @@ if (!user.logged_in || user.role == 2) {
   const venue = await api.venues.get(id);
   renderVenue();
   renderEvents();
+  
+  showSuccess();
+  showError();
 
   async function renderVenue() {
     $("#venue-card").innerHTML = venueCard(venue, user.role);
   }
 
   document.addEventListener("click", (e) => {
-    // Смяна на изглед
     if(e.target.matches("#events-btn"))
       renderEvents();
     if(e.target.matches("#edit-btn"))
       renderEdit();
-    if(user.role == 0 && e.target.matches("#verify-btn"))
-      verify();
-    if(user.role == 0 && e.target.matches("#delete-btn"))
-      renderDelete();
+    if(user.role == 0 && e.target.matches("#activate-btn"))
+      set_active();
 
     // Редактиране на данни за събитие
     if(e.target.matches("#change-name-btn")) {
-      const title = $("#new-name").value;
-      editVenue({ title }, "Името е сменено успешно.");
+      const venue_name = $("#new-name").value;
+      editVenue({ venue_name }, "Името е сменено успешно.");
     }
-    if(e.target.matches("#confirm-delete-btn")) {
-      if(venue.active)
-        editVenue({ active: false }, "Залата е успешно деактивирана.");
-      else
-        editVenue({ active: true }, "Залата е успешно активирана.");
+    if(e.target.matches("#change-address-btn")) {
+      const address = $("#new-address").value;
+      editVenue({ address }, "Адресът е сменен успешно.");
     }
   });
 
@@ -91,58 +89,37 @@ if (!user.logged_in || user.role == 2) {
           </button>
         `,
         )}
+        ${editSection(
+          "Промяна на адрес",
+          "change-address-form",
+          `${input("Нов адрес", "new-address")}
+          <button class="button is-link" id="change-address-btn">
+              Запази
+          </button>
+        `,
+        )}
         `;
 
     activateToggles();
   }
 
-  function verify() {
-    if(venue.verified) {
-        editVenue(({ verified: false }), "Одобряването на събитието е отменено.");
+  function set_active() {
+    if(venue.active) {
+        editVenue({ active: false }, "Залата е успешно деактивирана.");
     }
     else {
-        editVenue(({ verified: true }), "Събитието е одобрено.");
+        editVenue({ active: true }, "Залата е успешно активирана.");
     }
   }
-  // Модал
-  function openModal(modal) {
-  if (!modal.classList.contains("is-active")) modal.classList.add("is-active");
-  }
-
-  function closeModal(modal) {
-    if (modal.classList.contains("is-active"))
-      modal.classList.remove("is-active");
-  }
-
-  function renderDelete() {
-    openModal($("#delete-modal"));
-  }
-
-  ($$(".modal-background, #modal-close, #modal-cancel") || []).forEach((x) => {
-    x.addEventListener("click", () => {
-      closeModal(x.closest(".modal"));
-    });
-  });
-
-  $("#confirm-delete-btn").addEventListener("click", async function () {
-      const res = await api.admin.events.delete(id);
-      if (res.success) {
-        localStorage.setItem("success_message", "Успешно изтрито събитие.");
-        window.location.href = `/admin/venues`;
-      } else {
-        localStorage.setItem("error_message", res.error || "Възникна грешка.");
-      }
-  });
   
   async function editVenue(json, message) {
     const res = await api.admin.venues.edit(id, json);
     if (res.success) {
       localStorage.setItem("success_message", message);
-      window.location.reload();
-    } else {
+    } 
+    else {
       localStorage.setItem("error_message", res.error || "Възникна грешка.");
-      window.location.reload();
     }
-    window.location.reload();
+      window.location.reload();
   }
 }
