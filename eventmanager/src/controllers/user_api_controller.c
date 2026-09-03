@@ -381,6 +381,7 @@ static int handle_email(PGconn* db, Session* s, json_t* req, json_t* res) {
 		missing_fields(res);
 	}
 	int result = update_email(db, s->user_id, password, email);
+	snprintf(s->email, sizeof(s->email), "%s", email);
 	set_result(res, result);
 	return result;
 }
@@ -392,6 +393,7 @@ static int handle_phone(PGconn* db, Session* s, json_t* req, json_t* res) {
 		missing_fields(res);
 	}
 	int result = update_phone(db, s->user_id, password, phone);
+	snprintf(s->phone, sizeof(s->phone), "%s", phone);
 	set_result(res, result);
 	return result;
 }
