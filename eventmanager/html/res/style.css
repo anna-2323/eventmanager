@@ -64,3 +64,7 @@ img {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.help {
+  font-size: 1rem;
+}
