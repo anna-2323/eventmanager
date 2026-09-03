@@ -68,3 +68,8 @@ img {
 .help {
   font-size: 1rem;
 }
+
+.fullwidth-form {
+  width: 70%;
+  margin: auto;
+}
