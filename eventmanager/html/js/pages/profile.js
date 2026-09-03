@@ -7,8 +7,7 @@ header();
 const user = await api.auth.getUser();
 if (user.logged_in) {
   // Попълва се контейнера с личните данни
-  $("#first-name").innerHTML = `${user.first_name ? user.first_name : ""}`;
-  $("#last-name").innerHTML = `${user.last_name ? user.last_name : ""}`;
+  $("#name").innerHTML = `${user.first_name ? user.first_name : ""} ${user.last_name ? user.last_name : ""}`;
   $("#email").innerHTML = `${user.email}`;
   $("#phone").innerHTML = `${user.phone ? user.phone : ""}`;
 
