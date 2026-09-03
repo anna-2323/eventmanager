@@ -7,7 +7,18 @@ header();
 
 const id = window.location.pathname.split("/").pop();
 
-const e = api.events.get(id);
+const e = await api.events.get(id);
+
+// автоматично попълване на данни, ако потрвбителят е влязъл
+const user = await api.auth.getUser();
+if(user.logged_in) {
+  $("#first_name").value = user.first_name;
+  $("#last_name").value = user.last_name;
+  $("#email").value = user.email;
+  if(user.phone)
+    $("#phone").value = user.phone;
+}
+
 $$("#event-title").textContent = e.title;
 
 loadSeatMap(id);
