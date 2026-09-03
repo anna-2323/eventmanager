@@ -7,20 +7,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="/res/style.css" />
-    <link rel="stylesheet" href="/res/purchase.css" />
+    <link rel="stylesheet" href="/res/seatMap.css" />
 </head>
-    <style>
-        #event-layout-field {
-            display: flex !important;
-        }
-        #seat-map {
-            width: 50%;
-            border: 1px solid #d6d9e0;
-            border-radius: 10px;
-            margin: 0 10px;
-        }
-    </style>
-
 <body>
 
     <header id="header">
@@ -54,8 +42,8 @@
                         <input class="input" type="tel" id="phone">
                     </div>
                 </div>
-                <label id="event-layout-label" class="label" style="display:none;">Избор на сектор</label>
-                <div id="event-layout-field" style="display:none;">
+                <label id="event-layout-label" class="label">Избор на сектор</label>
+                <div id="event-layout-field">
                     <svg id="seat-map">
                     </svg>
                     <div id="sector-summary" style="visibility:hidden;">

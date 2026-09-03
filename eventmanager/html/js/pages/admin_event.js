@@ -61,7 +61,7 @@ if (!user.logged_in || user.role == 2) {
 
   function renderLayout() {
     $("#changeable").innerHTML = 
-      `<div id="event-layout-field" style="display:none;">
+      `<div id="event-layout-field">
            <svg id="seat-map">
            </svg>
            <div id="sector-summary" style="visibility:hidden;">

@@ -6,8 +6,7 @@
   padding: 1rem;
 }
 #event-layout-field {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
+  display: flex;
 }
 #layout-svg {
   padding: 1rem;
@@ -31,4 +30,11 @@
   font-size: 14px;
   pointer-events: none;
   fill: #222;
+}
+#seat-map {
+    width: 50%;
+    min-width: 450px;
+    border: 1px solid #d6d9e0;
+    border-radius: 10px;
+    margin: 0 10px;
 }

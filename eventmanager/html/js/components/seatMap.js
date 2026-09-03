@@ -1,17 +1,20 @@
 import { api } from "../core/api.js";
-import { $, show, toPrice } from "../core/dom.js";
+import { $, hide, toPrice } from "../core/dom.js";
 
 export async function loadSeatMap(eventId) {
   const data = await api.events.getSeatMap(eventId);
 
   // Ако залата няма разделение по сектори, тоест има само един сектор:
   if (!data.has_sectors) {
-    $("#sector-id-input").dataset.sectorId = data.no_sector_id;
-    return;
+    if($("#sector-id-input")) {
+      $("#sector-id-input").dataset.sectorId = data.no_sector_id;
+      hide($("#event-layout-label"));
+      hide($("#event-layout-field"));
+    }
+    if($("#changeable"))
+      $("#changeable").innerHTML = "Няма данни за изглед."
+    return false;
   }
-
-  show($("#event-layout-label"));
-  show($("#event-layout-field"));
 
   const svg = $("#seat-map");
   svg.setAttribute("viewBox", data.viewbox);
@@ -41,6 +44,8 @@ export async function loadSeatMap(eventId) {
     label.classList.add("sector-label");
     svg.appendChild(label);
   });
+
+  return true;
 }
 
 function selectSector(sector, sectorPath) {
