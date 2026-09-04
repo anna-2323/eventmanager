@@ -130,6 +130,9 @@ int verify_user(PGconn* db, const char* email, const char* password, User* out) 
 		out->role = atoi(PQgetvalue(res, 0, 5));
 		strncpy(out->deleted_on, PQgetvalue(res, 0, 6), sizeof(out->deleted_on) - 1);
 		PQclear(res);
+		// Ако акаунтът е бил маркиран за изтриване, се възстановява
+		res = PQexecPrepared(db, "restore_user", 1, params, NULL, NULL, 0);
+		PQclear(res);
 	}
 	
 	return result;

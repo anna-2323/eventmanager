@@ -54,6 +54,9 @@ const char* SQL_UPDATE_PHONE =
 const char* SQL_SOFT_DELETE_USER =
 "UPDATE data.users SET deleted_on = NOW() WHERE id = $1";
 
+const char* SQL_RESTORE_USER =
+"UPDATE data.users SET deleted_on = NULL WHERE id = $1;";
+
 const char* SQL_ACTIVATE_USER =
 "UPDATE data.users SET active = TRUE WHERE id = $1";
 

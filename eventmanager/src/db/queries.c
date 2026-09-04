@@ -119,6 +119,8 @@ int prepare_queries(PGconn* db)
         return 0;
     if (!prepare_query(db, "soft_delete_user", SQL_SOFT_DELETE_USER, 1))
         return 0;
+    if (!prepare_query(db, "restore_user", SQL_RESTORE_USER, 1))
+        return 0;
     if (!prepare_query(db, "activate_user", SQL_ACTIVATE_USER, 1))
         return 0;
     if (!prepare_query(db, "deactivate_user", SQL_DEACTIVATE_USER, 1))
