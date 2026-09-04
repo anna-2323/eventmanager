@@ -51,13 +51,14 @@ export const api = {
 
   tickets: {
     purchase: (id, data) => request(`/purchase/${id}`, { method: 'POST', body: JSON.stringify(data) }),
-    confirm: (token) => request(`/confirmation/${token}`),
-    getMine: () => request(`/mytickets`)
+    confirm: (token) => request(`/confirmation/${token}`)
   },
 
   users: {
     edit: (data) => request('/profile', { method: 'PATCH', body: JSON.stringify(data) }),
-    delete: (data) => request('/profile', { method: 'DELETE', body: JSON.stringify(data) })
+    delete: (data) => request('/profile', { method: 'DELETE', body: JSON.stringify(data) }),
+    getTickets: (id) => request(`/users/${id}/tickets`),
+    getEvents: (id) => request(`/users/${id}/events`)
   },
 
   stats: {
@@ -82,7 +83,6 @@ export const api = {
     users: {
       list: () => request('/admin/users'),
       get: (id) => request(`/admin/users/${id}`),
-      events: (id) => request(`/admin/users/${id}/events`),
       edit: (id, data) => request(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
       delete: (id) => request(`/admin/users/${id}`, { method: 'DELETE' })
     },
@@ -92,7 +92,6 @@ export const api = {
       create: (data) => create('/admin/events', data, "POST"),
       edit: (id, data) => request(`/admin/events/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
       editImage: (id, data) => create(`/admin/events/${id}`, data, "PATCH"),
-      delete: (id) => request(`/admin/events/${id}`, { method: 'DELETE' })
     },
     venues: {
       create: (data) => request('/admin/venues', { method: 'POST', body: JSON.stringify(data) }),

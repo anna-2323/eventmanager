@@ -14,7 +14,7 @@ if (user.logged_in) {
   // Контейнер за резервирани събития
   // Ще има такива само ако потребителят е с роля на клиент
   if (user.role == 2) {
-    const tickets = await api.tickets.getMine();
+    const tickets = await api.users.getTickets(user.id);
     show($("#booked-events"));
     if(tickets.length > 0) {
       $("#booked-events").innerHTML += `

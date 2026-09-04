@@ -67,10 +67,14 @@ if (!user.logged_in || user.role !== 0) {
 
   async function renderEvents() {
     const editUser = await api.admin.users.get(id);
-    const events = await api.admin.users.events(id);
+    let events;
+    if(user.role == 1)
+      events = await api.users.getEvents(id);
+    if(user.role == 2)
+      events = await api.users.getTickets(id);
 
     $("#changeable").innerHTML = `<h2 id="events-title" class="subtitle">
-            ${editUser.role == 1 ? "Качени събития" : "Запазени събития"}
+            ${editUser.role == 1 ? "Качени събития" : "Купени билети"}
         </h2>`;
 
     if (events.length > 0) {
@@ -90,7 +94,9 @@ if (!user.logged_in || user.role !== 0) {
                   <td>${e.title}</td>
                   <td>${toDate(e.begins_at)}</td>
                   <td>${e.venue_name}</td>
-                  <td><a href="/admin/events/${e.id}"><button class="button is-small is-link">
+                  <td><a href="${user.role == 1 ? 
+                      `/admin/events/${e.id}` : `/admin/tickets/${e.id}`
+                    }"><button class="button is-small is-link">
                           Преглед
                       </button></a></td>
               </tr>`,

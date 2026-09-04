@@ -164,13 +164,8 @@ int get_user_events(PGconn* db, int id, Event** out) {
 	int role = atoi(PQgetvalue(res, 0, 0));
 	PQclear(res);
 
-	// Ако е организатор, показва качени събития
-	if (role == 1) {
+	if (role != 2) {
 		res = PQexecPrepared(db, "get_uploaded_events", 1, params, NULL, NULL, 0);
-	}
-	// В противен случай, показва резервирани събития
-	else {
-		res = PQexecPrepared(db, "get_booked_events", 1, params, NULL, NULL, 0);
 	}
 
 	CHECK_QUERY(res, db, 0);

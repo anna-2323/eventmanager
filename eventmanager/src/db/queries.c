@@ -18,8 +18,6 @@ int prepare_queries(PGconn* db)
         return 0;
     if (!prepare_query(db, "get_uploaded_events", SQL_GET_UPLOADED_EVENTS, 1))
         return 0;
-    if (!prepare_query(db, "get_booked_events", SQL_GET_BOOKED_EVENTS, 1))
-        return 0;
     if (!prepare_query(db, "get_venue_events", SQL_GET_VENUE_EVENTS, 1))
         return 0;
     if (!prepare_query(db, "get_event", SQL_GET_EVENT, 1))

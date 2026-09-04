@@ -48,18 +48,6 @@ const char* SQL_GET_UPLOADED_EVENTS =
 "GROUP BY e.id, e.title, e.begins_at, e.img_path, "
 "         v.venue_name, v.city;";
 
-const char* SQL_GET_BOOKED_EVENTS =
-"SELECT t.event_id, e.title, e.begins_at, e.img_path, "
-"v.venue_name, v.city, es.price, s.name "
-"FROM data.tickets t "
-"JOIN data.events e ON t.event_id = e.id "
-"JOIN data.venues v ON e.venue_id = v.id "
-"JOIN data.event_sectors es "
-"    ON es.event_id = t.event_id "
-"    AND es.sector_id = t.sector_id "
-"JOIN data.sectors s ON es.sector_id = s.id "
-"WHERE t.user_id = $1 ";
-
 const char* SQL_GET_VENUE_EVENTS =
 "SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
 "       MIN(es.price) AS price, "

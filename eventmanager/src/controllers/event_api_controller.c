@@ -103,6 +103,46 @@ int api_events(struct mg_connection* conn, void* data) {
     }
 }
 
+// GET /api/users/{id}/events
+int api_user_events(struct mg_connection* conn, void* data) {
+    Session* s = get_session(conn);
+    // Само администратори и организатори имат достъп до качени събития
+    if (!s || check_role(conn, ROLE_USER)) {
+        mg_send_http_error(conn, 401, "Unauthorized");
+        return 401;
+    }
+
+    const struct mg_request_info* info = mg_get_request_info(conn);
+    if (strcmp(info->request_method, "GET") == 0) {
+        const char* id_str = info->local_uri + strlen("/api/users/");
+        int user_id = atoi(id_str);
+        if (user_id <= 0) {
+            return 400;
+        }
+
+        if (!check_role(conn, ROLE_ADMIN) && user_id != s->user_id) {
+            mg_send_http_error(conn, 403, "Forbidden");
+            return 403;
+        }
+
+        PGconn* db = (PGconn*)data;
+        Event* events = NULL;
+        int count = get_user_events(db, user_id, &events);
+
+        json_t* json = json_array();
+        for (size_t i = 0; i < count; i++) {
+            json_array_append_new(json, event_to_json(&events[i]));
+        }
+        free(events);
+        return send_json(conn, json);
+    }
+
+    mg_send_http_error(conn, 405, "Method Not Allowed");
+    return 405;
+}
+
+
+
 // GET /api/categories
 int api_categories(struct mg_connection* conn, void* data) {
     Category* categories = NULL;

@@ -211,10 +211,10 @@ int api_admin_tickets(struct mg_connection* conn, void* data) {
     }
 }
 
-// GET /api/mytickets
-int api_my_tickets(struct mg_connection* conn, void* data) {
+// GET /api/users/{id}/tickets
+int api_user_tickets(struct mg_connection* conn, void* data) {
     Session* s = get_session(conn);
-    // Само регистрирани потребители могат да купуват билети
+    // Гости не могат да преглеждат билети
     if (!s) {
         mg_send_http_error(conn, 401, "Unauthorized");
         return 401;
@@ -222,10 +222,20 @@ int api_my_tickets(struct mg_connection* conn, void* data) {
 
     const struct mg_request_info* info = mg_get_request_info(conn);
     if (strcmp(info->request_method, "GET") == 0) {
+        const char* id_str = info->local_uri + strlen("/api/users/");
+        int user_id = atoi(id_str);
+        if (user_id <= 0) {
+            return 400;
+        }
+
+        if (!check_role(conn, ROLE_ADMIN) && user_id != s->user_id) {
+            mg_send_http_error(conn, 403, "Forbidden");
+            return 403;
+        }
 
         PGconn* db = (PGconn*)data;
         TicketView* tickets = NULL;
-        int count = get_user_tickets(db, s->user_id, &tickets);
+        int count = get_user_tickets(db, user_id, &tickets);
 
         json_t* json = json_array();
         for (size_t i = 0; i < count; i++) {

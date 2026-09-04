@@ -125,6 +125,7 @@ int api_me(struct mg_connection* conn, void* data) {
 	// Ако потребителят е влязъл
 	if (s) {
 		json_object_set_new(res, "logged_in", json_true());
+		json_object_set_new(res, "id", json_integer(s->user_id));
 		json_object_set_new(res, "email", json_string(s->email));
 		json_object_set_new(res, "first_name", json_string(s->first_name));
 		json_object_set_new(res, "last_name", json_string(s->last_name));
