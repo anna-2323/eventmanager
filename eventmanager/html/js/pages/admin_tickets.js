@@ -48,6 +48,12 @@ if (!user.logged_in || user.role == 2) {
                     <i class="change-icon fas"></i>
                   </span>
                 </th>
+                <th class="sortable" data-sort="active">
+                  <span>Активен</span>
+                  <span class="icon">
+                    <i class="change-icon fas"></i>
+                  </span>
+                </th>
                 <th></th>
             </tr>
         </thead>
@@ -126,6 +132,11 @@ if (!user.logged_in || user.role == 2) {
           av = a.sector_name.toLowerCase();
           bv = b.sector_name.toLowerCase();
           break;
+
+        case "active":
+          av = a.active;
+          bv = b.active;
+          break;
       }
 
       if (av < bv) return ascending ? -1 : 1;
@@ -144,6 +155,7 @@ if (!user.logged_in || user.role == 2) {
                   <td>${t.event_name}</td>
                   <td>${t.venue_name}, ${t.venue_city}</td>
                   <td>${t.sector_name ? t.sector_name : ""}</td>
+                  <td>${t.active ? '<i class="fa-solid fa-check"></i>' : ''}
                   <td>
                       <a href="/admin/tickets/${t.id}"><button class="button is-link view-btn">Преглед</button></a>
                   </td>

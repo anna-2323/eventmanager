@@ -32,6 +32,7 @@ int api_events(struct mg_connection* conn, void* data) {
             EventFilters filters = { 0 };
 
             filters.upcoming = 1;
+            filters.active = 1;
 
             char search[256] = "";
             char city[128] = "";
@@ -226,6 +227,8 @@ int api_admin_events(struct mg_connection* conn, void* data) {
             if (s->role == 0) {
                 EventFilters filters = { 0 };
                 filters.upcoming = 0;
+                filters.active = 0;
+
                 char search[256] = "";
                 char city[128] = "";
                 char category[32] = "";

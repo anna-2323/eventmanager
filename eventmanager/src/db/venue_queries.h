@@ -1,8 +1,10 @@
 #pragma once
 
 const char* SQL_GET_VENUES =
-"SELECT v.id, v.city, v.address, v.venue_name "
-"FROM data.venues v;";
+"SELECT v.id, v.city, v.address, v.venue_name, "
+"v.has_sectors, v.active "
+"FROM data.venues v "
+"WHERE ($1::boolean = FALSE OR v.active);";
 
 const char* SQL_GET_VENUE =
 "SELECT v.id, v.city, v.address, v.venue_name, "

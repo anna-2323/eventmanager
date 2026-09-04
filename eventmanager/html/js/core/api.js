@@ -94,6 +94,7 @@ export const api = {
       editImage: (id, data) => create(`/admin/events/${id}`, data, "PATCH"),
     },
     venues: {
+      list: () => request('/admin/venues'),
       create: (data) => request('/admin/venues', { method: 'POST', body: JSON.stringify(data) }),
       edit: (id, data) => request(`/admin/venues/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
     },

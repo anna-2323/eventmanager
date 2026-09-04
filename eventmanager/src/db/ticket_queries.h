@@ -38,12 +38,13 @@ const char* SQL_GET_TICKETS =
 "SELECT t.id, e.title, e.begins_at, v.venue_name, v.city, v.address, "
 "       t.first_name, t.last_name, t.email, t.phone, "
 "       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name, "
-"       t.access_token "
+"       t.access_token, t.price, e.id, u.id, t.active  "
 "FROM data.tickets t "
 "JOIN data.events e ON t.event_id = e.id "
 "JOIN data.venues v ON e.venue_id = v.id "
 "LEFT JOIN data.sectors s "
 "    ON s.id = t.sector_id "
+"JOIN data.users u on t.user_id = u.id "
 "WHERE ($1::integer IS NULL OR e.organizer_id = $1) "
 "ORDER BY e.begins_at;";
 
@@ -51,7 +52,7 @@ const char* SQL_GET_USER_TICKETS =
 "SELECT t.id, e.title, e.begins_at, v.venue_name, v.city, v.address, "
 "       t.first_name, t.last_name, t.email, t.phone, "
 "       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name, "
-"		t.access_token "
+"		t.access_token, t.price, e.id, u.id, t.active  "
 "FROM data.tickets t "
 "JOIN data.events e ON t.event_id = e.id "
 "JOIN data.venues v ON e.venue_id = v.id "
@@ -92,7 +93,8 @@ const char* SQL_TOTAL_TICKETS =
 "SELECT COUNT(*) "
 "FROM data.tickets t "
 "JOIN data.events e ON t.event_id = e.id "
-"WHERE ($1::integer IS NULL OR e.organizer_id = $1);";
+"WHERE ($1::integer IS NULL OR e.organizer_id = $1) "
+"AND t.active = TRUE;";
 
 const char* SQL_TICKETS_GROWTH_MONTHLY =
 "SELECT "
@@ -102,6 +104,7 @@ const char* SQL_TICKETS_GROWTH_MONTHLY =
 "JOIN data.events e ON t.event_id = e.id "
 "WHERE t.purchased_at >= CURRENT_DATE - INTERVAL '12 months' "
 "AND ($1::integer IS NULL OR e.organizer_id = $1) "
+"AND t.active = TRUE "
 "GROUP BY DATE_TRUNC('month', t.purchased_at) "
 "ORDER BY month;";
 
@@ -112,6 +115,7 @@ const char* SQL_TICKETS_GROWTH_MONTHLY_ALL =
 "FROM data.tickets t "
 "JOIN data.events e ON t.event_id = e.id "
 "WHERE ($1::integer IS NULL OR e.organizer_id = $1) "
+"AND t.active = TRUE "
 "GROUP BY DATE_TRUNC('month', t.purchased_at) "
 "ORDER BY month;";
 
@@ -123,6 +127,7 @@ const char* SQL_TICKETS_GROWTH_DAILY =
 "JOIN data.events e ON t.event_id = e.id "
 "WHERE t.purchased_at >= CURRENT_DATE - INTERVAL '30 days' "
 "AND ($1::integer IS NULL OR e.organizer_id = $1) "
+"AND t.active = TRUE "
 "GROUP BY DATE_TRUNC('day', t.purchased_at) "
 "ORDER BY day;";
 
@@ -133,7 +138,8 @@ const char* SQL_TOTAL_REVENUE =
 "JOIN data.event_sectors es "
 "ON es.event_id = t.event_id "
 "AND es.sector_id = t.sector_id "
-"WHERE ($1::integer IS NULL OR e.organizer_id = $1);";
+"WHERE ($1::integer IS NULL OR e.organizer_id = $1) "
+"AND t.active = TRUE;";
 
 const char* SQL_REVENUE_DAILY =
 "SELECT "
@@ -147,6 +153,7 @@ const char* SQL_REVENUE_DAILY =
 "JOIN data.events e ON t.event_id = e.id "
 "WHERE t.purchased_at >= CURRENT_DATE - INTERVAL '30 days' "
 "AND ($1::integer IS NULL OR e.organizer_id = $1) "
+"AND t.active = TRUE "
 "GROUP BY day "
 "ORDER BY day;";
 
@@ -162,6 +169,7 @@ const char* SQL_REVENUE_MONTHLY =
 "JOIN data.events e ON t.event_id = e.id "
 "WHERE t.purchased_at >= CURRENT_DATE - INTERVAL '12 months' "
 "AND ($1::integer IS NULL OR e.organizer_id = $1) "
+"AND t.active = TRUE "
 "GROUP BY month "
 "ORDER BY month;";
 
@@ -176,6 +184,7 @@ const char* SQL_REVENUE_MONTHLY_ALL =
 "AND es.sector_id = t.sector_id "
 "JOIN data.events e ON t.event_id = e.id "
 "WHERE ($1::integer IS NULL OR e.organizer_id = $1) "
+"AND t.active = TRUE "
 "GROUP BY month "
 "ORDER BY month;";
 
@@ -193,6 +202,7 @@ const char* SQL_REVENUE_BY_VENUE_MONTHLY =
 "JOIN data.venues v ON v.id = e.venue_id "
 "WHERE t.purchased_at >= CURRENT_DATE - INTERVAL '12 months' "
 "AND ($1::integer IS NULL OR e.organizer_id = $1) "
+"AND v.active = TRUE and t.active = TRUE "
 "GROUP BY v.id, month "
 "ORDER BY v.id, month;";
 
@@ -209,5 +219,6 @@ const char* SQL_REVENUE_BY_VENUE_MONTHLY_ALL =
 "JOIN data.events e ON e.id = t.event_id "
 "JOIN data.venues v ON v.id = e.venue_id "
 "WHERE ($1::integer IS NULL OR e.organizer_id = $1) "
+"AND v.active = TRUE and t.active = TRUE "
 "GROUP BY v.id, month "
 "ORDER BY v.id, month;";

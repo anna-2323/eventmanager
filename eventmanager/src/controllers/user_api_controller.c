@@ -173,7 +173,10 @@ int api_login(struct mg_connection* conn, void* data) {
 		}
 		else {
 			json_object_set_new(res, "success", json_false());
-			json_object_set_new(res, "error", json_string("Невалиден имейл или парола."));
+			if(ok == 0)
+				json_object_set_new(res, "error", json_string("Невалиден имейл или парола."));
+			if(ok == -1)
+				json_object_set_new(res, "error", json_string("Възникна грешка."));
 		}
 		return send_json(conn, res);
 	}

@@ -44,6 +44,12 @@ if (!user.logged_in || user.role !== 0) {
                     <i class="change-icon fas"></i>
                   </span>
                 </th>
+                <th class="sortable" data-sort="active">
+                  <span>Активен</span>
+                  <span class="icon">
+                    <i class="change-icon fas"></i>
+                  </span>
+                </th>
                 <th>Планирано изтриване</th>
                 <th></th>
             </tr>
@@ -120,6 +126,11 @@ if (!user.logged_in || user.role !== 0) {
           av = a.role;
           bv = b.role;
           break;
+
+        case "active":
+          av = a.active;
+          bv = b.active;
+          break;
       }
 
       if (av < bv) return ascending ? -1 : 1;
@@ -140,6 +151,7 @@ if (!user.logged_in || user.role !== 0) {
                     ${ROLE_LABELS[u.role] || u.role}
                 </span>
             </td>
+            <td>${u.active ? '<i class="fa-solid fa-check"></i>' : ''}
             <td>
                 ${u.deleted_on ? `${new Date(u.deleted_on).toLocaleString("bg-BG")}` : ""}
             </td>

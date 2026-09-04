@@ -25,7 +25,7 @@ int api_venues(struct mg_connection* conn, void* data) {
 		if (strcmp(info->request_method, "GET") == 0) {
 			json_t* res = json_array();
 			Venue* venues;
-			int count = get_venues(db, &venues);
+			int count = get_venues(db, &venues, 1);
 			for (int i = 0; i < count; i++) {
 				json_array_append(res, venue_to_json(&venues[i]));
 			}
@@ -88,8 +88,18 @@ int api_admin_venues(struct mg_connection* conn, void* data) {
 	PGconn* db = (PGconn*)data;
 	const struct mg_request_info* info = mg_get_request_info(conn);
 
-	// POST /api/venues
+	// GET, POST /api/admin/venues
 	if (strcmp(info->local_uri, "/api/admin/venues") == 0) {
+		if (strcmp(info->request_method, "GET") == 0) {
+			json_t* res = json_array();
+			Venue* venues;
+			int count = get_venues(db, &venues, 0);
+			for (int i = 0; i < count; i++) {
+				json_array_append(res, venue_to_json(&venues[i]));
+			}
+			free(venues);
+			return send_json(conn, res);
+		}
 		if (strcmp(info->request_method, "POST") == 0) {
 			if (check_role(conn, ROLE_USER)) {
 				mg_send_http_error(conn, 403, "Forbidden");

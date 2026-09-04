@@ -108,6 +108,11 @@ int verify_user(PGconn* db, const char* email, const char* password, User* out) 
 
 	// След това - проверка по парола
 	res = PQexecPrepared(db, "get_user_password", 1, params, NULL, NULL, 1);
+	CHECK_QUERY(res, db, 0);
+	if (PQntuples(res) == 0) {
+		PQclear(res);
+		return -1;
+	}
 	unsigned const char* stored_hash = (const char*)PQgetvalue(res, 0, 0);
 	unsigned const char* salt = (const char*)PQgetvalue(res, 0, 1);
 	int hash_len = PQgetlength(res, 0, 0);

@@ -13,7 +13,7 @@ typedef struct {
 	int has_sectors;
 } Venue;
 
-int get_venues(PGconn* db, Venue** out);
+int get_venues(PGconn* db, Venue** out, int active);
 int get_venue(PGconn* db, int id, Venue* out);
 
 int get_sectors(PGconn* db, int venue_id, Sector** out);

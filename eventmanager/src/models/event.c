@@ -20,7 +20,7 @@ static void event_from_query(PGresult* res, Event* e, int i) {
 int get_events(PGconn* db, const EventFilters* filters, Event** out) {
 	CHECK_DB(db, 0);
 
-	const char* params[4];
+	const char* params[5];
 
 	char upcoming_str[2];
 	snprintf(upcoming_str, sizeof(upcoming_str), "%d", filters->upcoming);
@@ -42,7 +42,11 @@ int get_events(PGconn* db, const EventFilters* filters, Event** out) {
 		params[3] = NULL;
 	}
 
-	PGresult* res = PQexecPrepared(db, "get_events", 4, params, NULL, NULL, 0);
+	char active_str[2];
+	snprintf(active_str, sizeof(active_str), "%d", filters->active);
+	params[4] = active_str;
+
+	PGresult* res = PQexecPrepared(db, "get_events", 5, params, NULL, NULL, 0);
 	CHECK_QUERY(res, db, 0);
 
 	int count = PQntuples(res);

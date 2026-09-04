@@ -2,14 +2,11 @@
 
 const char* SQL_GET_EVENTS =
 "SELECT "
-"    e.id, "
-"    e.title, "
-"    e.begins_at, "
-"    e.img_path, "
-"    v.venue_name, "
-"    v.city, "
+"    e.id, e.title, e.begins_at, e.img_path, "
+"    v.venue_name, v.city, "
 "    MIN(es.price) AS price, "
-"    SUM(es.capacity) - COUNT(t.id) AS seats_left "
+"    SUM(es.capacity) - COUNT(t.id) AS seats_left, "
+"	 e.description, e.active "
 "FROM data.events e "
 "JOIN data.venues v "
 "    ON e.venue_id = v.id "
@@ -25,6 +22,7 @@ const char* SQL_GET_EVENTS =
 "     OR v.venue_name ILIKE '%' || $2 || '%') "
 "AND ($3::text IS NULL OR v.city = $3) "
 "AND ($4::int IS NULL OR e.category_id = $4) "
+"AND ($5::boolean = FALSE OR e.active) "
 "GROUP BY "
 "    e.id, "
 "    e.title, "
@@ -37,7 +35,8 @@ const char* SQL_GET_EVENTS =
 const char* SQL_GET_UPLOADED_EVENTS =
 "SELECT e.id, e.title, e.begins_at, e.img_path, v.venue_name, v.city, "
 "MIN(es.price) AS price, "
-"SUM(es.capacity) - COUNT(t.id) AS seats_left "
+"SUM(es.capacity) - COUNT(t.id) AS seats_left, "
+"e.active "
 "FROM data.events e "
 "JOIN data.venues v ON e.venue_id = v.id "
 "JOIN data.event_sectors es ON es.event_id = e.id "
@@ -138,7 +137,8 @@ const char* SQL_GET_CATEGORIES =
 const char* SQL_TOTAL_EVENTS =
 "SELECT COUNT(*) "
 "FROM data.events e "
-"WHERE ($1::integer IS NULL OR e.organizer_id = $1);";
+"WHERE ($1::integer IS NULL OR e.organizer_id = $1) "
+"AND e.active = TRUE;";
 
 const char* SQL_EVENTS_GROWTH_MONTHLY =
 "SELECT "
@@ -147,6 +147,7 @@ const char* SQL_EVENTS_GROWTH_MONTHLY =
 "FROM data.events e "
 "WHERE e.uploaded_at >= CURRENT_DATE - INTERVAL '12 months' "
 "AND ($1::integer IS NULL OR e.organizer_id = $1) "
+"AND e.active = TRUE "
 "GROUP BY DATE_TRUNC('month', e.uploaded_at) "
 "ORDER BY month;";
 
@@ -157,6 +158,7 @@ const char* SQL_EVENTS_GROWTH_DAILY =
 "FROM data.events e "
 "WHERE e.uploaded_at >= CURRENT_DATE - INTERVAL '30 days' "
 "AND ($1::integer IS NULL OR e.organizer_id = $1) "
+"AND e.active = TRUE "
 "GROUP BY DATE_TRUNC('day', e.uploaded_at) "
 "ORDER BY day;";
 
@@ -166,5 +168,6 @@ const char* SQL_EVENTS_GROWTH_MONTHLY_ALL =
 "COUNT(*) AS event_count "
 "FROM data.events e "
 "WHERE ($1::integer IS NULL OR e.organizer_id = $1) "
+"AND e.active = TRUE "
 "GROUP BY DATE_TRUNC('month', e.uploaded_at) "
 "ORDER BY month;";

@@ -1,7 +1,7 @@
 #pragma once
 
 const char* SQL_GET_USERS =
-"SELECT id, email, first_name, last_name, phone, role, deleted_on "
+"SELECT id, email, first_name, last_name, phone, role, deleted_on, active "
 "FROM data.users; ";
 
 const char* SQL_GET_USER_BY_ID =
@@ -17,7 +17,8 @@ const char* SQL_GET_USER_BY_EMAIL =
 const char* SQL_GET_USER_PASSWORD =
 "SELECT password_hash, salt "
 "FROM data.users "
-"WHERE id = $1; ";
+"WHERE id = $1 "
+"AND active;";
 
 const char* SQL_VERIFY_PASSWORD =
 "SELECT password_hash, salt FROM data.users WHERE id = $1";
@@ -85,6 +86,7 @@ const char* SQL_TOTAL_USERS =
 "SELECT COUNT(*) "
 "FROM data.users "
 "WHERE deleted_on IS NULL "
+"AND active = TRUE "
 "AND active = true;";
 
 const char* SQL_USERS_GROWTH_MONTHLY =
@@ -92,6 +94,7 @@ const char* SQL_USERS_GROWTH_MONTHLY =
 "COUNT(*) AS registrations "
 "FROM data.users u "
 "WHERE u.created_at >= CURRENT_DATE - INTERVAL '12 months' "
+"AND u.active = TRUE "
 "GROUP BY DATE_TRUNC('month', u.created_at) "
 "ORDER BY month; ";
 
@@ -99,6 +102,7 @@ const char* SQL_USERS_GROWTH_MONTHLY_ALL =
 "SELECT DATE_TRUNC('month', u.created_at) AS month, "
 "COUNT(*) AS registrations "
 "FROM data.users u "
+"WHERE u.active = TRUE "
 "GROUP BY DATE_TRUNC('month', u.created_at) "
 "ORDER BY month; ";
 
@@ -107,5 +111,6 @@ const char* SQL_USERS_GROWTH_DAILY =
 "COUNT(*) AS registrations "
 "FROM data.users u "
 "WHERE u.created_at >= CURRENT_DATE - INTERVAL '30 days' "
+"AND u.active = TRUE "
 "GROUP BY DATE_TRUNC('day', u.created_at) "
 "ORDER BY day; ";

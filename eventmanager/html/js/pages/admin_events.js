@@ -48,6 +48,12 @@ if (!user.logged_in || user.role == 2) {
                     <i class="change-icon fas"></i>
                   </span>
                 </th>
+                <th class="sortable" data-sort="active">
+                  <span>Активно</span>
+                  <span class="icon">
+                    <i class="change-icon fas"></i>
+                  </span>
+                </th>
                 <th></th>
             </tr>
         </thead>
@@ -126,6 +132,12 @@ if (!user.logged_in || user.role == 2) {
           av = a.seats_left;
           bv = b.seats_left;
           break;
+
+        case "active":
+          av = a.active;
+          bv = b.active;
+          break;
+
       }
 
       if (av < bv) return ascending ? -1 : 1;
@@ -138,11 +150,13 @@ if (!user.logged_in || user.role == 2) {
     $("#events-table").innerHTML = events
       .map(
         (e) =>
-          `<td>${e.id}</td>
+          `<tr>
+            <td>${e.id}</td>
               <td>${e.title}</td>
               <td>${toDate(e.begins_at)}</td>
               <td>${e.venue_name}, ${e.city}</td>
               <td>${e.seats_left}</td>
+              <td>${e.active ? '<i class="fa-solid fa-check"></i>' : ''}
               <td>
                   <a href="/admin/events/${e.id}"><button class="button is-link view-btn">Преглед</button></a>
               </td>

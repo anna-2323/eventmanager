@@ -70,7 +70,7 @@ int prepare_queries(PGconn* db)
     if (!prepare_query(db, "get_ticket_for_html", SQL_GET_TICKET_FOR_HTML, 1))
         return 0;
 
-    if (!prepare_query(db, "get_venues", SQL_GET_VENUES, 0))
+    if (!prepare_query(db, "get_venues", SQL_GET_VENUES, 1))
         return 0;
     if (!prepare_query(db, "get_venue", SQL_GET_VENUE, 1))
         return 0;

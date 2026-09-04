@@ -53,6 +53,8 @@ typedef struct {
 	int uploaded;
 	int booked;
 
+	int active;
+
 	int user_id;
 } EventFilters;
 

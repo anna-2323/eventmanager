@@ -41,6 +41,13 @@ if (!user.logged_in || user.role == 2) {
                   <span class="icon">
                     <i class="change-icon fas"></i>
                   </span>
+                </th>
+                <th class="sortable" data-sort="active">
+                  <span>Активна</span>
+                  <span class="icon">
+                    <i class="change-icon fas"></i>
+                  </span>
+                </th>
                 <th></th>
             </tr>
         </thead>
@@ -51,7 +58,7 @@ if (!user.logged_in || user.role == 2) {
         </tbody>
     </table>`
 
-  const venues = await api.venues.list();
+  const venues = await api.admin.venues.list();
   renderVenues();
 
   let currentSort = {
@@ -114,6 +121,11 @@ if (!user.logged_in || user.role == 2) {
           av = a.address.replace(" ", "").toLowerCase();
           bv = b.address.replace(" ", "").toLowerCase();
           break;
+
+        case "active":
+          av = a.active;
+          bv = b.active;
+          break;
       }
 
       if (av < bv) return ascending ? -1 : 1;
@@ -130,6 +142,7 @@ if (!user.logged_in || user.role == 2) {
               <td>${v.venue_name}</td>
               <td>${v.city}</td>
               <td>${v.address}</td>
+              <td>${v.active ? '<i class="fa-solid fa-check"></i>' : ''}
               <td>
                   <a href="/admin/venues/${v.id}"><button class="button is-link view-btn">Преглед</button></a>
               </td>

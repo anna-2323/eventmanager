@@ -11,10 +11,14 @@ static void venue_from_query(PGresult* res, Venue* v, int i) {
         v->active = (strcmp(PQgetvalue(res, i, 5), "t") == 0);
 }
 
-int get_venues(PGconn* db, Venue** out) {
+int get_venues(PGconn* db, Venue** out, int active) {
 	CHECK_DB(db, 0);
 
-    PGresult* res = PQexecPrepared(db, "get_venues", 0, NULL, NULL, NULL, 0);
+    char active_str[16];
+    snprintf(active_str, sizeof(active_str), "%d", active);
+    const char* params[1] = { active_str };
+
+    PGresult* res = PQexecPrepared(db, "get_venues", 1, params, NULL, NULL, 0);
     CHECK_QUERY(res, db, 0);
 
     int count = PQntuples(res);
