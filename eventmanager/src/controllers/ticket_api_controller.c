@@ -4,6 +4,8 @@
 #include "../ticket_pdf.h"
 #include "../qrcode.h"
 
+static int generate_ticket_html(PGconn* db, Config* config, TicketView* ticket, const char* qr_path, char* path, size_t size);
+
 // POST /api/purchase/{event_id}
 int api_purchase_ticket(struct mg_connection* conn, void* data) {
     PGconn* db = (PGconn*)data;
@@ -69,7 +71,10 @@ int api_purchase_ticket(struct mg_connection* conn, void* data) {
 
 // GET /api/confirmation/{ticket_id}
 int api_confirm_ticket(struct mg_connection* conn, void* data) {
-    PGconn* db = (PGconn*)data;
+    TicketContext* ctx = (TicketContext*)data;
+    PGconn* db = ctx->db;
+    Config* config = ctx->config;
+
     const struct mg_request_info* info = mg_get_request_info(conn);
 
     if (strcmp(info->request_method, "GET") == 0) {
@@ -102,12 +107,12 @@ int api_confirm_ticket(struct mg_connection* conn, void* data) {
 
             char html_path[128];
 
-            if (generate_ticket_html(db, ticket_id, qr_path, html_path, sizeof(html_path)) != 0) {
+            if (generate_ticket_html(db, config, &ticket, qr_path, html_path, sizeof(html_path)) != 0) {
                 mg_send_http_error(conn, 404, "Ticket not found");
                 remove(html_path);
                 return 404;
             }
-            if (start_pdf_process(ticket.token) != 0) {
+            if (start_pdf_process(ticket.token, config) != 0) {
                 mg_send_http_error(conn, 500, "Failed to generate PDF");
                 remove(html_path);
                 return 500;
@@ -117,7 +122,7 @@ int api_confirm_ticket(struct mg_connection* conn, void* data) {
             snprintf(buf, sizeof(buf), "Билет за %s", ticket.event_name);
             const char* subject = buf;
 
-            send_ticket_email(ticket.email, subject, "Вашият билет е прикачен тук.", ticket.token);
+            send_ticket_email(config, ticket.email, subject, "Вашият билет е прикачен тук.", ticket.token);
 
             remove(html_path);
         }
@@ -290,4 +295,81 @@ int api_ticket_file(struct mg_connection* conn, void* data) {
         mg_send_http_error(conn, 405, "Method Not Allowed");
         return 405;
     }
+}
+
+// Открива първия {{шалбон}} и го заменя с дадената стойност
+static char* replace_placeholder(const char* src, const char* placeholder, const char* value) {
+    const char* pos = strstr(src, placeholder);
+    if (!pos)
+        return _strdup(src);
+
+    size_t prefix_len = pos - src;
+    size_t suffix_len = strlen(pos + strlen(placeholder));
+    size_t value_len = strlen(value);
+
+    char* result = malloc(prefix_len + value_len + suffix_len + 1);
+    if (!result)
+        return NULL;
+
+    memcpy(result, src, prefix_len);
+    memcpy(result + prefix_len, value, value_len);
+    memcpy(result + prefix_len + value_len, pos + strlen(placeholder), suffix_len + 1);
+
+    return result;
+}
+
+static int generate_ticket_html(PGconn* db, const Config* config, 
+    TicketView* ticket, const char* qr_path, 
+    char* path, size_t size) {
+
+    char template_path[MAX_PATH];
+    snprintf(template_path, sizeof(template_path), "%s\\ticket_template.html", config->html_dir);
+
+    char* html = read_file_to_string(template_path);
+    if (!html) {
+        return 0;
+    }
+
+    char qr_relative_path[128];
+
+    snprintf(qr_relative_path, sizeof(qr_relative_path), 
+        "qr/%s.svg", ticket->token);
+
+    char qr_html[256];
+    snprintf(qr_html, sizeof(qr_html), 
+        "<img src=\"%s\" alt=\"QR Code\">", qr_relative_path);
+
+    const char* fields[11][2] = {
+        { "{{EVENT_TITLE}}", ticket->event_name },
+        { "{{BEGINS_AT}}",   ticket->begins_at },
+        { "{{VENUE_NAME}}",  ticket->venue_name },
+        { "{{CITY}}",        ticket->venue_city },
+        { "{{ADDRESS}}",     ticket->venue_address },
+        { "{{FIRST_NAME}}",  ticket->first_name },
+        { "{{LAST_NAME}}",   ticket->last_name },
+        { "{{EMAIL}}",       ticket->email },
+        { "{{PHONE}}",       ticket->phone },
+        { "{{SECTOR_NAME}}", ticket->sector ? "" : ticket->sector },
+        { "{{QR_CODE}}",     qr_html }
+    };
+
+    for (int i = 0; i < 11; i++) {
+        char* replaced = replace_placeholder(html, fields[i][0], fields[i][1]);
+        free(html);
+        html = replaced;
+        if (!html) {
+            return 0;
+        }
+    }
+
+    char ticket_path[MAX_PATH];
+
+    snprintf(ticket_path, sizeof(ticket_path),
+        "%s\\ticket_%s.html", config->tickets_dir,
+        ticket->token);
+
+    int result =
+        write_string_to_file(ticket_path, html);
+    free(html);
+    return result;
 }

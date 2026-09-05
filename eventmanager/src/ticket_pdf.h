@@ -1,11 +1,21 @@
 #pragma once
 #include <windows.h>
 #include <stdio.h>
+#include "../util.h"
 
-int start_pdf_process(const char* token) {
+int start_pdf_process(const char* token, Config* config) {
     char html_path[128], pdf_path[128], cmd[512];
-    snprintf(html_path, sizeof(html_path), "html/tickets/ticket_%s.html", token);
-    snprintf(pdf_path, sizeof(pdf_path), "html/tickets/ticket_%s.pdf", token);
+    snprintf(html_path, sizeof(html_path),
+        "%s\\ticket_%s.html",
+        config->tickets_dir,
+        token
+    );
+
+    snprintf(pdf_path, sizeof(pdf_path),
+        "%s\\ticket_%s.pdf",
+        config->tickets_dir,
+        token
+    );
     // Програмата се извиква чрез команден интерфейс
     // Аргументът --enable-local-file-access е необходим, за да има достъп до QR кода
     snprintf(cmd, sizeof(cmd),

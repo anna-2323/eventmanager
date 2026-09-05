@@ -63,7 +63,7 @@ int send_forgot_email(const char* to, const char* subject, const char* body) {
     return res == CURLE_OK;
 }
 
-int send_ticket_email(const char* to, const char* subject,
+int send_ticket_email(Config* config, const char* to, const char* subject,
     const char* body, const char* token) {
     CURL* curl = curl_easy_init();
     if (!curl) return 0;
@@ -95,8 +95,11 @@ int send_ticket_email(const char* to, const char* subject,
     // 3. Прикачения PDF
     curl_mimepart* attach_part = curl_mime_addpart(mime);
     char pdf_path[128];
-    snprintf(pdf_path, sizeof(pdf_path), "tickets/ticket_%s.pdf", token);
-
+    snprintf(pdf_path, sizeof(pdf_path),
+        "%s\\ticket_%s.pdf",
+        config->tickets_dir,
+        token
+    );
 
     CURLcode file_res = curl_mime_filedata(attach_part, pdf_path);
     if (file_res != CURLE_OK) {

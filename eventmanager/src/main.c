@@ -15,18 +15,26 @@
 #include "db/queries.h"
 
 static PGconn* db;
+static Config config;
 
 // помощни функции
 static void init_db(void);
-void set_handlers(struct mg_context*);
+void set_handlers(struct mg_context*, TicketContext* ticket_context);
 
 int main(void) {
+    if (!load_config(&config)) {
+        fprintf(stderr, "Грешка при зареждане на конфигурацията.\n");
+        return 1;
+    }
+
     init_db();
 
     session_init();
 
+    char port_str[16];
+    snprintf(port_str, sizeof(port_str), "%d", config.server_port);
     const char* options[] = {
-        "listening_ports", "8080",
+        "listening_ports", port_str,
         "document_root", ".\\html",
         "num_threads", "1",
         NULL
@@ -34,13 +42,19 @@ int main(void) {
 
     struct mg_callbacks callbacks = { 0 };
     struct mg_context* ctx = mg_start(&callbacks, NULL, options);
+
+    TicketContext ticket_context = {
+        .db = db,
+        .config = &config
+    };
+
     mg_set_request_handler(ctx, "/res/**", NULL, NULL);  // статични ресурси
-    set_handlers(ctx);
+    set_handlers(ctx, &ticket_context);
 
     permanent_delete_users(db);
     delete_tokens(db);
 
-    printf("Server running on port 8080\n");
+    printf("Сървърът работи на порт %s\n", port_str);
     getchar();
 
 
@@ -49,7 +63,12 @@ int main(void) {
 }
 
 static void init_db(void) {
-    db = PQconnectdb("host=localhost dbname=eventmanagement user=postgres password=secret");
+    char conn_str[256];
+    snprintf(conn_str, sizeof(conn_str), "host=%s port=%s dbname=%s user=%s password=%s",
+        config.db_host, config.db_port, 
+        config.db_name, config.db_user, 
+        config.db_password);
+    db = PQconnectdb(conn_str);
 
     if (PQstatus(db) != CONNECTION_OK) {
         fprintf(stderr, "Няма връзка с БД: %s\n",
@@ -62,20 +81,20 @@ static void init_db(void) {
     }
 }
 
-void set_handlers(struct mg_context* ctx) {
-    mg_set_request_handler(ctx, "/home", html_controller, NULL);
-    mg_set_request_handler(ctx, "/events/**", html_controller, NULL);
-    mg_set_request_handler(ctx, "/events", html_controller, NULL);
-    mg_set_request_handler(ctx, "/purchase/**", html_controller, NULL);
-    mg_set_request_handler(ctx, "/confirmation/**", html_controller, NULL);
-    mg_set_request_handler(ctx, "/login", html_controller, NULL);
-    mg_set_request_handler(ctx, "/signup", html_controller, NULL);
-    mg_set_request_handler(ctx, "/profile", html_controller, NULL);
-    mg_set_request_handler(ctx, "/forgot", html_controller, NULL);
-    mg_set_request_handler(ctx, "/reset", html_controller, NULL);
-    mg_set_request_handler(ctx, "/admin", html_controller, NULL);
-    mg_set_request_handler(ctx, "/admin/**", html_controller, NULL);
-    mg_set_request_handler(ctx, "/organizer", html_controller, NULL);
+void set_handlers(struct mg_context* ctx, TicketContext* ticket_context) {
+    mg_set_request_handler(ctx, "/home", html_controller, &config);
+    mg_set_request_handler(ctx, "/events/**", html_controller, &config);
+    mg_set_request_handler(ctx, "/events", html_controller, &config);
+    mg_set_request_handler(ctx, "/purchase/**", html_controller, &config);
+    mg_set_request_handler(ctx, "/confirmation/**", html_controller, &config);
+    mg_set_request_handler(ctx, "/login", html_controller, &config);
+    mg_set_request_handler(ctx, "/signup", html_controller, &config);
+    mg_set_request_handler(ctx, "/profile", html_controller, &config);
+    mg_set_request_handler(ctx, "/forgot", html_controller, &config);
+    mg_set_request_handler(ctx, "/reset", html_controller, &config);
+    mg_set_request_handler(ctx, "/admin", html_controller, &config);
+    mg_set_request_handler(ctx, "/admin/**", html_controller, &config);
+    mg_set_request_handler(ctx, "/organizer", html_controller, &config);
 
     mg_set_request_handler(ctx, "/api/events/seatmap", api_event_seatmap, db);
     mg_set_request_handler(ctx, "/api/events/**", api_events, db);
@@ -97,7 +116,7 @@ void set_handlers(struct mg_context* ctx) {
     mg_set_request_handler(ctx, "/api/stats/**", api_stats, db);
 
     mg_set_request_handler(ctx, "/api/purchase/**", api_purchase_ticket, db);
-    mg_set_request_handler(ctx, "/api/confirmation/**", api_confirm_ticket, db);
+    mg_set_request_handler(ctx, "/api/confirmation/**", api_confirm_ticket, ticket_context);
     mg_set_request_handler(ctx, "/api/users/*/tickets", api_user_tickets, db);
     mg_set_request_handler(ctx, "/tickets/**", api_ticket_file, db);
 

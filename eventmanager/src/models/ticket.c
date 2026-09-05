@@ -28,25 +28,6 @@ static void ticket_from_query(PGresult* res, TicketView* t, int i) {
         t->active = (strcmp(PQgetvalue(res, i, 15), "t") == 0);
 }
 
-// Открива първия {{шалбон}} и го заменя с дадената стойност
-char* replace_placeholder(const char* src, const char* placeholder, const char* value) {
-    const char* pos = strstr(src, placeholder);
-    if (!pos) return _strdup(src);
-
-    size_t prefix_len = pos - src;
-    size_t suffix_len = strlen(pos + strlen(placeholder));
-    size_t value_len = strlen(value);
-
-    char* result = malloc(prefix_len + value_len + suffix_len + 1);
-    if (!result) return NULL;
-
-    memcpy(result, src, prefix_len);
-    memcpy(result + prefix_len, value, value_len);
-    memcpy(result + prefix_len + value_len, pos + strlen(placeholder), suffix_len + 1); // +1 copies the null terminator
-
-    return result;
-}
-
 int purchase_ticket(PGconn* db, TicketData* data, int* ticket_id_out) {
     // Използва се транзакция за отмяна на действието при възникнали грешки
     PQexec(db, "BEGIN");
@@ -80,23 +61,17 @@ int purchase_ticket(PGconn* db, TicketData* data, int* ticket_id_out) {
         snprintf(user_id_str, sizeof(user_id_str), "%d", data->user_id);
         const char* ins_params[7] = { event_id_str, user_id_str, sector_id_str, data->first_name, data->last_name, data->email, data->phone };
 
-        PGresult* res = PQexecPrepared(db, "add_ticket_user", 7, ins_params, NULL, NULL, 0);
+        res = PQexecPrepared(db, "add_ticket_user", 7, ins_params, NULL, NULL, 0);
     }
     // Гост:
     else {
         const char* ins_params[6] = { event_id_str, sector_id_str, data->first_name, data->last_name, data->email, data->phone };
 
-        PGresult* res = PQexecPrepared(db, "add_ticket_guest", 6, ins_params, NULL, NULL, 0);
+        res = PQexecPrepared(db, "add_ticket_guest", 6, ins_params, NULL, NULL, 0);
     }
 
-    if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-        PQclear(res);
-        fprintf(stderr, "Грешка: %s\n", PQerrorMessage(db));
-        PQexec(db, "ROLLBACK");
-        return 0;
-    }
-    
     *ticket_id_out = atoi(PQgetvalue(res, 0, 0));
+
     PQclear(res);
 
     PQexec(db, "COMMIT");
@@ -157,64 +132,6 @@ int get_ticket(PGconn* db, int ticket_id, TicketView* out) {
 
     PQclear(res);
     return 1;
-}
-
-int generate_ticket_html(PGconn* db, int ticket_id, const char* qr_path, 
-        char* out_path, size_t out_size) {
-    char id_str[16];
-    snprintf(id_str, sizeof(id_str), "%d", ticket_id);
-    const char* params[1] = { id_str };
-
-    PGresult* res = PQexecPrepared(db, "get_ticket_for_html", 1, params, NULL, NULL, 0);
-    if (PQresultStatus(res) != PGRES_TUPLES_OK || PQntuples(res) == 0) {
-        fprintf(stderr, "Ticket lookup failed: %s\n", PQerrorMessage(db));
-        PQclear(res);
-        return 1;
-    }
-
-    TicketView t;
-    ticket_from_query(res, &t, 0);
-
-    char* html = read_file_to_string("html/ticket_template.html");
-    if (!html) { PQclear(res); return 1; }
-
-    char qr_relative_path[128];
-    snprintf(qr_relative_path, sizeof(qr_relative_path),
-        "qr/%s.svg", t.token);
-
-    char qr_html[256];
-    snprintf(qr_html, sizeof(qr_html),
-        "<img src=\"%s\" alt=\"QR Code\">",
-        qr_relative_path);
-
-    const char* fields[11][2] = {
-        { "{{EVENT_TITLE}}", t.event_name },
-        { "{{BEGINS_AT}}",   t.begins_at },
-        { "{{VENUE_NAME}}",  t.venue_name },
-        { "{{CITY}}",        t.venue_city },
-        { "{{ADDRESS}}",     t.venue_address },
-        { "{{FIRST_NAME}}",  t.first_name },
-        { "{{LAST_NAME}}",   t.last_name },
-        { "{{EMAIL}}",       t.email },
-        { "{{PHONE}}",       t.phone },
-        { "{{SECTOR_NAME}}", t.sector ? "" : t.sector },
-        { "{{QR_CODE}}",     qr_html }
-    };
-
-    for (int i = 0; i < 11; i++) {
-        char* replaced = replace_placeholder(html, fields[i][0], fields[i][1]);
-        free(html);
-        html = replaced;
-        if (!html) { PQclear(res); return 1; }
-    }
-
-    PQclear(res);
-
-    snprintf(out_path, 128, "html/tickets/ticket_%s.html", t.token);
-
-    int result = write_string_to_file(out_path, html);
-    free(html);
-    return result;
 }
 
 int get_user_tickets(PGconn* db, int user_id, TicketView** out) {

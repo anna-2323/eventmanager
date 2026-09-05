@@ -78,17 +78,6 @@ const char* SQL_TICKET_BELONGS_TO_USER =
 "    AND user_id = $2 "
 "); ";
 
-const char* SQL_GET_TICKET_FOR_HTML =
-"SELECT t.id, e.title, e.begins_at, v.venue_name, v.city, v.address, "
-"       t.first_name, t.last_name, t.email, t.phone, "
-"       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name, "
-"		t.access_token "
-"FROM data.tickets t "
-"JOIN data.events e ON t.event_id = e.id "
-"JOIN data.venues v ON e.venue_id = v.id "
-"LEFT JOIN data.sectors s ON s.id = t.sector_id "
-"WHERE t.id = $1;";
-
 const char* SQL_TOTAL_TICKETS =
 "SELECT COUNT(*) "
 "FROM data.tickets t "
