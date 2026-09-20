@@ -44,7 +44,7 @@ const char* SQL_GET_TICKETS =
 "JOIN data.venues v ON e.venue_id = v.id "
 "LEFT JOIN data.sectors s "
 "    ON s.id = t.sector_id "
-"JOIN data.users u on t.user_id = u.id "
+"LEFT JOIN data.users u on t.user_id = u.id "
 "WHERE ($1::integer IS NULL OR e.organizer_id = $1) "
 "ORDER BY e.begins_at;";
 

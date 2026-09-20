@@ -118,7 +118,7 @@ int html_controller(struct mg_connection* conn, void* data) {
         char* end;
         long ticket_id = strtol(uri + 15, &end, 10);
         if (*end == '\0') {
-            snprintf(path, sizeof(path), "%s\\admin_tickets.html", config->html_dir);
+            snprintf(path, sizeof(path), "%s\\admin_ticket.html", config->html_dir);
             return send_html(conn, path);
         }
     }

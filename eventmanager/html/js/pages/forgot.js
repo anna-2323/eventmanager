@@ -13,7 +13,7 @@ $("#submit").addEventListener("click", async function () {
     return;
   }
 
-  const res = await api.auth.forgotPassword({ email });
+  const res = await api.auth.forgotPassword(email);
   if (res.success) window.location.href = `/home`;
   else {
     error.textContent = res.error || "Възникна грешка.";

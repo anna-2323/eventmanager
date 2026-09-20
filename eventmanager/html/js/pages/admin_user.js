@@ -91,7 +91,7 @@ if (!user.logged_in || user.role !== 0) {
         .map(
           (e) =>
             `<tr>
-                  <td>${e.title}</td>
+                  <td>${editUser.role == 1 ? e.title : e.event_name}</td>
                   <td>${toDate(e.begins_at)}</td>
                   <td>${e.venue_name}</td>
                   <td><a href="${user.role == 1 ? 
@@ -134,16 +134,6 @@ if (!user.logged_in || user.role !== 0) {
         "change-phone-form",
         `${input("Нов телефон", "new-phone", "tel")}
         <button class="button is-link" id="change-phone-btn">
-            Запази
-        </button>
-        `
-      )}
-
-      ${editSection(
-        "Промяна на парола",
-        "change-password-form",
-        `${input("Нова парола", "new-password", "password")}
-        <button class="button is-link" id="change-password-btn">
             Запази
         </button>
         `

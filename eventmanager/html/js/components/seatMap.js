@@ -8,6 +8,8 @@ export async function loadSeatMap(eventId) {
   if (!data.has_sectors) {
     if($("#sector-id-input")) {
       $("#sector-id-input").dataset.sectorId = data.no_sector_id;
+    }
+    if($("#event-layout-label")) {
       hide($("#event-layout-label"));
       hide($("#event-layout-field"));
     }

@@ -304,7 +304,7 @@ int api_profile(struct mg_connection* conn, void* data) {
 int api_forgot(struct mg_connection* conn, void* data) {
 	const struct mg_request_info* info = mg_get_request_info(conn);
 
-	if (strcmp(info->request_method, "PATCH") == 0) {
+	if (strcmp(info->request_method, "POST") == 0) {
 		json_t* req = get_json(conn);
 		if (!req) return 400;
 		const char* email = json_string_value(json_object_get(req, "email"));

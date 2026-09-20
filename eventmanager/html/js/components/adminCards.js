@@ -72,6 +72,9 @@ export function eventCard(e, role) {
                             <tr><th>Име</th>
                                 <td id="event-title">${e.title}</td>
                             </tr>
+                            <tr><th>Описание</th>
+                                <td id="event-desc">${e.description}</td>
+                            </tr>
                             <tr><th>Време</th>
                                 <td id="event-begins-at">${toDate(e.begins_at)}</td>
                             </tr>
