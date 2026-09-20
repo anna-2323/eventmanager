@@ -47,6 +47,9 @@ typedef struct {
 typedef struct {
 	const char* search;
 	const char* city;
+	const char* from;
+	const char* to;
+
 	int category_id;
 
 	int upcoming;

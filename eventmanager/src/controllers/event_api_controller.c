@@ -37,6 +37,8 @@ int api_events(struct mg_connection* conn, void* data) {
             char search[256] = "";
             char city[128] = "";
             char category[32] = "";
+            char from[32] = "";
+            char to[32] = "";
 
             if (info->query_string) {
                 mg_get_var(
@@ -62,11 +64,29 @@ int api_events(struct mg_connection* conn, void* data) {
                     category,
                     sizeof(category)
                 );
+
+                mg_get_var(
+                    info->query_string,
+                    strlen(info->query_string),
+                    "from",
+                    from,
+                    sizeof(from)
+                );
+
+                mg_get_var(
+                    info->query_string,
+                    strlen(info->query_string),
+                    "to",
+                    to,
+                    sizeof(to)
+                );
             }
 
             filters.search = search;
             filters.city = city;
             filters.category_id = atoi(category);
+            filters.from = from;
+            filters.to = to;
 
             Event* events;
             int count = get_events((PGconn*)data, &filters, &events);

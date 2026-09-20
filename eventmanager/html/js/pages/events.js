@@ -21,6 +21,8 @@ $("#category-dropdown").innerHTML = categories.map(c =>
 let currentSort = null;
 let currentCategory = null;
 let currentCity = null;
+let currentFrom = null;
+let currentTo = null;
 
 let currentPage = 1;
 const pageSize = 18;
@@ -31,6 +33,8 @@ const urlParams = new URLSearchParams(window.location.search);
 const initialSearch = urlParams.get("search") || "";
 currentCategory = urlParams.get("category");
 currentCity = urlParams.get("city");
+currentFrom = urlParams.get("from");
+currentTo = urlParams.get("to");
 
 $("#events-search").value = initialSearch;
 
@@ -57,6 +61,12 @@ if (currentCity) {
       .textContent = item.textContent.trim();
   }
 }
+if (currentFrom) {
+  document.getElementById("date-from").value = currentFrom;
+}
+if (currentTo) {
+  document.getElementById("date-to").value = currentTo;
+}
 
 // Зареждане на събития
 async function loadEvents() {
@@ -74,6 +84,14 @@ async function loadEvents() {
 
   if (currentCity) {
     params.city = currentCity;
+  }
+
+  if(currentFrom) {
+    params.from = currentFrom;
+  }
+
+  if(currentTo) {
+    params.to = currentTo;
   }
 
   events = await api.events.list(params);
@@ -229,6 +247,15 @@ document.addEventListener("click", (e) => {
   }
 });
 
+// Време
+document.getElementById("date-from").addEventListener("change", (e) => {
+  currentFrom = e.target.value || null;
+});
+
+document.getElementById("date-to").addEventListener("change", (e) => {
+  currentTo = e.target.value || null;
+});
+
 // Pagination страници
 document.addEventListener("click", (e) => {
   const button = e.target.closest(".pagination-link");
@@ -296,6 +323,12 @@ $("#btn-filters-apply").addEventListener("click", async () => {
   if (currentCity) {
     params.set("city", currentCity);
   }
+  if (currentFrom) {
+    params.set("from", currentFrom);
+  }
+  if (currentTo) {
+    params.set("to", currentTo);
+  }
 
   const queryString = params.toString();
   const newUrl = queryString
@@ -316,6 +349,8 @@ $("#btn-filters-clear").addEventListener("click", async () => {
     // Изчистване на стойностите
     currentCategory = null;
     currentCity = null;
+    currentFrom = null;
+    currentTo = null;
     $("#events-search").value = "";
 
     // Връщане на оригиналните надписи
@@ -326,8 +361,11 @@ $("#btn-filters-clear").addEventListener("click", async () => {
     $("#city-filter .dropdown-trigger button span:first-child").textContent =
       "Град";
 
+    document.getElementById("date-from").value = "";
+    document.getElementById("date-to").value = "";
+
     // Изчистване на subtitle
-    $("#events-subtitle").textContent = "";
+    updateSearchSubtitle(null);
 
     // Изчистване на URL
     window.history.pushState({}, "", window.location.pathname);

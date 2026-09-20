@@ -4,7 +4,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="color-scheme" content="light dark" />
   <title>EventMGR - събития</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -64,6 +63,38 @@
           </div>
           <div class="dropdown-menu" role="menu">
             <div class="dropdown-content" id="city-dropdown">
+            </div>
+          </div>
+        </div>
+
+        <div class="events-filter dropdown is-hoverable m-4" id="date-filter">
+          <div class="dropdown-trigger">
+            <button
+              class="button"
+              aria-haspopup="true"
+              aria-controls="date-dropdown-menu">
+              <span id="date-filter-label">Дата</span>
+              <span class="icon is-small">
+                <i class="fas fa-angle-down" aria-hidden="true"></i>
+              </span>
+            </button>
+          </div>
+
+          <div class="dropdown-menu" id="date-dropdown-menu" role="menu">
+            <div class="dropdown-content p-4" style="min-width: 300px;">
+              <div class="field">
+                <label class="label">От</label>
+                <div class="control">
+                  <input class="input" type="datetime-local" id="date-from">
+                </div>
+              </div>
+            
+              <div class="field">
+                <label class="label">До</label>
+                <div class="control">
+                  <input class="input" type="datetime-local" id="date-to">
+                </div>
+              </div>
             </div>
           </div>
         </div>
