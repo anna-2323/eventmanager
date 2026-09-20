@@ -51,7 +51,8 @@ export const api = {
 
   tickets: {
     purchase: (id, data) => request(`/purchase/${id}`, { method: 'POST', body: JSON.stringify(data) }),
-    confirm: (token) => request(`/confirmation/${token}`)
+    confirm: (token) => request(`/confirmation/${token}`),
+    edit: (id, data) => request(`/tickets/${id}`, { method: 'PATCH', body: JSON.stringify(data)})
   },
 
   users: {

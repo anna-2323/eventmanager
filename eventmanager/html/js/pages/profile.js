@@ -29,13 +29,16 @@ if (user.logged_in) {
       $("#events-table").innerHTML = tickets
               .map(
                 (t) =>
-                  `<tr>
+                  `<tr ${t.active ? '' : `style="text-decoration: line-through;"`}>
                         <td>${t.event_name}</td>
                         <td>${toDate(t.begins_at)}</td>
                         <td>${t.venue_name}</td>
                         <td><a href="/tickets/ticket_${t.token}.pdf"><button class="button is-small is-link">
                                 PDF 
                             </button></a></td>
+                        <td>${t.active ? `<button class="button is-small is-danger cancel-ticket-btn" data-id="${t.id}">
+                                Отмени
+                            </button>` : ''}</td>
                     </tr>`,
               ).join("");
     }
@@ -80,6 +83,20 @@ if (user.logged_in) {
 else {
   window.location.href = "/login";
 }
+
+// Отмяна на билет
+$('.cancel-ticket-btn').addEventListener("click", async (e) => {
+  const id = e.target.dataset.id;
+  const res = await api.tickets.edit(id, { active: false });
+  if (res.success) {
+    localStorage.setItem("success_message", "Билетът е отменен.");
+    window.location.reload();
+  } else {
+    localStorage.setItem("error_message", res.error || "Възникна грешка.");
+    window.location.reload();
+  }
+  window.location.reload();
+})
 
 // Редактиране на имейл
 $("#change-email-btn").addEventListener("click", () => {

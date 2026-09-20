@@ -118,6 +118,7 @@ void set_handlers(struct mg_context* ctx, TicketContext* ticket_context) {
     mg_set_request_handler(ctx, "/api/purchase/**", api_purchase_ticket, db);
     mg_set_request_handler(ctx, "/api/confirmation/**", api_confirm_ticket, ticket_context);
     mg_set_request_handler(ctx, "/api/users/*/tickets", api_user_tickets, db);
+    mg_set_request_handler(ctx, "/api/tickets", api_tickets, db);
     mg_set_request_handler(ctx, "/tickets/**", api_ticket_file, db);
 
     mg_set_request_handler(ctx, "/api/me", api_me, db);

@@ -254,7 +254,62 @@ int api_user_tickets(struct mg_connection* conn, void* data) {
     return 405;
 }
 
-// GET /tickets/{uuid}
+// PATCH /api/tickets/{id}
+int api_tickets(struct mg_connection* conn, void* data) {
+    const struct mg_request_info* info = mg_get_request_info(conn);
+    Session* s = get_session(conn);
+
+    if (!s) {
+        mg_send_http_error(conn, 401, "Unauthorized");
+        return 401;
+    }
+
+    PGconn* db = (PGconn*)data;
+    const char* path = info->local_uri + strlen("/api/tickets/");
+
+    if (strcmp(info->request_method, "PATCH") == 0) {
+        char* end = NULL;
+        long id = strtol(path, &end, 10);
+
+        // Число ли е
+        if (path[0] == '\0' || end == path ||
+            *end != '\0' || id <= 0 || id > INT_MAX) {
+            mg_send_http_error(conn, 404, "Not found");
+            return 404;
+        }
+
+        int ticket_id = (int)id;
+
+        // Принадлежи ли на потребителя
+        if (!ticket_id_belongs_to_user(db, s->user_id, ticket_id)) {
+            mg_send_http_error(conn, 404, "Not found");
+            return 404;
+        }
+
+        json_t* req = get_json(conn);
+        if (!req)
+            return 400;
+
+        json_t* res = json_object();
+        int result = 0;
+
+        json_t* active_json = json_object_get(req, "active");
+
+        if (active_json) {
+            if (!json_is_boolean(active_json)) {
+                result = 0;
+            }
+            else {
+                result = set_ticket_active(db, id, json_boolean_value(active_json));
+            }
+        }
+        
+        set_result(res, result);
+        return send_json(conn, res);
+    }
+}
+
+// GET /tickets/ticket_{uuid}.pdf
 int api_ticket_file(struct mg_connection* conn, void* data) {
     const struct mg_request_info* info = mg_get_request_info(conn);
     Session* s = get_session(conn);
@@ -263,38 +318,35 @@ int api_ticket_file(struct mg_connection* conn, void* data) {
         mg_send_http_error(conn, 401, "Unauthorized");
         return 401;
     }
+
+    PGconn* db = (PGconn*)data;
+    const char* filename = info->local_uri + strlen("/tickets/");
+
     if (strcmp(info->request_method, "GET") == 0) {
-        // /tickets/ticket_<uuid>.pdf
-        const char* filename =
-            info->local_uri + strlen("/tickets/");
+        char ticket_uuid[37] = { 0 };
 
-        char ticket_uuid[37];
-
-        if (sscanf(filename,
-            "ticket_%36[0-9a-fA-F-].pdf",
-            ticket_uuid) != 1) {
+        // UUID ли е
+        if (sscanf(filename, "ticket_%36[0-9a-fA-F-].pdf", ticket_uuid) != 1) {
             mg_send_http_error(conn, 404, "Not found");
             return 404;
         }
-    
-        PGconn* db = (PGconn*)data;
-    
-        if (!ticket_belongs_to_user(db, ticket_uuid, s->user_id)) {
+
+        // Принадлежи ли на потребителя
+        if (!ticket_uuid_belongs_to_user(db, s->user_id, ticket_uuid)) {
             mg_send_http_error(conn, 404, "Not found");
             return 404;
         }
-    
+
         char path[512];
         snprintf(path, sizeof(path),
             "html/tickets/%s", filename);
-    
+
         mg_send_file(conn, path);
         return 200;
     }
-    else {
-        mg_send_http_error(conn, 405, "Method Not Allowed");
-        return 405;
-    }
+
+    mg_send_http_error(conn, 405, "Method Not Allowed");
+    return 405;
 }
 
 // Открива първия {{шалбон}} и го заменя с дадената стойност

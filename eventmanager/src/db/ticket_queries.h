@@ -70,13 +70,21 @@ const char* SQL_ACTIVATE_TICKET =
 const char* SQL_DEACTIVATE_TICKET =
 "UPDATE data.tickets SET active = FALSE WHERE id = $1";
 
-const char* SQL_TICKET_BELONGS_TO_USER =
+const char* SQL_TICKET_BELONGS_TO_USER_BY_ID =
 "SELECT EXISTS( "
 "    SELECT 1 "
 "    FROM data.tickets "
 "    WHERE id = $1 "
 "    AND user_id = $2 "
-"); ";
+");";
+
+const char* SQL_TICKET_BELONGS_TO_USER_BY_UUID =
+"SELECT EXISTS( "
+"    SELECT 1 "
+"    FROM data.tickets "
+"    WHERE access_token = $1 "
+"    AND user_id = $2 "
+");";
 
 const char* SQL_TOTAL_TICKETS =
 "SELECT COUNT(*) "

@@ -65,7 +65,9 @@ int prepare_queries(PGconn* db)
         return 0;
     if (!prepare_query(db, "deactivate_ticket", SQL_DEACTIVATE_TICKET, 1))
         return 0;
-    if (!prepare_query(db, "ticket_belongs_to_user", SQL_TICKET_BELONGS_TO_USER, 1))
+    if (!prepare_query(db, "ticket_belongs_to_user_id", SQL_TICKET_BELONGS_TO_USER_BY_ID, 1))
+        return 0;
+    if (!prepare_query(db, "ticket_belongs_to_user_uuid", SQL_TICKET_BELONGS_TO_USER_BY_UUID, 1))
         return 0;
 
     if (!prepare_query(db, "get_venues", SQL_GET_VENUES, 1))

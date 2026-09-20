@@ -162,7 +162,7 @@ int get_user_tickets(PGconn* db, int user_id, TicketView** out) {
     return count;
 }
 
-int ticket_belongs_to_user(PGconn* db, int user_id, int ticket_id) {
+int ticket_id_belongs_to_user(PGconn* db, int user_id, int ticket_id) {
     CHECK_DB(db, 0);
     char user_id_str[16];
     snprintf(user_id_str, sizeof(user_id_str), "%d", user_id);
@@ -170,7 +170,24 @@ int ticket_belongs_to_user(PGconn* db, int user_id, int ticket_id) {
     snprintf(ticket_id_str, sizeof(ticket_id_str), "%d", ticket_id);
     const char* params[2] = { ticket_id_str, user_id_str };
 
-    PGresult* res = PQexecPrepared(db, "get_user_tickets", 1, params, NULL, NULL, 0);
+    PGresult* res = PQexecPrepared(db, "ticket_belongs_to_user_id", 2, params, NULL, NULL, 0);
+    CHECK_QUERY(res, db, 0);
+
+    if (PQntuples(res) == 0) {
+        PQclear(res);
+        return 0;
+    }
+
+    return 1;
+}
+
+int ticket_uuid_belongs_to_user(PGconn* db, int user_id, const char* ticket_uuid) {
+    CHECK_DB(db, 0);
+    char user_id_str[16];
+    snprintf(user_id_str, sizeof(user_id_str), "%d", user_id);
+    const char* params[2] = { ticket_uuid, user_id_str };
+
+    PGresult* res = PQexecPrepared(db, "ticket_belongs_to_user_uuid", 2, params, NULL, NULL, 0);
     CHECK_QUERY(res, db, 0);
 
     if (PQntuples(res) == 0) {
