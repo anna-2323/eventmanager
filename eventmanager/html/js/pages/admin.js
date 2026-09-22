@@ -48,24 +48,24 @@ if (!user.logged_in || user.role == 2) {
     $("#total-tickets").innerHTML = totals.tickets;
   }
 
-  function fillBarChart(id, timePeriods, count, name) {
-    createBarChart(id, timePeriods, count, name);
+  function fillBarChart(id, timePeriods, count, name, integers = false) {
+    createBarChart(id, timePeriods, count, name, integers);
   }
 
   function fillCharts() {
     const months1 = toMonths(monthlyStats.events_growth)
     const event_count = monthlyStats.events_growth.map((x) => x.count);
-    fillBarChart("events-chart", months1, event_count, "Събития");
+    fillBarChart("events-chart", months1, event_count, "Събития", true);
 
     if(user.role == 0) {
       const months2 = toMonths(monthlyStats.users_growth)
       const user_count = monthlyStats.users_growth.map((x) => x.count);
-      fillBarChart("users-chart", months2, user_count, "Потребители");
+      fillBarChart("users-chart", months2, user_count, "Потребители", true);
     }
 
     const months3 = toMonths(monthlyStats.tickets_growth)
     const ticket_count = monthlyStats.tickets_growth.map((x) => x.count);
-    fillBarChart("tickets-chart", months3, ticket_count, "Билети");
+    fillBarChart("tickets-chart", months3, ticket_count, "Билети", true);
 
     const revenues = monthlyRev.revenue.map((x) => x.revenue);
     fillBarChart("revenue-chart", months3, revenues, "Месечен приход (€)");
@@ -123,12 +123,12 @@ if (!user.logged_in || user.role == 2) {
           // събития помесечно
           const months = toMonths(monthlyStats.events_growth);
           const event_count = monthlyStats.events_growth.map((x) => x.count);
-          fillBarChart("events-chart", months, event_count, "Събития");
+          fillBarChart("events-chart", months, event_count, "Събития", true);
         } else {
           // събития подневно
           const days = toDays(dailyStats.events_growth);
           const event_count = dailyStats.events_growth.map((x) => x.count);
-          fillBarChart("events-chart", days, event_count, "Събития");
+          fillBarChart("events-chart", days, event_count, "Събития", true);
         }
         break;
 
@@ -137,12 +137,12 @@ if (!user.logged_in || user.role == 2) {
           // потребители помесечно
           const months = toMonths(monthlyStats.users_growth);
           const user_count = monthlyStats.users_growth.map((x) => x.count);
-          fillBarChart("users-chart", months, user_count, "Потребители");
+          fillBarChart("users-chart", months, user_count, "Потребители", true);
         } else {
           // потребители подневно
           const days = toDays(dailyStats.events_growth);
           const user_count = dailyStats.users_growth.map((x) => x.count);
-          fillBarChart("users-chart", days, user_count, "Потребители");
+          fillBarChart("users-chart", days, user_count, "Потребители", true);
         }
         break;
 
@@ -153,12 +153,12 @@ if (!user.logged_in || user.role == 2) {
           const ticket_count = monthlyStats.tickets_growth.map(
             (x) => x.ticket_count,
           );
-          fillBarChart("tickets-chart", months, ticket_count, "Билети");
+          fillBarChart("tickets-chart", months, ticket_count, "Билети", true);
         } else {
           // билети подневно
           const days = toDays(dailyStats.tickets_growth);
           const ticket_count = dailyStats.tickets_growth.map((x) => x.count);
-          fillBarChart("tickets-chart", days, ticket_count, "Билети");
+          fillBarChart("tickets-chart", days, ticket_count, "Билети", true);
         }
         break;
     }
