@@ -18,12 +18,6 @@ if (!user.logged_in || user.role == 2) {
     <table class="table is-fullwidth is-striped is-hoverable">
         <thead>
             <tr>
-                <th class="sortable" data-sort="id">
-                  <span class="sortable-span">ID</span>
-                  <span class="icon">
-                    <i class="change-icon fas"></i>
-                  </span>
-                </th>
                 <th class="sortable" data-sort="title">
                   <span class="sortable-span">Име</span>
                   <span class="icon">
@@ -108,11 +102,6 @@ if (!user.logged_in || user.role == 2) {
       let av, bv;
 
       switch (field) {
-        case "id":
-          av = a.id;
-          bv = b.id;
-          break;
-
         case "title":
           av = a.title.replace(" ", "").toLowerCase();
           bv = b.title.replace(" ", "").toLowerCase();
@@ -151,7 +140,6 @@ if (!user.logged_in || user.role == 2) {
       .map(
         (e) =>
           `<tr>
-            <td>${e.id}</td>
               <td>${e.title}</td>
               <td>${toDate(e.begins_at)}</td>
               <td>${e.venue_name}, ${e.city}</td>

@@ -20,12 +20,6 @@ if (!user.logged_in || user.role !== 0) {
     <table class="table is-fullwidth is-striped is-hoverable">
         <thead>
             <tr>
-                <th class="sortable" data-sort="id">
-                  <span class="sortable-span">ID</span>
-                  <span class="icon">
-                    <i class="change-icon fas"></i>
-                  </span>
-                </th>
                 <th class="sortable" data-sort="name">
                   <span class="sortable-span">Име</span>
                   <span class="icon">
@@ -107,11 +101,6 @@ if (!user.logged_in || user.role !== 0) {
       let av, bv;
 
       switch (field) {
-        case "id":
-          av = a.id;
-          bv = b.id;
-          break;
-
         case "name":
           av = `${a.first_name} ${a.last_name}`.toLowerCase();
           bv = `${b.first_name} ${b.last_name}`.toLowerCase();
@@ -143,7 +132,6 @@ if (!user.logged_in || user.role !== 0) {
     $("#users-table").innerHTML = users
         .map((u) =>
             `<tr ${u.deleted_on ? 'class="to-delete"' : ""}>
-            <td>${u.id}</td>
             <td>${u.first_name} ${u.last_name}</td>
             <td>${u.email}</td>
             <td>

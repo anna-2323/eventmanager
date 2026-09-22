@@ -18,12 +18,6 @@ if (!user.logged_in || user.role == 2) {
     <table class="table is-fullwidth is-striped is-hoverable">
         <thead>
             <tr>
-                <th class="sortable" data-sort="id">
-                  <span class="sortable-span">ID</span>
-                  <span class="icon">
-                    <i class="change-icon fas"></i>
-                  </span>
-                </th>
                 <th class="sortable" data-sort="names">
                   <span class="sortable-span">Име</span>
                   <span class="icon">
@@ -108,11 +102,6 @@ if (!user.logged_in || user.role == 2) {
       let av, bv;
 
       switch (field) {
-        case "id":
-          av = a.id;
-          bv = b.id;
-          break;
-
         case "names":
           av = `${a.first_name} ${a.last_name}`.toLowerCase();
           bv = `${b.first_name} ${b.last_name}`.toLowerCase();
@@ -150,8 +139,7 @@ if (!user.logged_in || user.role == 2) {
         $("#tickets-table").innerHTML = tickets
           .map(
             (t) =>
-              `<td>${t.id}</td>
-                  <td>${t.first_name} ${t.last_name}</td>
+              `<td>${t.first_name} ${t.last_name}</td>
                   <td>${t.event_name}</td>
                   <td>${t.venue_name}, ${t.venue_city}</td>
                   <td>${t.sector_name ? t.sector_name : ""}</td>

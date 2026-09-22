@@ -21,7 +21,7 @@ export async function checkProfile() {
             `;
     $("#logout-btn").addEventListener("click", () => {
       fetch("/api/logout", { method: "POST" }).then(() =>
-        window.location.reload(),
+        window.location.href = "/home",
       );
     });
   }

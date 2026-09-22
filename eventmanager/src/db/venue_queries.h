@@ -20,6 +20,7 @@ const char* SQL_GET_SECTORS =
 const char* SQL_GET_CITIES =
 "SELECT DISTINCT city "
 "FROM data.venues "
+"WHERE active "
 "ORDER BY city;";
 
 const char* SQL_ADD_VENUE =

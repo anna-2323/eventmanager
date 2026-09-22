@@ -18,12 +18,6 @@ if (!user.logged_in || user.role == 2) {
     <table class="table is-fullwidth is-striped is-hoverable">
         <thead>
             <tr>
-                <th class="sortable" data-sort="id">
-                  <span class="sortable-span">ID</span>
-                  <span class="icon">
-                    <i class="change-icon fas"></i>
-                  </span>
-                </th>
                 <th class="sortable" data-sort="venue-name">
                   <span class="sortable-span">Име</span>
                   <span class="icon">
@@ -102,10 +96,6 @@ if (!user.logged_in || user.role == 2) {
       let av, bv;
 
       switch (field) {
-        case "id":
-          av = a.id;
-          bv = b.id;
-          break;
 
         case "venue-name":
           av = a.venue_name.replace(" ", "").toLowerCase();
@@ -138,8 +128,7 @@ if (!user.logged_in || user.role == 2) {
     $("#venues-table").innerHTML = venues
       .map(
         (v) =>
-          `<td>${v.id}</td>
-              <td>${v.venue_name}</td>
+          `<td>${v.venue_name}</td>
               <td>${v.city}</td>
               <td>${v.address}</td>
               <td>${v.active ? '<i class="fa-solid fa-check"></i>' : ''}
