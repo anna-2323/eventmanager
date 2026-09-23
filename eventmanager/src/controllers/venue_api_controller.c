@@ -108,6 +108,10 @@ int api_admin_venues(struct mg_connection* conn, void* data) {
 			snprintf(v.city, sizeof(v.city), "%s", json_string_value(json_object_get(req, "city")));
 			snprintf(v.address, sizeof(v.address), "%s", json_string_value(json_object_get(req, "address")));
 			snprintf(v.venue_name, sizeof(v.venue_name), "%s", json_string_value(json_object_get(req, "venue_name")));
+			json_t* capacity_json = json_object_get(req, "capacity");
+			v.capacity = json_is_integer(capacity_json) ? (int)json_integer_value(capacity_json) : -1;
+			if (v.capacity <= 0)
+				return send_result(conn, 0, 400, "Капацитетът трябва да е по-голям от 0", NULL);
 			if (!v.city || !v.address || !v.venue_name)
 				return send_result(conn, 0, 400, "Моля, попълнете всички полета", NULL);
 

@@ -199,12 +199,10 @@ int add_event(PGconn* db, EventData* data) {
 	snprintf(sector_id_str, sizeof(sector_id_str), "%d", sectors[0].id);
 	char price_str[16];
 	snprintf(price_str, sizeof(price_str), "%.2f", data->price);
-	char capacity_str[16];
-	snprintf(capacity_str, sizeof(capacity_str), "%d", data->capacity);
-	const char* params2[4] = { event_id_str, sector_id_str, price_str, capacity_str };
+	const char* params2[3] = { event_id_str, sector_id_str, price_str };
 
 	// 3. Добавяне на запис в event_sectors
-	res = PQexecPrepared(db, "add_event_sectors", 4, params2, NULL, NULL, 0);
+	res = PQexecPrepared(db, "add_event_sectors", 3, params2, NULL, NULL, 0);
 	if (PQresultStatus(res) != PGRES_COMMAND_OK) {
 		PQclear(res);
 		fprintf(stderr, "Грешка във функцията add_event: %s\n", PQerrorMessage(db));

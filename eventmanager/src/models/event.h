@@ -28,7 +28,6 @@ typedef struct {
 	char img_path[256];
 	char description[512];
 	double price;
-	int capacity;
 } EventData;
 
 typedef struct {
@@ -59,7 +58,6 @@ typedef struct {
 	char description[513];
 	char begins_at[256];
 	char price[32];
-	char capacity[32];
 
 	char image_path[256];       // /res/...
 	char image_disk_path[512];  // .\html\res\...

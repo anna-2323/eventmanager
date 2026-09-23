@@ -76,7 +76,7 @@ const char* SQL_ADD_VENUE =
 
 const char* SQL_ADD_VENUE_SECTOR =
 "INSERT INTO data.sectors "
-"(venue_id) VALUES ($1)";
+"(venue_id, capacity) VALUES ($1, $2)";
 
 const char* SQL_UPDATE_VENUE_NAME =
 "UPDATE data.venues SET venue_name = $1 WHERE id = $2;";

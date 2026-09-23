@@ -1,5 +1,5 @@
 import { api } from "../core/api.js";
-import { $, createItem } from "../core/dom.js";
+import { $ } from "../core/dom.js";
 import { header } from "../components/header.js";
 
 header();
@@ -32,12 +32,11 @@ else {
       const description = $("#description").value.trim();
       const begins_at = $("#begins-at").value.trim();
       const price = Number($("#price").value);
-      const capacity = Number($("#capacity").value);
       const image = $("#image").files[0];
 
       $("#error").style.display = "none";
 
-      if (!venue_id || !title || !begins_at || !price || !capacity) {
+      if (!venue_id || !title || !begins_at || !price ) {
         $("#error").textContent = "Моля, попълнете всички полета.";
         $("#error").style.display = "block";
         return;
@@ -50,7 +49,6 @@ else {
       formData.append("description", description);
       formData.append("begins_at", begins_at);
       formData.append("price", price);
-      formData.append("capacity", capacity);
 
       if (image) {
         formData.append("image", image);

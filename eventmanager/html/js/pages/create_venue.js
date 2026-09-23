@@ -25,10 +25,11 @@ else {
     const city = $("#city").value.trim();
     const address = $("#address").value.trim();
     const venue_name = $("#venue-name").value.trim();
+    const capacity = Number($("#capacity").value);
 
     $("#error").style.display = "none";
 
-    if (!city || !address || !venue_name) {
+    if (!city || !address || !venue_name || !capacity) {
       $("#error").textContent = "Моля, попълнете всички полета.";
       $("#error").style.display = "block";
       return;
@@ -38,7 +39,8 @@ else {
       const res = await api.admin.venues.create({
         city,
         address,
-        venue_name
+        venue_name,
+        capacity
       });
 
       if (res.success) {

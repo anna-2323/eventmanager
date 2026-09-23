@@ -206,9 +206,11 @@ int add_venue(PGconn* db, Venue* v) {
     // 2. Добавяне на един единствен сектор
     char venue_id_str[16];
     snprintf(venue_id_str, sizeof(venue_id_str), "%d", venue_id);
-    const char* params2[1] = { venue_id_str };
+    char capacity_str[16];
+    snprintf(capacity_str, sizeof(capacity_str), "%d", v->capacity);
+    const char* params2[2] = { venue_id_str, capacity_str };
 
-    res = PQexecPrepared(db, "add_venue_sector", 1, params2, NULL, NULL, 0);
+    res = PQexecPrepared(db, "add_venue_sector", 2, params2, NULL, NULL, 0);
     CHECK_COMMAND_QUERY(res, db, 0);
 
     return venue_id;

@@ -1,7 +1,6 @@
 #pragma once
 
-const char* SQL_GET_EVENTS =
-"SELECT "
+const char* SQL_GET_EVENTS = "SELECT "
 "    e.id, e.title, e.begins_at, e.img_path, "
 "    v.venue_name, v.city, "
 "    MIN(es.price) AS price, "
@@ -88,8 +87,8 @@ const char* SQL_ADD_EVENT =
 
 const char* SQL_ADD_EVENT_SECTORS =
 "INSERT INTO data.event_sectors "
-"(event_id, sector_id, price, capacity) "
-"VALUES ($1, $2, $3, $4)";
+"(event_id, sector_id, price) "
+"VALUES ($1, $2, $3)";
 
 const char* SQL_UPDATE_EVENT_TITLE =
 "UPDATE data.events SET title = $1 WHERE id = $2";

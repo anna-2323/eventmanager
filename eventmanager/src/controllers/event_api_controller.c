@@ -274,8 +274,7 @@ int api_admin_events(struct mg_connection* conn, void* data) {
             }
 
             if (!form.venue_id[0] || !form.title[0] ||
-                !form.begins_at[0] || !form.price[0] ||
-                !form.capacity[0]) {
+                !form.begins_at[0] || !form.price[0]) {
 
                 if (form.image_uploaded)
                     remove(form.image_disk_path);
@@ -296,11 +295,9 @@ int api_admin_events(struct mg_connection* conn, void* data) {
             }
 
             data.price = strtof(form.price, NULL);
-            data.capacity = atoi(form.capacity);
             if (data.price <= 0)
                 return send_result(conn, 0, 400, "Цената трябва да е по-голяма от 0", NULL);
-            if (data.capacity <= 0)
-                return send_result(conn, 0, 400, "Капацитетът трябва да е по-голям от 0", NULL);
+            
 
             if (form.image_uploaded) {
                 snprintf(data.img_path, sizeof(data.img_path), "%s", form.image_path);
@@ -522,10 +519,6 @@ static int create_event_field_get(const char* key, const char* value,
     else if (strcmp(key, "price") == 0) {
         destination = form->price;
         destination_size = sizeof(form->price);
-    }
-    else if (strcmp(key, "capacity") == 0) {
-        destination = form->capacity;
-        destination_size = sizeof(form->capacity);
     }
     else {
         return MG_FORM_FIELD_HANDLE_NEXT;
