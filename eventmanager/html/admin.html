@@ -95,65 +95,99 @@
 
         <div id="tab-content">
             <div id="revenue">
-
-                <div class="columns is-centered is-variable is-4">
+                <div>
+                    <input type="radio" value="1" name="months1" checked>1 мес.</input>
+                    <input type="radio" value="3" name="months1">3 мес.</input>
+                    <input type="radio" value="6" name="months1">6 мес.</input>
+                </div>
+                <div class="columns is-centered is-variable is-2">
                     <div class="column is-5">
                         <div class="box">
-                            <h2 class="title is-6">Общо</h2>
-                            <div style="height: 200px;">
-                                <canvas id="revenue-chart"></canvas>
+                            <h2 class="title is-6">Общо - дневно</h2>
+                            <div style="height: 250px;">
+                                <canvas id="revenue-chart-daily"></canvas>
                             </div>
                         </div>
                     </div>
-
                     <div class="column is-5">
                         <div class="box">
-                            <h2 class="title is-6">По зали</h2>
-                            <div style="height: 200px;">
-                                <canvas id="revenue-venue-chart"></canvas>
+                            <h2 class="title is-6">Общо - месечно</h2>
+                            <div style="height: 250px;">
+                                <canvas id="revenue-chart-monthly"></canvas>
                             </div>
                         </div>
                     </div>
+                </div>
 
+                <div class="columns is-centered is-variable is-2">
+                    <div class="column is-5">
+                        <div class="box">
+                            <h2 class="title is-6">По зали - месечно</h2>
+                            <div style="height: 250px;">
+                                <canvas id="revenue-venue-chart-monthly"></canvas>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="growth" class="is-hidden">
-                <div class="columns is-centered is-variable is-4">
-                    <div class="column is-3">
+                <input type="radio" value="1" name="months2" checked>1 мес.</input>
+                <input type="radio" value="3" name="months2">3 мес.</input>
+                <input type="radio" value="6" name="months2">6 мес.</input>
+                <div class="columns is-centered is-variable is-2">
+                    <div class="column is-5">
                         <div class="box">
-                            <h2 class="title is-6">Регистрирани потребители</h2>
-                            <div>
-                                <input type="radio" value="monthly" name="user-growth" checked>По месеци</input>
-                                <input type="radio" value="daily" name="user-growth">По дни</input>
-                            </div>
-                            <div style="height: 200px;">
-                                <canvas id="users-chart"></canvas>
+                            <h2 class="title is-6">Купени билети - дневно</h2>
+                            <div style="height: 250px;">
+                                <canvas id="tickets-chart-daily"></canvas>
                             </div>
                         </div>
                     </div>
 
-                    <div class="column is-3">
+                    <div class="column is-5">
                         <div class="box">
-                            <h2 class="title is-6">Публикувани събития</h2>
-                            <div>
-                                <input type="radio" value="monthly" name="event-growth" checked>По месеци</input>
-                                <input type="radio" value="daily" name="event-growth">По дни</input>
+                            <h2 class="title is-6">Купени билети - месечно</h2>
+                            <div style="height: 250px;">
+                                <canvas id="tickets-chart-monthly"></canvas>
                             </div>
-                            <div style="height: 200px;">
-                                <canvas id="events-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="columns is-centered is-variable is-2">
+                    <div class="column is-5">
+                        <div class="box">
+                            <h2 class="title is-6">Регистрирани потребители - дневно</h2>
+                            <div style="height: 250px;">
+                                <canvas id="users-chart-daily"></canvas>
                             </div>
                         </div>
                     </div>
 
-                    <div class="column is-3">
+                    <div class="column is-5">
                         <div class="box">
-                            <h2 class="title is-6">Купени билети</h2>
-                            <div>
-                                <input type="radio" value="monthly" name="ticket-growth" checked>По месеци</input>
-                                <input type="radio" value="daily" name="ticket-growth">По дни</input>
+                            <h2 class="title is-6">Регистрирани потребители - месечно</h2>
+                            <div style="height: 250px;">
+                                <canvas id="users-chart-monthly"></canvas>
                             </div>
-                            <div style="height: 200px;">
-                                <canvas id="tickets-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="columns is-centered is-variable is-2">
+                    <div class="column is-5">
+                        <div class="box">
+                            <h2 class="title is-6">Публикувани събития - дневно</h2>
+                            <div style="height: 250px;">
+                                <canvas id="events-chart-daily"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-5">
+                        <div class="box">
+                            <h2 class="title is-6">Публикувани събития - месечно</h2>
+                            <div style="height: 250px;">
+                                <canvas id="events-chart-monthly"></canvas>
                             </div>
                         </div>
                     </div>

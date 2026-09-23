@@ -5,6 +5,7 @@
 #include "../util.h"
 #include <openssl/rand.h>
 #include <openssl/evp.h>
+#include "../controllers/stats_controller.h"
 
 static int hash_password(const char* pass, const unsigned char* salt, size_t salt_len, const unsigned char* hash, size_t hash_len) {
 	return PKCS5_PBKDF2_HMAC(
@@ -500,26 +501,34 @@ int get_total_users(PGconn* db) {
 	return total;
 }
 
-int get_users_growth(PGconn* db, int type, StatGrowth** out) {
+int get_users_growth(PGconn* db, int type, int months, StatGrowth** out) {
 	CHECK_DB(db, -1);
-	PGresult* res = NULL;
-	if (type == 0) {
-		res = PQexecPrepared(db, "get_users_growth_monthly", 
-			0, NULL, NULL, NULL, 0);
+
+	const char* query_name;
+	if (type == STAT_MONTHLY) {
+		query_name = "get_users_growth_monthly";
 	}
-	else if (type == 1) {
-		res = PQexecPrepared(db, "get_users_growth_monthly_all", 
-			0, NULL, NULL, NULL, 0);
-	}
-	else if (type == 2) {
-		res = PQexecPrepared(db, "get_users_growth_daily", 
-			0, NULL, NULL, NULL, 0);
+	else if (type == STAT_DAILY) {
+		query_name = "get_users_growth_daily";
 	}
 	else {
 		return -1;
 	}
 
+	char months_str[16];
+	const char* params[1];
+
+	if (months > 0) {
+		snprintf(months_str, sizeof(months_str), "%d", months);
+		params[0] = months_str;
+	}
+	else {
+		params[0] = NULL;
+	}
+
+	PGresult* res = PQexecPrepared(db, query_name, 1, params, NULL, NULL, 0);
 	CHECK_QUERY(res, db, -1);
+
 	int count = PQntuples(res);
 
 	*out = malloc(count * sizeof(StatGrowth));
@@ -536,4 +545,3 @@ int get_users_growth(PGconn* db, int type, StatGrowth** out) {
 	PQclear(res);
 	return count;
 }
-

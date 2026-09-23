@@ -37,7 +37,7 @@ int soft_delete_user(PGconn* db, int user_id, const char* password);
 void permanent_delete_users(PGconn* db);
 
 int get_total_users(PGconn* db);
-int get_users_growth(PGconn* db, int type, StatGrowth** out);
+int get_users_growth(PGconn* db, int type, int months, StatGrowth** out);
 
 char* create_reset_token(PGconn* db, int user_id);
 int validate_reset_token(PGconn* db, const char* token);

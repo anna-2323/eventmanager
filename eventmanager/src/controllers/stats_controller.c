@@ -28,6 +28,15 @@ int api_stats(struct mg_connection* conn, void* data)
         return 405;
     }
 
+    // Извличане на параметъра months (по подразбиране 0 = всички)
+    int months = 0;
+    if (info->query_string) {
+        char months_str[16] = "";
+        mg_get_var(info->query_string, strlen(info->query_string), "months", months_str, sizeof(months_str));
+        if (months_str[0] != '\0')
+            months = atoi(months_str);
+    }
+
     PGconn* db = data;
     json_t* stats = json_object();
 
@@ -38,9 +47,9 @@ int api_stats(struct mg_connection* conn, void* data)
 
         int users_count = -1;
         if (organizer_id == 0)
-            users_count = get_users_growth(db, STAT_MONTHLY, &users);
-        int events_count = get_events_growth(db, STAT_MONTHLY, organizer_id, &events);
-        int tickets_count = get_tickets_growth(db, STAT_MONTHLY, organizer_id, &tickets);
+            users_count = get_users_growth(db, STAT_MONTHLY, months, &users);
+        int events_count = get_events_growth(db, STAT_MONTHLY, organizer_id, months, &events);
+        int tickets_count = get_tickets_growth(db, STAT_MONTHLY, organizer_id, months, &tickets);
 
         if (users_count < 0 || events_count < 0 || tickets_count < 0) {
             free(users); free(events); free(tickets);
@@ -77,10 +86,10 @@ int api_stats(struct mg_connection* conn, void* data)
         StatGrowth* tickets = NULL;
 
         int users_count = -1;
-        if(organizer_id == 0)
-            users_count = get_users_growth(db, STAT_DAILY, &users);
-        int events_count = get_events_growth(db, STAT_DAILY, organizer_id, &events);
-        int tickets_count = get_tickets_growth(db, STAT_DAILY, organizer_id, &tickets);
+        if (organizer_id == 0)
+            users_count = get_users_growth(db, STAT_DAILY, months, &users);
+        int events_count = get_events_growth(db, STAT_DAILY, organizer_id, months, &events);
+        int tickets_count = get_tickets_growth(db, STAT_DAILY, organizer_id, months, &tickets);
 
         if (users_count < 0 || events_count < 0 || tickets_count < 0) {
             free(users); free(events); free(tickets);
@@ -88,7 +97,7 @@ int api_stats(struct mg_connection* conn, void* data)
             return 500;
         }
 
-        if(organizer_id == 0)
+        if (organizer_id == 0)
             json_object_set_new(
                 stats,
                 "users_growth",
@@ -140,7 +149,7 @@ int api_stats(struct mg_connection* conn, void* data)
     else if (strcmp(info->local_uri, "/api/stats/revenue/monthly") == 0) {
         StatRevenue* revenue = NULL;
 
-        int count = get_revenue(db, STAT_MONTHLY, organizer_id, &revenue);
+        int count = get_revenue(db, STAT_MONTHLY, organizer_id, months, &revenue);
         if (count < 0) {
             free(revenue);
             json_decref(stats);
@@ -158,7 +167,7 @@ int api_stats(struct mg_connection* conn, void* data)
     else if (strcmp(info->local_uri, "/api/stats/revenue/daily") == 0) {
         StatRevenue* revenue = NULL;
 
-        int count = get_revenue(db, STAT_DAILY, organizer_id, &revenue);
+        int count = get_revenue(db, STAT_DAILY, organizer_id, months, &revenue);
         if (count < 0) {
             free(revenue);
             json_decref(stats);
@@ -176,7 +185,7 @@ int api_stats(struct mg_connection* conn, void* data)
     else if (strcmp(info->local_uri, "/api/stats/revenue/venues") == 0) {
         StatRevenue* revenue = NULL;
 
-        int count = get_revenue(db, STAT_BY_VENUE, organizer_id, &revenue);
+        int count = get_revenue(db, STAT_BY_VENUE, organizer_id, months, &revenue);
         if (count < 0) {
             free(revenue);
             json_decref(stats);

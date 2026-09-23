@@ -96,4 +96,4 @@ const char* SQL_RESTORE_VENUE =
 const char* SQL_TOTAL_VENUES =
 "SELECT COUNT(*) "
 "FROM data.venues "
-"WHERE active = true;";
+"WHERE active;";

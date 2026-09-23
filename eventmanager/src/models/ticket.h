@@ -1,8 +1,8 @@
 #pragma once
 #include <libpq-fe.h>
-#include <jansson.h>
 #include "event.h"
-#include "user.h"
+#include "model.h"
+#include "../controllers/stats_controller.h"
 
 typedef struct {
     int id;
@@ -51,6 +51,5 @@ int ticket_id_belongs_to_user(PGconn* db, int user_id, int ticket_id);
 int set_ticket_active(PGconn* db, int id, int active);
 
 int get_total_tickets(PGconn* db, int organizer_id);
-int get_tickets_growth(PGconn* db, int type, int organizer_id, StatGrowth** out);
-
-int get_revenue(PGconn* db, int type, int organizer_id, StatRevenue* out);
+int get_tickets_growth(PGconn* db, StatType type, int organizer_id, int months, StatGrowth** out);
+int get_revenue(PGconn* db, StatType type, int organizer_id, int months, StatRevenue** out);

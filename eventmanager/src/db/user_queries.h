@@ -89,31 +89,28 @@ const char* SQL_TOTAL_USERS =
 "SELECT COUNT(*) "
 "FROM data.users "
 "WHERE deleted_on IS NULL "
-"AND active = TRUE "
-"AND active = true;";
+"AND active; ";
 
 const char* SQL_USERS_GROWTH_MONTHLY =
-"SELECT DATE_TRUNC('month', u.created_at) AS month, "
-"COUNT(*) AS registrations "
+"SELECT "
+"    DATE_TRUNC('month', u.created_at) AS month, "
+"    COUNT(*) AS registrations "
 "FROM data.users u "
-"WHERE u.created_at >= CURRENT_DATE - INTERVAL '12 months' "
-"AND u.active = TRUE "
+"WHERE ($1::integer IS NULL OR "
+"       u.created_at >= DATE_TRUNC('month', CURRENT_DATE) "
+"           - ($1::integer * INTERVAL '1 month')) "
+"  AND u.active "
 "GROUP BY DATE_TRUNC('month', u.created_at) "
-"ORDER BY month; ";
-
-const char* SQL_USERS_GROWTH_MONTHLY_ALL =
-"SELECT DATE_TRUNC('month', u.created_at) AS month, "
-"COUNT(*) AS registrations "
-"FROM data.users u "
-"WHERE u.active = TRUE "
-"GROUP BY DATE_TRUNC('month', u.created_at) "
-"ORDER BY month; ";
+"ORDER BY month;";
 
 const char* SQL_USERS_GROWTH_DAILY =
-"SELECT DATE_TRUNC('day', u.created_at) AS day, "
-"COUNT(*) AS registrations "
+"SELECT "
+"    DATE_TRUNC('day', u.created_at) AS day, "
+"    COUNT(*) AS registrations "
 "FROM data.users u "
-"WHERE u.created_at >= CURRENT_DATE - INTERVAL '30 days' "
-"AND u.active = TRUE "
+"WHERE ($1::integer IS NULL OR "
+"       u.created_at >= DATE_TRUNC('day', CURRENT_DATE) "
+"           - ($1::integer * INTERVAL '1 month')) "
+"  AND u.active = TRUE "
 "GROUP BY DATE_TRUNC('day', u.created_at) "
-"ORDER BY day; ";
+"ORDER BY day;";

@@ -260,17 +260,13 @@ int get_total_tickets(PGconn* db, int organizer_id) {
     return total;
 }
 
-int get_tickets_growth(PGconn* db, StatType type, int organizer_id, StatGrowth** out) {
+int get_tickets_growth(PGconn* db, StatType type, int organizer_id, int months, StatGrowth** out) {
     CHECK_DB(db, -1);
 
     const char* query_name;
     switch (type) {
     case STAT_MONTHLY:
         query_name = "get_tickets_growth_monthly";
-        break;
-
-    case STAT_MONTHLY_ALL:
-        query_name = "get_tickets_growth_monthly_all";
         break;
 
     case STAT_DAILY:
@@ -282,17 +278,24 @@ int get_tickets_growth(PGconn* db, StatType type, int organizer_id, StatGrowth**
     }
 
     char id_str[16];
-    const char* params[1];
+    char months_str[16];
+    const char* params[2];
 
     if (organizer_id > 0) {
         snprintf(id_str, sizeof(id_str), "%d", organizer_id);
         params[0] = id_str;
     }
-    else {
+    else
         params[0] = NULL;
-    }
 
-    PGresult* res = PQexecPrepared(db, query_name, 1, params, NULL, NULL, 0);
+    if (months > 0) {
+        snprintf(months_str, sizeof(months_str), "%d", months);
+        params[1] = months_str;
+    }
+    else
+        params[1] = NULL;
+
+    PGresult* res = PQexecPrepared(db, query_name, 2, params, NULL, NULL, 0);
     CHECK_QUERY(res, db, 0);
 
     int count = PQntuples(res);
@@ -311,7 +314,7 @@ int get_tickets_growth(PGconn* db, StatType type, int organizer_id, StatGrowth**
     return count;
 }
 
-int get_revenue(PGconn* db, StatType type, int organizer_id, StatRevenue** out) {
+int get_revenue(PGconn* db, StatType type, int organizer_id, int months, StatRevenue** out) {
     CHECK_DB(db, -1);
 
     const char* query_name;
@@ -341,17 +344,24 @@ int get_revenue(PGconn* db, StatType type, int organizer_id, StatRevenue** out) 
     }
 
     char id_str[16];
-    const char* params[1];
+    char months_str[16];
+    const char* params[2];
 
     if (organizer_id > 0) {
         snprintf(id_str, sizeof(id_str), "%d", organizer_id);
         params[0] = id_str;
     }
-    else {
+    else
         params[0] = NULL;
-    }
 
-    PGresult* res = PQexecPrepared(db, query_name, 1, params, NULL, NULL, 0);
+    if (months > 0) {
+        snprintf(months_str, sizeof(months_str), "%d", months);
+        params[1] = months_str;
+    }
+    else
+        params[1] = NULL;
+
+    PGresult* res = PQexecPrepared(db, query_name, 2, params, NULL, NULL, 0);
     CHECK_QUERY(res, db, 0);
 
     int count = PQntuples(res);
@@ -367,7 +377,6 @@ int get_revenue(PGconn* db, StatType type, int organizer_id, StatRevenue** out) 
         (*out)[i].revenue = atof(PQgetvalue(res, i, 1));
         (*out)[i].count = atoi(PQgetvalue(res, i, 2));
 
-        // за STAT_BY_VENUE или STAT_BY_VENUE_ALL
         if (!PQgetisnull(res, i, 3))
             (*out)[i].venue_id = atoi(PQgetvalue(res, i, 3));
         else

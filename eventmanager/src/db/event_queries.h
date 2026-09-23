@@ -119,36 +119,31 @@ const char* SQL_TOTAL_EVENTS =
 "SELECT COUNT(*) "
 "FROM data.events e "
 "WHERE ($1::integer IS NULL OR e.organizer_id = $1) "
-"AND e.active = TRUE;";
+"AND e.active;";
 
 const char* SQL_EVENTS_GROWTH_MONTHLY =
 "SELECT "
-"DATE_TRUNC('month', e.uploaded_at) AS month, "
-"COUNT(*) AS event_count "
+"    DATE_TRUNC('month', e.uploaded_at) AS month, "
+"    COUNT(*) AS event_count "
 "FROM data.events e "
-"WHERE e.uploaded_at >= CURRENT_DATE - INTERVAL '12 months' "
-"AND ($1::integer IS NULL OR e.organizer_id = $1) "
-"AND e.active = TRUE "
+"WHERE ($1::integer IS NULL OR e.organizer_id = $1) "
+"  AND ($2::integer IS NULL OR "
+"       e.uploaded_at >= DATE_TRUNC('month', CURRENT_DATE) "
+"           - ($2::integer * INTERVAL '1 month')) "
+"  AND e.active "
 "GROUP BY DATE_TRUNC('month', e.uploaded_at) "
 "ORDER BY month;";
 
 const char* SQL_EVENTS_GROWTH_DAILY =
 "SELECT "
-"DATE_TRUNC('day', e.uploaded_at) AS day, "
-"COUNT(*) AS event_count "
+"    DATE_TRUNC('day', e.uploaded_at) AS day, "
+"    COUNT(*) AS event_count "
 "FROM data.events e "
 "WHERE e.uploaded_at >= CURRENT_DATE - INTERVAL '30 days' "
-"AND ($1::integer IS NULL OR e.organizer_id = $1) "
-"AND e.active = TRUE "
+"  AND ($1::integer IS NULL OR e.organizer_id = $1) "
+"  AND ($2::integer IS NULL OR "
+"       e.uploaded_at >= DATE_TRUNC('day', CURRENT_DATE) "
+"           - ($2::integer * INTERVAL '1 month')) "
+"  AND e.active "
 "GROUP BY DATE_TRUNC('day', e.uploaded_at) "
 "ORDER BY day;";
-
-const char* SQL_EVENTS_GROWTH_MONTHLY_ALL =
-"SELECT "
-"DATE_TRUNC('month', e.uploaded_at) AS month, "
-"COUNT(*) AS event_count "
-"FROM data.events e "
-"WHERE ($1::integer IS NULL OR e.organizer_id = $1) "
-"AND e.active = TRUE "
-"GROUP BY DATE_TRUNC('month', e.uploaded_at) "
-"ORDER BY month;";

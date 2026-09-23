@@ -86,4 +86,4 @@ int set_event_active(PGconn* db, int id, int active);
 int get_categories(PGconn* db, Category** out);
 
 int get_total_events(PGconn* db, int organizer_id);
-int get_events_growth(PGconn* db, int type, int organizer_id, StatGrowth** out);
+int get_events_growth(PGconn* db, int type, int organizer_id, int months, StatGrowth** out);

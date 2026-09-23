@@ -14,11 +14,12 @@ if (!user.logged_in || user.role == 2) {
         </div>
     </section>`;
 } else {
-  const { data: monthlyStats } = await api.stats.monthly();
-  const { data: dailyStats } = await api.stats.daily();
-  const { data: totals } = await api.stats.totals();
-  const { data: monthlyRev } = await api.stats.revenue.monthly();
-  const { data: venueRev } = await api.stats.revenue.byVenues();
+  let { data: monthlyStats } = await api.stats.monthly(1);
+  let { data: dailyStats } = await api.stats.daily(1);
+  let { data: totals } = await api.stats.totals();
+  let { data: monthlyRev } = await api.stats.revenue.monthly(1);
+  let { data: dailyRev } = await api.stats.revenue.daily(1);
+  let { data: venueRev } = await api.stats.revenue.byVenues(1);
 
   const monthNames = [
     "Яну",
@@ -53,23 +54,42 @@ if (!user.logged_in || user.role == 2) {
   }
 
   function fillCharts() {
+    // Растеж събития
     const months1 = toMonths(monthlyStats.events_growth)
-    const event_count = monthlyStats.events_growth.map((x) => x.count);
-    fillBarChart("events-chart", months1, event_count, "Събития", true);
+    const event_m_count = monthlyStats.events_growth.map((x) => x.count);
+    fillBarChart("events-chart-monthly", months1, event_m_count, "Събития", true);
 
+    const days1 = toDays(dailyStats.events_growth)
+    const event_d_count = dailyStats.events_growth.map((x) => x.count);
+    fillBarChart("events-chart-daily", days1, event_d_count, "Събития", true);
+
+    // Растеж потребители
     if(user.role == 0) {
       const months2 = toMonths(monthlyStats.users_growth)
-      const user_count = monthlyStats.users_growth.map((x) => x.count);
-      fillBarChart("users-chart", months2, user_count, "Потребители", true);
+      const user_m_count = monthlyStats.users_growth.map((x) => x.count);
+      fillBarChart("users-chart-monthly", months2, user_m_count, "Потребители", true);
+
+      const days2 = toDays(dailyStats.users_growth)
+      const user_d_count = dailyStats.users_growth.map((x) => x.count);
+      fillBarChart("users-chart-daily", days2, user_d_count, "Потребители", true);
     }
 
-    const months3 = toMonths(monthlyStats.tickets_growth)
-    const ticket_count = monthlyStats.tickets_growth.map((x) => x.count);
-    fillBarChart("tickets-chart", months3, ticket_count, "Билети", true);
+    // Растеж билети
+    const months3 = toMonths(monthlyStats.tickets_growth);
+    const ticket_m_count = monthlyStats.tickets_growth.map((x) => x.count);
+    fillBarChart("tickets-chart-monthly", months3, ticket_m_count, "Билети", true);
 
-    const revenues = monthlyRev.revenue.map((x) => x.revenue);
-    fillBarChart("revenue-chart", months3, revenues, "Месечен приход (€)");
+    const days3 = toDays(dailyStats.tickets_growth);
+    const ticket_d_count = dailyStats.tickets_growth.map((x) => x.count);
+    fillBarChart("tickets-chart-daily", days3, ticket_d_count, "Билети", true);
 
+    // Приходи общи
+    const monthly_revenues = monthlyRev.revenue.map((x) => x.revenue);
+    fillBarChart("revenue-chart-monthly", months3, monthly_revenues, "Месечен приход (€)");
+    const daily_revenues = dailyRev.revenue.map((x) => x.revenue);
+    fillBarChart("revenue-chart-daily", days3, daily_revenues, "Дневен приход (€)");
+
+    // Приходи по зали
     const months4 = [...new Set(venueRev.revenue.map((x) => x.period))].sort();
     const venueIds = [...new Set(venueRev.revenue.map((x) => x.venue_id))];
 
@@ -84,7 +104,7 @@ if (!user.logged_in || user.role == 2) {
       }),
     }));
 
-    createMultiLineChart("revenue-venue-chart", months4, datasets);
+    createMultiLineChart("revenue-venue-chart-monthly", months4, datasets);
 
   }
 
@@ -117,51 +137,25 @@ if (!user.logged_in || user.role == 2) {
 
     const { name, value } = event.target;
 
-    switch (name) {
-      case "event-growth":
-        if (value === "monthly") {
-          // събития помесечно
-          const months = toMonths(monthlyStats.events_growth);
-          const event_count = monthlyStats.events_growth.map((x) => x.count);
-          fillBarChart("events-chart", months, event_count, "Събития", true);
-        } else {
-          // събития подневно
-          const days = toDays(dailyStats.events_growth);
-          const event_count = dailyStats.events_growth.map((x) => x.count);
-          fillBarChart("events-chart", days, event_count, "Събития", true);
-        }
+    if(name === "months1" || name === "months2")
+    switch (value) {
+      case "1":
+        $(`input[name="months1"][value="1"]`).checked = true;
+        $(`input[name="months2"][value="1"]`).checked = true;
+        await getStats(1);
         break;
-
-      case "user-growth":
-        if (value === "monthly") {
-          // потребители помесечно
-          const months = toMonths(monthlyStats.users_growth);
-          const user_count = monthlyStats.users_growth.map((x) => x.count);
-          fillBarChart("users-chart", months, user_count, "Потребители", true);
-        } else {
-          // потребители подневно
-          const days = toDays(dailyStats.events_growth);
-          const user_count = dailyStats.users_growth.map((x) => x.count);
-          fillBarChart("users-chart", days, user_count, "Потребители", true);
-        }
+      case "3":
+        $(`input[name="months1"][value="3"]`).checked = true;
+        $(`input[name="months2"][value="3"]`).checked = true;
+        await getStats(3);
         break;
-
-      case "ticket-growth":
-        if (value === "monthly") {
-          // билети помесечно
-          const months = toMonths(monthlyStats.tickets_growth);
-          const ticket_count = monthlyStats.tickets_growth.map(
-            (x) => x.ticket_count,
-          );
-          fillBarChart("tickets-chart", months, ticket_count, "Билети", true);
-        } else {
-          // билети подневно
-          const days = toDays(dailyStats.tickets_growth);
-          const ticket_count = dailyStats.tickets_growth.map((x) => x.count);
-          fillBarChart("tickets-chart", days, ticket_count, "Билети", true);
-        }
+      case "6":
+        $(`input[name="months1"][value="6"]`).checked = true;
+        $(`input[name="months2"][value="6"]`).checked = true;
+        await getStats(6);
         break;
     }
+    fillCharts();
   });
 
   function toMonths(stats) {
@@ -179,5 +173,13 @@ if (!user.logged_in || user.role == 2) {
         month: "short",
       });
     });
+  }
+
+  async function getStats(m) {
+    ({ data: monthlyStats } = await api.stats.monthly(m));
+    ({ data: dailyStats } = await api.stats.daily(m));
+    ({ data: monthlyRev } = await api.stats.revenue.monthly(m));
+    ({ data: dailyRev } = await api.stats.revenue.daily(m));
+    ({ data: venueRev } = await api.stats.revenue.byVenues(m));
   }
 }

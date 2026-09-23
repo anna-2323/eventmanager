@@ -69,13 +69,13 @@ export const api = {
   },
 
   stats: {
-    monthly: () => request('/stats/monthly'),
-    daily: () => request('/stats/daily'),
+    monthly: (months) => request(`/stats/monthly${months ? `?months=${months}` : ''}`),
+    daily: (months) => request(`/stats/daily${months ? `?months=${months}` : ''}`),
     totals: () => request('/stats/totals'),
     revenue: {
-      monthly: () => request('/stats/revenue/monthly'),
-      daily: () => request('/stats/revenue/daily'),
-      byVenues: () => request('/stats/revenue/venues')
+      monthly: (months) => request(`/stats/revenue/monthly${months ? `?months=${months}` : ''}`),
+      daily: (months) => request(`/stats/revenue/daily${months ? `?months=${months}` : ''}`),
+      byVenues: (months) => request(`/stats/revenue/venues${months ? `?months=${months}` : ''}`)
     },
     // export: {
     //   users: () =>  request('/stats/export/users'),
