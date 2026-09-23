@@ -32,14 +32,6 @@ typedef struct {
 } EventData;
 
 typedef struct {
-	int has_sectors;
-	char background_svg[256];
-	char viewbox[50];
-	Sector* sectors;
-	int sector_count;
-} SeatMap;
-
-typedef struct {
 	int id;
 	char title[256];
 } Category;
@@ -79,7 +71,6 @@ typedef struct {
 
 int get_events(PGconn* db, const EventFilters* filters, Event** out);
 int get_event(PGconn* db, int id, Event* out);
-int get_event_seatmap(PGconn* db, int id, SeatMap* out);
 int get_user_events(PGconn* db, int id, Event** out);
 int get_events_in_venue(PGconn* db, int venue_id, Event** out);
 

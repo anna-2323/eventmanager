@@ -8,14 +8,60 @@ const char* SQL_GET_VENUES =
 
 const char* SQL_GET_VENUE =
 "SELECT v.id, v.city, v.address, v.venue_name, "
-"v.has_sectors, v.active "
+"	v.has_sectors, v.active, "
+"   COALESCE(SUM(s.capacity), 0) AS capacity "
 "FROM data.venues v "
-"WHERE v.id = $1;";
+"LEFT JOIN data.sectors s ON s.venue_id = v.id "
+"WHERE v.id = $1 " 
+"GROUP BY v.id; ";
 
 const char* SQL_GET_SECTORS =
 "SELECT s.id, s.name "
 "FROM data.sectors s "
 "WHERE s.venue_id = $1;";
+
+const char* SQL_EVENT_HAS_SEATMAP =
+"SELECT v.has_sectors, v.background_svg, v.viewBox "
+"FROM data.events e "
+"JOIN data.venues v ON v.id = e.venue_id "
+"WHERE e.id = $1;";
+
+const char* SQL_VENUE_HAS_SEATMAP =
+"SELECT v.has_sectors, v.background_svg, v.viewBox "
+"FROM data.venues v "
+"WHERE v.id = $1; ";
+
+const char* SQL_EVENT_NO_SEATMAP =
+"SELECT es.sector_id "
+"FROM data.event_sectors es "
+"WHERE es.event_id = $1;";
+
+const char* SQL_VENUE_NO_SEATMAP =
+"SELECT s.id AS sector_id "
+"FROM data.sectors s "
+"WHERE s.venue_id = $1;";
+
+const char* SQL_GET_EVENT_SEATMAP =
+"SELECT s.id, s.name, s.capacity, s.color, s.svg_path, es.price, "
+"       s.capacity - COALESCE(t.sold, 0) AS available "
+"FROM data.event_sectors es "
+"JOIN data.sectors s ON s.id = es.sector_id "
+"LEFT JOIN ( "
+"    SELECT sector_id, "
+"	 COUNT(*) FILTER (WHERE active) AS sold "
+"    FROM data.tickets "
+"    WHERE event_id = $1 "
+"    GROUP BY sector_id "
+") t ON t.sector_id = es.sector_id "
+"WHERE es.event_id = $1 "
+"ORDER BY s.display_order;";
+
+const char* SQL_GET_VENUE_SEATMAP =
+"SELECT s.id, s.name, s.capacity, "
+"    s.color, s.svg_path "
+"FROM data.sectors s "
+"WHERE s.venue_id = $1 "
+"ORDER BY s.display_order;";
 
 const char* SQL_GET_CITIES =
 "SELECT DISTINCT city "

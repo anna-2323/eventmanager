@@ -9,6 +9,8 @@ static void venue_from_query(PGresult* res, Venue* v, int i) {
         v->has_sectors = (strcmp(PQgetvalue(res, i, 4), "t") == 0);
     if(!PQgetisnull(res, i, 5))
         v->active = (strcmp(PQgetvalue(res, i, 5), "t") == 0);
+    if (!PQgetisnull(res, i, 6))
+        v->capacity = atoi(PQgetvalue(res, i, 6));
 }
 
 int get_venues(PGconn* db, Venue** out, int active) {
@@ -82,6 +84,80 @@ int get_sectors(PGconn* db, int venue_id, Sector** out) {
 
     PQclear(res);
     return count;
+}
+
+int get_seatmap(PGconn* db, int id, SeatMap** out, int availability) {
+    CHECK_DB(db, 0);
+
+    // ID на зала ако availability = 0 (резултатът е само схемата, без наличност и цени),
+    // в противен случай търсим по ID на събитие, за да получим и цените
+    char id_str[16];
+    snprintf(id_str, sizeof(id_str), "%d", id);
+    const char* params[1] = { id_str };
+
+    const char* q1 = availability ? "event_has_seatmap" : "venue_has_seatmap";
+    // Проверка дали залата има данни за сектори и разположението им
+    PGresult* layout_res = PQexecPrepared(db, q1, 1, params, NULL, NULL, 0);
+    CHECK_QUERY(layout_res, db, 0);
+
+    if (PQntuples(layout_res) == 0) {
+        PQclear(layout_res);
+        return 0;
+    }
+
+    *out = malloc(sizeof(SeatMap));
+    (*out)->has_sectors = strcmp(PQgetvalue(layout_res, 0, 0), "t") == 0;
+
+    // Ако няма сектори, функцията приключва тук
+    if (!(*out)->has_sectors) {
+        const char* q2 = availability ? "event_no_seatmap" : "venue_no_seatmap";
+        PGresult* ga_res = PQexecPrepared(db, q2, 1, params, NULL, NULL, 0);
+        CHECK_QUERY(ga_res, db, 0);
+
+        (*out)->sectors = malloc(sizeof(Sector));
+        (*out)->sectors[0].id = atoi(PQgetvalue(ga_res, 0, 0));
+        (*out)->sector_count = 1;
+
+        PQclear(ga_res);
+        return 1;
+    }
+
+    snprintf((*out)->background_svg, sizeof((*out)->background_svg), "%s", PQgetvalue(layout_res, 0, 1));
+    snprintf((*out)->viewbox, sizeof((*out)->viewbox), "%s", PQgetvalue(layout_res, 0, 2));
+
+    PQclear(layout_res);
+
+    // Получаване на сектори, разположението им и останали места в тях
+    const char* q3 = availability ? "get_event_seatmap" : "get_venue_seatmap";
+    PGresult* sec_res = PQexecPrepared(db, q3, 1, params, NULL, NULL, 0);
+    if (PQresultStatus(sec_res) != PGRES_TUPLES_OK) {
+        fprintf(stderr, "Грешка във функцията get_seatmap: %s\n", PQerrorMessage(db));
+        PQclear(sec_res);
+        return 0;
+    }
+
+    int count = PQntuples(sec_res);
+    (*out)->sectors = malloc(count * sizeof(Sector));
+    if ((*out)->sectors == NULL && count > 0) {
+        PQclear(sec_res);
+        return 0;
+    }
+
+    for (int i = 0; i < count; i++) {
+        (*out)->sectors[i].id = atoi(PQgetvalue(sec_res, i, 0));
+        snprintf((*out)->sectors[i].name, sizeof((*out)->sectors[i].name), "%s", PQgetvalue(sec_res, i, 1));
+        (*out)->sectors[i].capacity = atoi(PQgetvalue(sec_res, i, 2));
+        snprintf((*out)->sectors[i].color, sizeof((*out)->sectors[i].color), "%s", PQgetvalue(sec_res, i, 3));
+        snprintf((*out)->sectors[i].svg_path, sizeof((*out)->sectors[i].svg_path), "%s", PQgetvalue(sec_res, i, 4));
+        if (availability) {
+            (*out)->sectors[i].available = atoi(PQgetvalue(sec_res, i, 5));
+            (*out)->sectors[i].price = atof(PQgetvalue(sec_res, i, 6));
+        }
+    }
+    (*out)->sector_count = count;
+
+    PQclear(sec_res);
+    return 1;
 }
 
 int get_cities(PGconn* db, char*** out)

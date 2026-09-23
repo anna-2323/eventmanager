@@ -1,11 +1,15 @@
 import { api } from "../core/api.js";
 import { $, hide, toPrice } from "../core/dom.js";
 
-export async function loadSeatMap(eventId) {
-  const { data: data } = await api.events.getSeatMap(eventId);
+export async function loadSeatMap(id, availability = true) {
+  let data;
+  if(availability)
+    ({ data: data } = await api.events.getSeatMap(id));
+  else
+    ({ data: data} = await api.venues.getSeatMap(id));
 
   // Ако залата няма разделение по сектори, тоест има само един сектор:
-  if (!data.has_sectors) {
+  if (!data.has_sectors || data.sectors.length <= 1) {
     if($("#sector-id-input")) {
       $("#sector-id-input").dataset.sectorId = data.no_sector_id;
     }
@@ -25,12 +29,13 @@ export async function loadSeatMap(eventId) {
   data.sectors.forEach((sector) => {
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", sector.svg_path);
-    path.setAttribute("fill", sector.available > 0 ? sector.color : "#ccc");
+    path.setAttribute("fill", !availability || sector.available > 0 ? sector.color : "#ccc");
     path.setAttribute("stroke", "#333");
     path.dataset.sectorId = sector.id;
     path.classList.add("sector");
-    if (sector.available === 0) path.classList.add("sold-out");
-    else path.addEventListener("click", () => selectSector(sector, path));
+    if(availability && sector.available === 0)
+      path.classList.add("sold-out");
+    else path.addEventListener("click", () => selectSector(sector, path, availability));
     svg.appendChild(path);
 
     const label = document.createElementNS(
@@ -50,18 +55,23 @@ export async function loadSeatMap(eventId) {
   return true;
 }
 
-function selectSector(sector, sectorPath) {
+function selectSector(sector, sectorPath, availability) {
   document
     .querySelectorAll(".sector.selected")
     .forEach((el) => el.classList.remove("selected"));
   sectorPath.classList.add("selected");
 
   $("#sector-id-input").dataset.sectorId = sector.id;
-
   $("#summary-name").textContent = sector.name;
-  $("#summary-price").textContent =
-    `${toPrice(sector.price)}, `;
-  $("#summary-available").textContent = sector.available;
+
+  if(availability) {
+    $("#summary-price").textContent =
+      `${toPrice(sector.price)}, `;
+    $("#summary-available").textContent = sector.available;
+  }
+  else {
+    $('#summary-capacity').textContent = `${sector.capacity}`;
+  }
   $("#sector-summary").style.visibility = "visible";
 }
 

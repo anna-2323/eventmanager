@@ -169,6 +169,7 @@ json_t* venue_to_json(Venue* v) {
     json_object_set_new(obj, "venue_name", json_string(v->venue_name));
     json_object_set_new(obj, "active", json_integer(v->active));
     json_object_set_new(obj, "has_sectors", json_integer(v->has_sectors));
+    json_object_set_new(obj, "capacity", json_integer(v->capacity));
     return obj;
 }
 

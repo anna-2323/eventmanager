@@ -6,3 +6,4 @@
 int api_cities(struct mg_connection* conn, void* data);
 int api_venues(struct mg_connection* conn, void* data);
 int api_admin_venues(struct mg_connection* conn, void* data);
+int api_venue_seatmap(struct mg_connection* conn, void* data);

@@ -43,8 +43,10 @@ int api_venues(struct mg_connection* conn, void* data) {
 	const char* id_str = info->local_uri + strlen("/api/venues/");
 	int venue_id = atoi(id_str);
 
+	char uri[64];
+	snprintf(uri, sizeof(uri), "/api/venues/%d/events", venue_id);
 	// GET /api/venues/{id}/events
-	if (strcmp(info->local_uri, "/api/venues") == 0) {
+	if (strcmp(info->local_uri, uri) == 0) {
 
 		if (strcmp(info->request_method, "GET") != 0) {
 			mg_send_http_error(conn, 405, "Method Not Allowed");
@@ -177,6 +179,52 @@ int api_admin_venues(struct mg_connection* conn, void* data) {
 		}
 		else {
 			return send_result(conn, 0, 400, "Невалидни данни за редактиране на зала.", NULL);
+		}
+	}
+	else {
+		mg_send_http_error(conn, 405, "Method Not Allowed");
+		return 405;
+	}
+}
+
+int api_venue_seatmap(struct mg_connection* conn, void* data) {
+	PGconn* db = (PGconn*)data;
+	const struct mg_request_info* info = mg_get_request_info(conn);
+
+	if (strcmp(info->request_method, "GET") == 0) {
+		const char* id_str = info->local_uri + strlen("/api/venues/seatmap/");
+		int venue_id = atoi(id_str);
+
+		if (venue_id <= 0) {
+			return send_result(conn, 0, 401, "Залата не съществува.", NULL);
+		}
+
+		SeatMap* seatMap = NULL;
+		if (get_seatmap((PGconn*)data, venue_id, &seatMap, 1)) {
+			json_t* res = json_object();
+			json_object_set_new(res, "has_sectors", json_boolean(seatMap->has_sectors));
+			if (seatMap->has_sectors) {
+				json_object_set_new(res, "background_svg",
+					seatMap->background_svg ? json_string(seatMap->background_svg) : json_null());
+				json_object_set_new(res, "viewbox",
+					seatMap->viewbox ? json_string(seatMap->viewbox) : json_null());
+				json_t* sectors = json_array();
+				for (int i = 0; i < seatMap->sector_count; i++) {
+					json_t* sector = json_object();
+					json_object_set_new(sector, "id", json_integer(seatMap->sectors[i].id));
+					json_object_set_new(sector, "name", json_string(seatMap->sectors[i].name));
+					json_object_set_new(sector, "capacity", json_integer(seatMap->sectors[i].capacity));
+					json_object_set_new(sector, "color", json_string(seatMap->sectors[i].color));
+					json_object_set_new(sector, "svg_path", json_string(seatMap->sectors[i].svg_path));
+					json_array_append(sectors, sector);
+				}
+				json_object_set_new(res, "sectors", sectors);
+			}
+			else {
+				json_object_set_new(res, "no_sector_id", json_integer(seatMap->sectors[0].id));
+				json_object_set_new(res, "sectors", json_null());
+			}
+			return send_result(conn, 1, 200, "", res);
 		}
 	}
 	else {

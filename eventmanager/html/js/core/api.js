@@ -45,7 +45,8 @@ export const api = {
   venues: {
     list: () => request('/venues'),
     get: (id) => request(`/venues/${id}`),
-    getEvents: (id) => request(`/venues/${id}/events`)
+    getEvents: (id) => request(`/venues/${id}/events`),
+    getSeatMap: (id) => request(`/venues/seatmap/${id}`)
   },
 
   events: {

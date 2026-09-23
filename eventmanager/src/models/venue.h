@@ -11,12 +11,15 @@ typedef struct {
 	char address[256];
 	int active;
 	int has_sectors;
+	int capacity;
 } Venue;
 
 int get_venues(PGconn* db, Venue** out, int active);
 int get_venue(PGconn* db, int id, Venue* out);
 
 int get_sectors(PGconn* db, int venue_id, Sector** out);
+int get_seatmap(PGconn* db, int event_id, SeatMap** out, int availability);
+
 int get_cities(PGconn* db, char** out);
 
 int add_venue(PGconn* db, Venue* v);

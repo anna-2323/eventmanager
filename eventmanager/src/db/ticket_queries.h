@@ -1,14 +1,13 @@
 #pragma once
 
 const char* SQL_CHECK_SEAT =
-"SELECT es.capacity - COUNT(t.id) "
-"FROM data.event_sectors es "
+"SELECT s.capacity - COUNT(t.id) "
+"FROM data.sectors s "
 "LEFT JOIN data.tickets t "
-"    ON t.event_id = es.event_id "
-"   AND t.sector_id = es.sector_id "
-"WHERE es.event_id = $1 "
-"  AND es.sector_id = $2 "
-"GROUP BY es.capacity;";
+"    ON t.event_id = $1 "
+"   AND t.sector_id = s.id "
+"WHERE s.id = $2 "
+"GROUP BY s.capacity;";
 
 const char* SQL_SECTOR_PRICE =
 "SELECT price "

@@ -101,6 +101,7 @@ void set_handlers(struct mg_context* ctx, TicketContext* ticket_context) {
     mg_set_request_handler(ctx, "/api/users/*/events", api_user_events, db);
     mg_set_request_handler(ctx, "/api/events", api_events, db);
 
+    mg_set_request_handler(ctx, "/api/venues/seatmap", api_venue_seatmap, db);
     mg_set_request_handler(ctx, "/api/categories", api_categories, db);
     mg_set_request_handler(ctx, "/api/cities", api_cities, db);
     mg_set_request_handler(ctx, "/api/venues", api_venues, db);

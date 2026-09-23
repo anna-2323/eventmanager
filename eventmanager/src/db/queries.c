@@ -22,12 +22,6 @@ int prepare_queries(PGconn* db)
         return 0;
     if (!prepare_query(db, "get_event", SQL_GET_EVENT, 1))
         return 0;
-    if (!prepare_query(db, "has_seatmap", SQL_HAS_SEATMAP, 1))
-        return 0;
-    if (!prepare_query(db, "no_seatmap", SQL_NO_SEATMAP, 1))
-        return 0;
-    if (!prepare_query(db, "get_seatmap", SQL_GET_SEATMAP, 1))
-        return 0;
     if (!prepare_query(db, "add_event", SQL_ADD_EVENT, 6))
         return 0;
     if (!prepare_query(db, "add_event_sectors", SQL_ADD_EVENT_SECTORS, 4))
@@ -47,6 +41,19 @@ int prepare_queries(PGconn* db)
     if (!prepare_query(db, "deactivate_event", SQL_DEACTIVATE_EVENT, 1))
         return 0;
     if (!prepare_query(db, "get_categories", SQL_GET_CATEGORIES, 1))
+        return 0;
+
+    if (!prepare_query(db, "get_event_seatmap", SQL_GET_EVENT_SEATMAP, 1))
+        return 0;
+    if (!prepare_query(db, "get_venue_seatmap", SQL_GET_VENUE_SEATMAP, 1))
+        return 0;
+    if (!prepare_query(db, "event_has_seatmap", SQL_EVENT_HAS_SEATMAP, 1))
+        return 0;
+    if (!prepare_query(db, "venue_has_seatmap", SQL_EVENT_HAS_SEATMAP, 1))
+        return 0;
+    if (!prepare_query(db, "event_no_seatmap", SQL_EVENT_NO_SEATMAP, 1))
+        return 0;
+    if (!prepare_query(db, "venue_no_seatmap", SQL_VENUE_NO_SEATMAP, 1))
         return 0;
 
     if (!prepare_query(db, "check_seat", SQL_CHECK_SEAT, 2))

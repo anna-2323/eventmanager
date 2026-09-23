@@ -189,7 +189,7 @@ int api_event_seatmap(struct mg_connection* conn, void* data) {
         }
 
         SeatMap* seatMap = NULL;
-        if (get_event_seatmap((PGconn*)data, event_id, &seatMap)) {
+        if (get_seatmap((PGconn*)data, event_id, &seatMap, 1)) {
             json_t* res = json_object();
             json_object_set_new(res, "has_sectors", json_boolean(seatMap->has_sectors));
             if (seatMap->has_sectors) {

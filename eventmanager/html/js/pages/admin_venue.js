@@ -3,6 +3,7 @@ import { $, showError, showSuccess, toDate, editItem } from "../core/dom.js";
 import { header } from "../components/header.js";
 import { input, editSection, activateToggles } from "../components/form.js";
 import { venueCard } from "../components/adminCards.js";
+import { loadSeatMap } from "../components/seatMap.js";
 
 header();
 
@@ -18,7 +19,7 @@ if (!user.logged_in || user.role == 2) {
   const id = window.location.pathname.split("/").pop();
   const { data: venue } = await api.venues.get(id);
   renderVenue();
-  renderEvents();
+  renderLayout();
   
   showSuccess();
   showError();
@@ -28,6 +29,8 @@ if (!user.logged_in || user.role == 2) {
   }
 
   document.addEventListener("click", (e) => {
+    if(e.target.matches("#layout-btn"))
+      renderLayout();
     if(e.target.matches("#events-btn"))
       renderEvents();
     if(e.target.matches("#edit-btn"))
@@ -56,8 +59,22 @@ if (!user.logged_in || user.role == 2) {
     }
   });
 
+  async function renderLayout() {
+    $("#changeable").innerHTML = 
+    `<div id="event-layout-field">
+         <svg id="seat-map">
+         </svg>
+         <div id="sector-summary" style="visibility:hidden;">
+           <div id="sector-id-input"></div>
+           <p>Избран сектор: <strong id="summary-name"></strong></p>
+            <p><span id="summary-capacity"></span> места</p>
+         </div>
+     </div>`;
+    loadSeatMap(id, false);
+  }
+
   async function renderEvents() {
-    const events = await api.venues.getEvents(id);
+    const { data: events } = await api.venues.getEvents(id);
 
     $("#changeable").innerHTML = `<h2 id="events-title" class="subtitle">
             ${"Провеждани събития"}

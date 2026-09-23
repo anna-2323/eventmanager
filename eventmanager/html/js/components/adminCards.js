@@ -117,19 +117,22 @@ export function venueCard(v, role) {
                     <table class="table is-fullwidth">
                         <tbody>
                             <tr><th>ID</th>
-                                <td id="event-id">${v.id}</td>
+                                <td>${v.id}</td>
                             </tr>
                             <tr><th>Име</th>
-                                <td id="event-title">${v.venue_name}</td>
+                                <td>${v.venue_name}</td>
                             </tr>
                             <tr><th>Град</th>
-                                <td id="event-begins-at">${v.city}</td>
+                                <td>${v.city}</td>
                             </tr>
                             <tr><th>Адрес</th>
-                                <td id="event-venue-name">${v.address}</td>
+                                <td>${v.address}</td>
+                            </tr>
+                            <tr><th>Общ капацитет</th>
+                                <td>${v.capacity}</td>
                             </tr>
                             <tr><th>Статус</th>
-                                <td id="event-verified">${v.active ? 
+                                <td>${v.active ? 
                                     "<span style='color:#00d1b2;'>Активна</span>" : 
                                     "<span style='color:#ff6685;'>Деактивирана</span>"}</td>
                             </tr>
@@ -138,6 +141,9 @@ export function venueCard(v, role) {
 
 
                     <div class="buttons mt-4">
+                        <button class="button is-primary" id="layout-btn">
+                            Преглед на зала
+                        </button>
                         <button class="button is-primary" id="events-btn">
                             Преглед на събития
                         </button>
