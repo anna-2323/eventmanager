@@ -4,7 +4,7 @@ import { header } from "../components/header.js";
 
 header();
 
-const user = await api.auth.getUser();
+const { data: user } = await api.auth.getUser();
 if (!user.logged_in || user.role == 2) {
   $("#main").innerHTML = `<section class="section">
         <div class="container has-text-centered">
@@ -58,7 +58,7 @@ if (!user.logged_in || user.role == 2) {
         </tbody>
     </table>`
 
-  const tickets = await api.admin.tickets.list();
+  const { data: tickets } = await api.admin.tickets.list();
   renderTickets();
 
   let currentSort = {

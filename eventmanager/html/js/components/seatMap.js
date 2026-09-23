@@ -2,7 +2,7 @@ import { api } from "../core/api.js";
 import { $, hide, toPrice } from "../core/dom.js";
 
 export async function loadSeatMap(eventId) {
-  const data = await api.events.getSeatMap(eventId);
+  const { data: data } = await api.events.getSeatMap(eventId);
 
   // Ако залата няма разделение по сектори, тоест има само един сектор:
   if (!data.has_sectors) {

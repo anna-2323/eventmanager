@@ -5,7 +5,7 @@ import { header } from "../components/header.js";
 header();
 
 const id = window.location.pathname.split("/").pop();
-const e = await api.events.get(id);
+const { data: e } = await api.events.get(id);
 $("#event").innerHTML = `<div class="box">
         <div class="columns is-vcentered">
             <div class="column is-narrow">

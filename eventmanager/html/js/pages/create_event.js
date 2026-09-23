@@ -1,10 +1,10 @@
 import { api } from "../core/api.js";
-import { $ } from "../core/dom.js";
+import { $, createItem } from "../core/dom.js";
 import { header } from "../components/header.js";
 
 header();
 
-const user = await api.auth.getUser();
+const { data: user } = await api.auth.getUser();
 if (!user.logged_in || user.role == 2) {
   $("#main").innerHTML = `<section class="section">
         <div class="container has-text-centered">
@@ -15,7 +15,7 @@ if (!user.logged_in || user.role == 2) {
 }
 else {
     // Запълване на менюто за избор на зала
-    const venues = await api.venues.list();
+    const { data: venues } = await api.venues.list();
 
     $("#venue").innerHTML = `
       <option value="" disabled selected>Изберете зала</option>
@@ -58,16 +58,15 @@ else {
 
       try {
         const res = await api.admin.events.create(formData);
-
         if (res.success) {
+          localStorage.setItem("success_message", "Успешно добавено събитие.");
           window.location.href = "/admin/events";
         } else {
-          $("#error").textContent = res.error || "Възникна грешка.";
+          $("#error").textContent = res.message || "Възникна грешка.";
           $("#error").style.display = "block";
         }
       } catch (err) {
-        console.error(err);
-        $("#error").textContent = "Възникна грешка при добавянето.";
+        $("#error").textContent = err.message || "Възникна грешка.";
         $("#error").style.display = "block";
       }
     });

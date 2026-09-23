@@ -4,8 +4,7 @@ import { header } from "../components/header.js";
 import { getEventCard } from "../components/eventCard.js";
 
 header();
-// TODO: да се извеждат най-популярните събития
-const events = await api.events.list();
+const { data : events } = await api.events.list();
 $(".splide__list").innerHTML = events
   .map(
     (e) => `

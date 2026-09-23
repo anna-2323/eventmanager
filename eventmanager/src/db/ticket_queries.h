@@ -10,19 +10,24 @@ const char* SQL_CHECK_SEAT =
 "  AND es.sector_id = $2 "
 "GROUP BY es.capacity;";
 
+const char* SQL_SECTOR_PRICE =
+"SELECT price "
+"FROM data.event_sectors "
+"WHERE sector_id = $1;";
+
 const char* SQL_ADD_TICKET_USER =
-"INSERT INTO data.tickets (event_id, user_id, sector_id, first_name, last_name, email, phone) "
-"VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id";
+"INSERT INTO data.tickets (event_id, user_id, sector_id, first_name, last_name, email, phone, price) "
+"VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id";
 
 const char* SQL_ADD_TICKET_GUEST =
-"INSERT INTO data.tickets (event_id, sector_id, first_name, last_name, email, phone) "
-"VALUES ($1, $2, $3, $4, $5, $6) RETURNING id";
+"INSERT INTO data.tickets (event_id, sector_id, first_name, last_name, email, phone, price) "
+"VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id";
 
 const char* SQL_GET_TICKET =
 "SELECT t.id, e.title, e.begins_at, v.venue_name, v.city, v.address, "
-"       t.first_name, t.last_name, t.email, t.phone, "
-"       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name, "
-"		t.access_token, t.price, e.id, u.id, t.active  "
+"       t.first_name, t.last_name, t.email, t.phone, t.price, "
+"		t.access_token, e.id, u.id, t.active,  "
+"       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name "
 "FROM data.tickets t "
 "JOIN data.events e ON t.event_id = e.id "
 "JOIN data.venues v ON e.venue_id = v.id "
@@ -36,9 +41,9 @@ const char* SQL_GET_TICKET =
 
 const char* SQL_GET_TICKETS =
 "SELECT t.id, e.title, e.begins_at, v.venue_name, v.city, v.address, "
-"       t.first_name, t.last_name, t.email, t.phone, "
-"       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name, "
-"       t.access_token, t.price, e.id, u.id, t.active  "
+"       t.first_name, t.last_name, t.email, t.phone, t.price, "
+"       t.access_token, e.id, u.id, t.active,  "
+"       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name "
 "FROM data.tickets t "
 "JOIN data.events e ON t.event_id = e.id "
 "JOIN data.venues v ON e.venue_id = v.id "
@@ -50,9 +55,9 @@ const char* SQL_GET_TICKETS =
 
 const char* SQL_GET_USER_TICKETS =
 "SELECT t.id, e.title, e.begins_at, v.venue_name, v.city, v.address, "
-"       t.first_name, t.last_name, t.email, t.phone, "
-"       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name, "
-"		t.access_token, t.price, e.id, u.id, t.active  "
+"       t.first_name, t.last_name, t.email, t.phone, t.price, "
+"		t.access_token, e.id, u.id, t.active,  "
+"       CASE WHEN v.has_sectors THEN s.name ELSE NULL END AS sector_name "
 "FROM data.tickets t "
 "JOIN data.events e ON t.event_id = e.id "
 "JOIN data.venues v ON e.venue_id = v.id "

@@ -19,12 +19,17 @@ $("#submit").addEventListener("click", async function () {
     return;
   }
 
-  const res = await api.auth.signup(
-    { first_name, last_name, email, phone, password, role }
-  );
-  if (res.success) window.location.href = `/home`;
-  else {
-    error.textContent = res.error || "Възникна грешка.";
+  try {
+    const res = await api.auth.signup(
+      { first_name, last_name, email, phone, password, role }
+    );
+    if (res.success) window.location.href = `/home`;
+    else {
+      error.textContent = res.message;
+      error.style.display = 'block';
+    }
+  } catch(err) {
+    error.textContent = err.message;
     error.style.display = "block";
   }
 });

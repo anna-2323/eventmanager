@@ -1,10 +1,10 @@
 import { api } from "../core/api.js";
-import { $, $$, show, toDate } from "../core/dom.js";
+import { $, $$, show, toDate, showSuccess, showError } from "../core/dom.js";
 import { header } from "../components/header.js";
 
 header();
 
-const user = await api.auth.getUser();
+const { data: user } = await api.auth.getUser();
 if (user.logged_in) {
   // Попълва се контейнера с личните данни
   $("#name").innerHTML = `${user.first_name ? user.first_name : ""} ${user.last_name ? user.last_name : ""}`;
@@ -14,7 +14,7 @@ if (user.logged_in) {
   // Контейнер за резервирани събития
   // Ще има такива само ако потребителят е с роля на клиент
   if (user.role == 2) {
-    const tickets = await api.users.getTickets(user.id);
+    const { data : tickets } = await api.users.getTickets(user.id);
     show($("#booked-events"));
     if(tickets.length > 0) {
       $("#booked-events").innerHTML += `
@@ -49,20 +49,9 @@ if (user.logged_in) {
   }
 
   // Съобщение за успех/грешка при редактиране на данни
-  const success_message = localStorage.getItem("success_message");
-  const error_message = localStorage.getItem("error_message");
-  if (success_message) {
-    const el = $("#success-message");
-    el.textContent = success_message;
-    show(el);
-    localStorage.removeItem("success_message");
-  } else if (error_message) {
-    const el = $("#error-message");
-    el.textContent = error_message;
-    show(el);
-    localStorage.removeItem("error_message");
-  }
-
+  showSuccess();
+  showError();
+  
   // Dropdown менюта
   var toggle_list = $$(".change-toggle");
   var toggle_array = [...toggle_list]; // NodeList -> Array
@@ -85,18 +74,19 @@ else {
 }
 
 // Отмяна на билет
-$('.cancel-ticket-btn').addEventListener("click", async (e) => {
-  const id = e.target.dataset.id;
-  const res = await api.tickets.edit(id, { active: false });
-  if (res.success) {
-    localStorage.setItem("success_message", "Билетът е отменен.");
+if($('.cancel-ticket-btn'))
+  $('.cancel-ticket-btn').addEventListener("click", async (e) => {
+    const id = e.target.dataset.id;
+    const res = await api.tickets.edit(id, { active: false });
+    if (res.success) {
+      localStorage.setItem("success_message", "Билетът е отменен.");
+      window.location.reload();
+    } else {
+      localStorage.setItem("error_message", res.error || "Възникна грешка.");
+      window.location.reload();
+    }
     window.location.reload();
-  } else {
-    localStorage.setItem("error_message", res.error || "Възникна грешка.");
-    window.location.reload();
-  }
-  window.location.reload();
-})
+  })
 
 // Редактиране на имейл
 $("#change-email-btn").addEventListener("click", () => {
@@ -160,13 +150,13 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-async function fetchProfilePatch(json, path, message) {
+async function fetchProfilePatch(json) {
   const res = await api.users.edit(json);
   if (res.success) {
-    localStorage.setItem("success_message", message);
+    localStorage.setItem("success_message", res.message);
     window.location.reload();
   } else {
-    localStorage.setItem("error_message", res.error || "Възникна грешка.");
+    localStorage.setItem("error_message", res.message);
     window.location.reload();
   }
   window.location.reload();
@@ -187,7 +177,7 @@ async function deleteAccount() {
     api.auth.logout();
     window.location.href = "/home";
   } else {
-    localStorage.setItem("error_message", res.error || "Възникна грешка.");
+    localStorage.setItem("error_message", res.message);
     window.location.reload();
   }
 }

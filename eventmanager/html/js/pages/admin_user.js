@@ -1,12 +1,12 @@
 import { api } from "../core/api.js";
-import { $, $$, showError, showSuccess, toDate } from "../core/dom.js";
+import { $, $$, showError, showSuccess, toDate, editItem } from "../core/dom.js";
 import { header } from "../components/header.js";
 import { input, editSection, activateToggles } from "../components/form.js";
 import { userCard } from "../components/adminCards.js";
 
 header();
 
-const user = await api.auth.getUser();
+const { data: user } = await api.auth.getUser();
 if (!user.logged_in || user.role !== 0) {
   $("#main").innerHTML = `<section class="section">
         <div class="container has-text-centered">
@@ -16,7 +16,7 @@ if (!user.logged_in || user.role !== 0) {
     </section>`;
 } else {
   const id = window.location.pathname.split("/").pop();
-  const user = await api.admin.users.get(id);
+  const { data: editedUser } = await api.admin.users.get(id);
   renderUser();
   renderEvents();
   
@@ -24,7 +24,7 @@ if (!user.logged_in || user.role !== 0) {
   showError();
 
   async function renderUser() {
-    $("#user-card").innerHTML = userCard(user);
+    $("#user-card").innerHTML = userCard(editedUser);
   }
 
   document.addEventListener("click", (e) => {
@@ -39,21 +39,36 @@ if (!user.logged_in || user.role !== 0) {
 
     // Редактиране на потребителски данни
     if(e.target.matches("#change-names-btn")) {
-      const fname = $("#new-first-name").value;
-      const lname = $("#new-last-name").value;
-      editUser({ first_name: fname, last_name: lname }, "Името е сменено успешно.");
+      const first_name = $("#new-first-name").value;
+      const last_name = $("#new-last-name").value;
+      if(first_name && last_name)
+        editItem(api.admin.users.edit, id, { first_name, last_name });
+      else {
+        localStorage.setItem("error_message", "Моля, въведете нови имена.");
+        window.location.reload();
+      }
     }
     if(e.target.matches("#change-email-btn")) {
       const email = $("#new-email").value;
-      editUser({ email }, "Имейлът е сменен успешно.");
+      if(email)
+        editItem(api.admin.users.edit, id, { email });
+      else {
+        localStorage.setItem("error_message", "Моля, въведете нов имейл адрес.");
+        window.location.reload();
+      }
     }
     if(e.target.matches("#change-phone-btn")) {
       const phone = $("#new-phone").value;
-      editUser({ phone }, "Телефонът е сменен успешно.");
+      if(phone)
+        editItem(api.admin.users.edit, id, { phone });
+      else {
+        localStorage.setItem("error_message", "Моля, въведете нов телефонен номер.");
+        window.location.reload();
+      }
     }
     if(e.target.matches("#change-role-btn")) {
       const role = Number($("#role").value);
-      editUser({ role }, "Ролята е сменена успешно.");
+      editItem(api.admin.users.edit, id, { role });
     }
     if(e.target.matches("#confirm-delete-btn")) {
       deleteUser();
@@ -66,15 +81,14 @@ if (!user.logged_in || user.role !== 0) {
   });
 
   async function renderEvents() {
-    const editUser = await api.admin.users.get(id);
     let events;
-    if(user.role == 1)
-      events = await api.users.getEvents(id);
-    if(user.role == 2)
-      events = await api.users.getTickets(id);
+    if(editedUser.role == 1)
+      ({ data: events } = await api.users.getEvents(id));
+    if(editedUser.role == 2)
+      ({ data: events } = await api.users.getTickets(id));
 
     $("#changeable").innerHTML = `<h2 id="events-title" class="subtitle">
-            ${editUser.role == 1 ? "Качени събития" : "Купени билети"}
+            ${editedUser.role == 1 ? "Качени събития" : "Купени билети"}
         </h2>`;
 
     if (events.length > 0) {
@@ -91,7 +105,7 @@ if (!user.logged_in || user.role !== 0) {
         .map(
           (e) =>
             `<tr>
-                  <td>${editUser.role == 1 ? e.title : e.event_name}</td>
+                  <td>${editedUser.role == 1 ? e.title : e.event_name}</td>
                   <td>${toDate(e.begins_at)}</td>
                   <td>${e.venue_name}</td>
                   <td><a href="${user.role == 1 ? 
@@ -164,10 +178,10 @@ if (!user.logged_in || user.role !== 0) {
   }
 
   function set_active() {
-    if(user.active)
-        editUser({ active: false }, "Акаунт успещно деактивиран.");
+    if(editedUser.active)
+        editItem(api.admin.users.edit, id, { active: false });
       else
-        editUser({ active: true }, "Акаунт успещно активиран.");
+        editItem(api.admin.users.edit, id, { active: true });
   }
 
   // Модал
@@ -184,24 +198,21 @@ if (!user.logged_in || user.role !== 0) {
     openModal($("#delete-modal"));
   }
 
-  async function editUser(json, message) {
-    const res = await api.admin.users.edit(id, json);
-    if (res.success) {
-      localStorage.setItem("success_message", message);
-      window.location.reload();
-    } else {
-      localStorage.setItem("error_message", res.error || "Възникна грешка.");
-      window.location.reload();
-    }
-    window.location.reload();
-  }
-
   async function deleteUser() {
+    try {
       const res = await api.admin.users.delete(id);
       if (res.success) {
+        localStorage.setItem("success_message", res.message);
         window.location.href = "/admin/users";
       } else {
-        localStorage.setItem("error_message", res.error || "Възникна грешка.");
+        localStorage.setItem("error_message", res.message || "Възникна грешка.");
       }
+    }
+    catch (err) {
+      localStorage.setItem("error_message", err.message || "Възникна грешка.");
+    }
+    finally {
+      window.location.reload();
+    }
   };
 }

@@ -14,12 +14,14 @@ $("#submit").addEventListener("click", async function () {
     return;
   }
 
-  const res = await api.auth.login({ email, password });
-  if (res.success) window.location.href = `/home`;
-  else {
-    error.textContent = res.error || "Възникна грешка.";
-    show(error);
+  try {
+    const res = await api.auth.login({ email, password });
+    if (res.success) window.location.href = `/home`;
+  } catch(err) {
+      error.textContent = err.message;
+      show(error);
   }
+
 });
 
 $("#password").addEventListener("keydown", function (e) {

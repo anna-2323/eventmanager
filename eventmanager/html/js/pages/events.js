@@ -8,10 +8,9 @@ await header();
 let events = [];
 
 // Попълване на dropdown менютата
-const cities = await api.cities.list();
-const categories = await api.categories.list();
+const { data: cities } = await api.cities.list();
+const { data: categories } = await api.categories.list();
 $('#city-dropdown').innerHTML = cities.map(city =>
-  
   `<a class="dropdown-item" data-value="${city}">${city}</a>`
 ).join("");
 $("#category-dropdown").innerHTML = categories.map(c => 
@@ -94,7 +93,7 @@ async function loadEvents() {
     params.to = currentTo;
   }
 
-  events = await api.events.list(params);
+  ({ data: events } = await api.events.list(params));
 
   sortEvents();
   renderEvents();

@@ -1,15 +1,15 @@
 import { api } from "../core/api.js";
-import { $, toDate } from "../core/dom.js";
+import { $, toDate, toPrice } from "../core/dom.js";
 import { header } from "../components/header.js";
 
 header();
 
 const ticket_id = window.location.pathname.split("/").pop();
 
-const t = await api.tickets.confirm(ticket_id);
+const { data: t } = await api.tickets.confirm(ticket_id);
 $("#confirmation").innerHTML = `<h1 class="title">Успешна покупка!</h1>
-    <p>Билет № ${t.id}</p>
     <p><strong>${t.event_name}</strong></p>
+    <p><strong>${toPrice(t.price)}</strong></p>
     <p>Дата: <i>${toDate(t.begins_at)}</i></p>
     <p>Адрес: <i>${t.venue_name}, ${t.venue_address}</i></p>
     ${t.sector ? `<p>Сектор: <i>${t.sector}</i></p>` : ""}

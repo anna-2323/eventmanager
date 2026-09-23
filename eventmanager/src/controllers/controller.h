@@ -10,9 +10,12 @@
 #define ROLE_USER        2
 
 json_t* get_json(struct mg_connection* conn);
-int send_json(struct mg_connection* conn, json_t* json);
 int check_role(struct mg_connection* conn, int role);
-void set_result(json_t* res, int result);
+int send_result(struct mg_connection* conn, int result, int status, const char* message, json_t* data);
+
+int is_valid_email(const char* email);
+int is_valid_phone(const char* phone);
+int is_valid_password(const char* password);
 
 json_t* event_to_json(Event* e);
 json_t* ticket_to_json(TicketView* t);

@@ -2,7 +2,7 @@ import { api } from "../core/api.js";
 import { $ } from "../core/dom.js";
 
 export async function checkProfile() {
-  const user = await api.auth.getUser();
+  const { data: user } = await api.auth.getUser();
   if (user.logged_in) {
     $("#login-btn").innerHTML = `
                 <div class="navbar-item has-dropdown is-hoverable">

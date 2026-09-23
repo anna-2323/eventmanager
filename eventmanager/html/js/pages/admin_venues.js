@@ -1,10 +1,10 @@
 import { api } from "../core/api.js";
-import { $, $$, toDate } from "../core/dom.js";
+import { $, $$, showSuccess } from "../core/dom.js";
 import { header } from "../components/header.js";
 
 header();
 
-const user = await api.auth.getUser();
+const { data: user } = await api.auth.getUser();
 if (!user.logged_in || user.role == 2) {
   $("#main").innerHTML = `<section class="section">
         <div class="container has-text-centered">
@@ -13,6 +13,7 @@ if (!user.logged_in || user.role == 2) {
         </div>
     </section>`;
 } else {
+  showSuccess();
   $(".container").innerHTML = `
     <h1 class="title mt-4" id="table-title">Управление на зали</h1>
     <table class="table is-fullwidth is-striped is-hoverable">
@@ -52,7 +53,7 @@ if (!user.logged_in || user.role == 2) {
         </tbody>
     </table>`
 
-  const venues = await api.admin.venues.list();
+  const { data: venues } = await api.admin.venues.list();
   renderVenues();
 
   let currentSort = {

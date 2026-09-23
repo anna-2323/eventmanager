@@ -15,17 +15,31 @@ static void ticket_from_query(PGresult* res, TicketView* t, int i) {
     snprintf(t->last_name, sizeof(t->last_name), "%s", PQgetvalue(res, i, 7));
     snprintf(t->email, sizeof(t->email), "%s", PQgetvalue(res, i, 8));
     snprintf(t->phone, sizeof(t->phone), "%s", PQgetvalue(res, i, 9));
-    snprintf(t->sector, sizeof(t->sector), "%s", PQgetvalue(res, i, 10));
+    t->price = atof(PQgetvalue(res, i, 10));
     if(!PQgetisnull(res, i, 11)) 
         snprintf(t->token, sizeof(t->token), "%s", PQgetvalue(res, i, 11));
     if (!PQgetisnull(res, i, 12)) 
-        t->price = atof(PQgetvalue(res, i, 12));
-    if (!PQgetisnull(res, i, 13)) 
-        t->event_id = atoi(PQgetvalue(res, i, 13));
+        t->event_id = atoi(PQgetvalue(res, i, 12));
+    if (!PQgetisnull(res, i, 13))
+        t->user_id = atoi(PQgetvalue(res, i, 13));
     if (!PQgetisnull(res, i, 14))
-        t->user_id = atoi(PQgetvalue(res, i, 14));
+        t->active = (strcmp(PQgetvalue(res, i, 14), "t") == 0);
     if (!PQgetisnull(res, i, 15))
-        t->active = (strcmp(PQgetvalue(res, i, 15), "t") == 0);
+        snprintf(t->sector, sizeof(t->sector), "%s", PQgetvalue(res, i, 15));
+}
+
+static double get_sector_price(PGconn* db, const char* sector_id_str) {
+    const char* params[1] = { sector_id_str };
+
+    PGresult* res = PQexecPrepared(db, "get_sector_price", 1, params, NULL, NULL, 0);
+
+    double price = 0.0;
+    if (PQntuples(res) > 0) {
+        price = strtod(PQgetvalue(res, 0, 0), NULL);
+    }
+
+    PQclear(res);
+    return price;
 }
 
 int purchase_ticket(PGconn* db, TicketData* data, int* ticket_id_out) {
@@ -54,20 +68,28 @@ int purchase_ticket(PGconn* db, TicketData* data, int* ticket_id_out) {
         return -1;
     }
     
+    data->price = get_sector_price(db, sector_id_str);
+    if (!data->price) {
+        PQexec(db, "ROLLBACK");
+        return -1;
+    }
+    char price_str[16];
+    snprintf(price_str, sizeof(price_str), "%f", data->price);
+
     // Ако има места, създава се нов билет:
     // Регистриран потребител:
     if (data->user_id > 0) {
         char user_id_str[16];
         snprintf(user_id_str, sizeof(user_id_str), "%d", data->user_id);
-        const char* ins_params[7] = { event_id_str, user_id_str, sector_id_str, data->first_name, data->last_name, data->email, data->phone };
+        const char* ins_params[8] = { event_id_str, user_id_str, sector_id_str, data->first_name, data->last_name, data->email, data->phone, price_str };
 
-        res = PQexecPrepared(db, "add_ticket_user", 7, ins_params, NULL, NULL, 0);
+        res = PQexecPrepared(db, "add_ticket_user", 8, ins_params, NULL, NULL, 0);
     }
     // Гост:
     else {
-        const char* ins_params[6] = { event_id_str, sector_id_str, data->first_name, data->last_name, data->email, data->phone };
+        const char* ins_params[7] = { event_id_str, sector_id_str, data->first_name, data->last_name, data->email, data->phone, price_str };
 
-        res = PQexecPrepared(db, "add_ticket_guest", 6, ins_params, NULL, NULL, 0);
+        res = PQexecPrepared(db, "add_ticket_guest", 7, ins_params, NULL, NULL, 0);
     }
 
     *ticket_id_out = atoi(PQgetvalue(res, 0, 0));
@@ -217,7 +239,7 @@ int set_ticket_active(PGconn* db, int id, int active) {
 }
 
 int get_total_tickets(PGconn* db, int organizer_id) {
-    CHECK_DB(db, 0);
+    CHECK_DB(db, -1);
 
     char id_str[16];
     const char* params[1];
@@ -230,7 +252,7 @@ int get_total_tickets(PGconn* db, int organizer_id) {
     }
 
     PGresult* res = PQexecPrepared(db, "get_total_tickets", 1, params, NULL, NULL, 0);
-    CHECK_QUERY(res, db, 0);
+    CHECK_QUERY(res, db, -1);
 
     int total = atoi(PQgetvalue(res, 0, 0));
     PQclear(res);
@@ -239,7 +261,7 @@ int get_total_tickets(PGconn* db, int organizer_id) {
 }
 
 int get_tickets_growth(PGconn* db, StatType type, int organizer_id, StatGrowth** out) {
-    CHECK_DB(db, 0);
+    CHECK_DB(db, -1);
 
     const char* query_name;
     switch (type) {
@@ -256,7 +278,7 @@ int get_tickets_growth(PGconn* db, StatType type, int organizer_id, StatGrowth**
         break;
 
     default:
-        return 0;
+        return -1;
     }
 
     char id_str[16];
@@ -277,7 +299,7 @@ int get_tickets_growth(PGconn* db, StatType type, int organizer_id, StatGrowth**
     *out = malloc(count * sizeof(StatGrowth));
     if (*out == NULL && count > 0) {
         PQclear(res);
-        return 0;
+        return -1;
     }
 
     for (int i = 0; i < count; i++) {
@@ -290,7 +312,7 @@ int get_tickets_growth(PGconn* db, StatType type, int organizer_id, StatGrowth**
 }
 
 int get_revenue(PGconn* db, StatType type, int organizer_id, StatRevenue** out) {
-    CHECK_DB(db, 0);
+    CHECK_DB(db, -1);
 
     const char* query_name;
     switch (type) {
@@ -315,7 +337,7 @@ int get_revenue(PGconn* db, StatType type, int organizer_id, StatRevenue** out) 
         break;
 
     default:
-        return 0;
+        return -1;
     }
 
     char id_str[16];
@@ -336,7 +358,7 @@ int get_revenue(PGconn* db, StatType type, int organizer_id, StatRevenue** out) 
     *out = malloc(count * sizeof(StatRevenue));
     if (*out == NULL && count > 0) {
         PQclear(res);
-        return 0;
+        return -1;
     }
 
     for (int i = 0; i < count; i++) {

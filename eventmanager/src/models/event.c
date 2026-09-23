@@ -417,7 +417,7 @@ int get_categories(PGconn* db, Category** out) {
 }
 
 int get_total_events(PGconn* db, int organizer_id) {
-	CHECK_DB(db, 0);
+	CHECK_DB(db, -1);
 
 	char id_str[16];
 	const char* params[1];
@@ -430,7 +430,7 @@ int get_total_events(PGconn* db, int organizer_id) {
 	}
 
 	PGresult* res = PQexecPrepared(db, "get_total_events", 1, params, NULL, NULL, 0);
-	CHECK_QUERY(res, db, 0);
+	CHECK_QUERY(res, db, -1);
 
 	int total = atoi(PQgetvalue(res, 0, 0));
 	PQclear(res);
@@ -438,7 +438,7 @@ int get_total_events(PGconn* db, int organizer_id) {
 	return total;
 }
 int get_events_growth(PGconn* db, int type, int organizer_id, StatGrowth** out) {
-	CHECK_DB(db, 0);
+	CHECK_DB(db, -1);
 
 	const char* query_name;
 
@@ -452,7 +452,7 @@ int get_events_growth(PGconn* db, int type, int organizer_id, StatGrowth** out) 
 		query_name = "get_events_growth_daily";
 	}
 	else {
-		return 0;
+		return -1;
 	}
 
 	char id_str[16];
@@ -473,7 +473,7 @@ int get_events_growth(PGconn* db, int type, int organizer_id, StatGrowth** out) 
 	*out = malloc(count * sizeof(StatGrowth));
 	if (*out == NULL && count > 0) {
 		PQclear(res);
-		return 0;
+		return -1;
 	}
 
 	for (int i = 0; i < count; i++) {

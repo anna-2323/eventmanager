@@ -55,3 +55,18 @@ export function showError() {
     localStorage.removeItem("error_message");
   }
 }
+
+export async function editItem(route, id, data) {
+  try {
+    const res = await route(id, data);
+    if (res.success)
+      localStorage.setItem("success_message", res.message);
+    else 
+      localStorage.setItem("error_message", res.message || "Възникна грешка.");
+    window.location.reload();
+  }
+  catch(err) {
+    localStorage.setItem("error_message", err.message || "Възникна грешка.");
+    window.location.reload();
+  }
+}

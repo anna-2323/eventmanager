@@ -490,10 +490,10 @@ int delete_tokens(PGconn* db) {
 }
 
 int get_total_users(PGconn* db) {
-	CHECK_DB(db, NULL);
+	CHECK_DB(db, -1);
 
 	PGresult* res = PQexecPrepared(db, "get_total_users", 0, NULL, NULL, NULL, 0);
-	CHECK_QUERY(res, db, NULL);
+	CHECK_QUERY(res, db, -1);
 
 	int total = atoi(PQgetvalue(res, 0, 0));
 
@@ -501,7 +501,7 @@ int get_total_users(PGconn* db) {
 }
 
 int get_users_growth(PGconn* db, int type, StatGrowth** out) {
-	CHECK_DB(db, NULL);
+	CHECK_DB(db, -1);
 	PGresult* res = NULL;
 	if (type == 0) {
 		res = PQexecPrepared(db, "get_users_growth_monthly", 
@@ -515,14 +515,17 @@ int get_users_growth(PGconn* db, int type, StatGrowth** out) {
 		res = PQexecPrepared(db, "get_users_growth_daily", 
 			0, NULL, NULL, NULL, 0);
 	}
+	else {
+		return -1;
+	}
 
-	CHECK_QUERY(res, db, 0);
+	CHECK_QUERY(res, db, -1);
 	int count = PQntuples(res);
 
 	*out = malloc(count * sizeof(StatGrowth));
 	if (*out == NULL && count > 0) {
 		PQclear(res);
-		return 0;
+		return -1;
 	}
 
 	for (int i = 0; i < count; i++) {

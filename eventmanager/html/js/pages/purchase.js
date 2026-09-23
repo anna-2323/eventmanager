@@ -7,10 +7,10 @@ header();
 
 const id = window.location.pathname.split("/").pop();
 
-const e = await api.events.get(id);
+const { data: e } = await api.events.get(id);
 
 // автоматично попълване на данни, ако потрвбителят е влязъл
-const user = await api.auth.getUser();
+const { data : user } = await api.auth.getUser();
 if(user.logged_in) {
   $("#first_name").value = user.first_name;
   $("#last_name").value = user.last_name;
@@ -42,9 +42,9 @@ $("#submit").addEventListener("click", async function () {
     { sector_id, first_name, last_name, email, phone }
   );
 
-  if (res.success) window.location.href = `/confirmation/${res.ticket_id}`;
+  if (res.success) window.location.href = `/confirmation/${res.data.ticket_id}`;
   else {
-    error.textContent = res.error || "Възникна грешка.";
+    error.textContent = res.message || "Възникна грешка.";
     show(error);
   }
 });

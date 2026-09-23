@@ -1,12 +1,12 @@
 import { api } from "../core/api.js";
-import { $, $$ } from "../core/dom.js";
+import { $, $$, showSuccess } from "../core/dom.js";
 import { header } from "../components/header.js";
 
 header();
 
 const ROLE_LABELS = { 0: "Администратор", 1: "Организатор", 2: "Потребител" };
 
-const user = await api.auth.getUser();
+const { data: user } = await api.auth.getUser();
 if (!user.logged_in || user.role !== 0) {
   $("#main").innerHTML = `<section class="section">
         <div class="container has-text-centered">
@@ -15,6 +15,7 @@ if (!user.logged_in || user.role !== 0) {
         </div>
     </section>`;
 } else {
+  showSuccess();
   $(".container").innerHTML = `
     <h1 class="title mt-4">Управление на потребители</h1>
     <table class="table is-fullwidth is-striped is-hoverable">
@@ -55,7 +56,7 @@ if (!user.logged_in || user.role !== 0) {
         </tbody>
     </table>`;
 
-  let users = await api.admin.users.list();
+  let { data: users } = await api.admin.users.list();
   renderUsers();
 
   let currentSort = {

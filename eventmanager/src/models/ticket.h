@@ -17,7 +17,7 @@ typedef struct {
     char phone[50];
     char sector[256];
     char token[256];
-    float price;
+    double price;
     int user_id;
     int event_id;
     int active;
@@ -31,6 +31,7 @@ typedef struct {
     char last_name[256];
     char email[256];
     char phone[50];
+    double price;
 } TicketData;
 
 typedef struct {

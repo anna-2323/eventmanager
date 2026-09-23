@@ -42,7 +42,7 @@ int api_stats(struct mg_connection* conn, void* data)
         int events_count = get_events_growth(db, STAT_MONTHLY, organizer_id, &events);
         int tickets_count = get_tickets_growth(db, STAT_MONTHLY, organizer_id, &tickets);
 
-        if (users_count == 0 || events_count == 0 || tickets_count == 0) {
+        if (users_count < 0 || events_count < 0 || tickets_count < 0) {
             free(users); free(events); free(tickets);
             json_decref(stats);
             return 500;
@@ -82,7 +82,7 @@ int api_stats(struct mg_connection* conn, void* data)
         int events_count = get_events_growth(db, STAT_DAILY, organizer_id, &events);
         int tickets_count = get_tickets_growth(db, STAT_DAILY, organizer_id, &tickets);
 
-        if (users_count == 0 || events_count == 0 || tickets_count == 0) {
+        if (users_count < 0 || events_count < 0 || tickets_count < 0) {
             free(users); free(events); free(tickets);
             json_decref(stats);
             return 500;
@@ -141,7 +141,7 @@ int api_stats(struct mg_connection* conn, void* data)
         StatRevenue* revenue = NULL;
 
         int count = get_revenue(db, STAT_MONTHLY, organizer_id, &revenue);
-        if (count == 0) {
+        if (count < 0) {
             free(revenue);
             json_decref(stats);
             return 500;
@@ -159,7 +159,7 @@ int api_stats(struct mg_connection* conn, void* data)
         StatRevenue* revenue = NULL;
 
         int count = get_revenue(db, STAT_DAILY, organizer_id, &revenue);
-        if (count == 0) {
+        if (count < 0) {
             free(revenue);
             json_decref(stats);
             return 500;
@@ -177,7 +177,7 @@ int api_stats(struct mg_connection* conn, void* data)
         StatRevenue* revenue = NULL;
 
         int count = get_revenue(db, STAT_BY_VENUE, organizer_id, &revenue);
-        if (count == 0) {
+        if (count < 0) {
             free(revenue);
             json_decref(stats);
             return 500;
@@ -191,102 +191,8 @@ int api_stats(struct mg_connection* conn, void* data)
 
         free(revenue);
     }
-    return send_json(conn, stats);
+    return send_result(conn, 1, 200, "", stats);
 }
-
-//// GET /api/stats/export
-//int api_stats_export(struct mg_connection* conn, void* data)
-//{
-//    if (!check_role(conn, ROLE_ADMIN) && !check_role(conn, ROLE_ORGANIZATOR)) {
-//        mg_send_http_error(conn, 403, "Forbidden");
-//        return 403;
-//    }
-//
-//    const struct mg_request_info* info = mg_get_request_info(conn);
-//    if (strcmp(info->request_method, "GET") != 0) {
-//        mg_send_http_error(conn, 405, "Method Not Allowed");
-//        return 405;
-//    }
-//
-//    PGconn* db = (PGconn*)data;
-//    json_t* stats = json_object();
-//
-//    // Content-Type: text/csv
-//    // потребители
-//    if (strcmp(info->local_uri, "/api/admin/stats/export/growth/users") == 0) {
-//        StatGrowth* users = NULL;
-//        int users_count = get_users_growth(db, STAT_MONTHLY_ALL, &users);
-//
-//        if (users_count == 0) {
-//            free(users);
-//            json_decref(stats);
-//            return 500;
-//        }
-//
-//        json_object_set_new(
-//            stats,
-//            "users_growth",
-//            growth_array_to_json(users, users_count)
-//        );
-//        free(users);
-//    }
-//    // събития
-//    else if (strcmp(info->local_uri, "/api/admin/stats/export/growth/events") == 0) {
-//        StatGrowth* events = NULL;
-//        int events_count = get_events_growth(db, STAT_MONTHLY_ALL, &events);
-//
-//        if (events_count == 0) {
-//            free(events);
-//            json_decref(stats);
-//            return 500;
-//        }
-//
-//        json_object_set_new(
-//            stats,
-//            "events_growth",
-//            growth_array_to_json(events, events_count)
-//        );
-//        free(events);
-//    }
-//    // билети
-//    else if (strcmp(info->local_uri, "/api/admin/stats/export/growth/tickets") == 0) {
-//        StatGrowth* tickets = NULL;
-//        int tickets_count = get_tickets_growth(db, STAT_MONTHLY_ALL, &tickets);
-//
-//        if (tickets_count == 0) {
-//            free(tickets);
-//            json_decref(stats);
-//            return 500;
-//        }
-//
-//        json_object_set_new(
-//            stats,
-//            "tickets_growth",
-//            growth_array_to_json(tickets, tickets_count)
-//        );
-//        free(tickets);
-//    }
-//    else if (strcmp(info->local_uri, "/api/admin/stats/export/revenue") == 0) {
-//        StatRevenue* rev = NULL;
-//        int rev_count = get_revenue(db, STAT_MONTHLY_ALL, &rev);
-//        json_object_set_new(
-//            stats,
-//            "revenue",
-//            revenue_array_to_json(rev, rev_count)
-//        );
-//    }
-//    else if (strcmp(info->local_uri, "/api/admin/stats/export/revenue/venues") == 0) {
-//        StatRevenue* rev = NULL;
-//        int rev_count = get_revenue(db, STAT_BY_VENUE, &rev);
-//        json_object_set_new(
-//            stats,
-//            "revenue",
-//            revenue_array_to_json(rev, rev_count)
-//        );
-//    }
-//
-//    return send_json(conn, stats);
-//}
 
 json_t* growth_array_to_json(StatGrowth* stats, int count) {
     json_t* arr = json_array();

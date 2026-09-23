@@ -51,9 +51,11 @@ int prepare_queries(PGconn* db)
 
     if (!prepare_query(db, "check_seat", SQL_CHECK_SEAT, 2))
         return 0;
-    if (!prepare_query(db, "add_ticket_user", SQL_ADD_TICKET_USER, 7))
+    if (!prepare_query(db, "get_sector_price", SQL_SECTOR_PRICE, 1))
         return 0;
-    if (!prepare_query(db, "add_ticket_guest", SQL_ADD_TICKET_GUEST, 6))
+    if (!prepare_query(db, "add_ticket_user", SQL_ADD_TICKET_USER, 8))
+        return 0;
+    if (!prepare_query(db, "add_ticket_guest", SQL_ADD_TICKET_GUEST, 7))
         return 0;
     if (!prepare_query(db, "get_tickets", SQL_GET_TICKETS, 1))
         return 0;

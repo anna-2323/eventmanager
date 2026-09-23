@@ -1,11 +1,11 @@
 import { api } from "../core/api.js";
-import { $, showError, showSuccess } from "../core/dom.js";
+import { $, showError, showSuccess, editItem } from "../core/dom.js";
 import { header } from "../components/header.js";
 import { ticketCard } from "../components/adminCards.js";
 
 header();
 
-const user = await api.auth.getUser();
+const { data: user } = await api.auth.getUser();
 if (!user.logged_in || user.role == 2) {
   $("#main").innerHTML = `<section class="section">
         <div class="container has-text-centered">
@@ -15,7 +15,7 @@ if (!user.logged_in || user.role == 2) {
     </section>`;
 } else {
   const id = window.location.pathname.split("/").pop();
-  const ticket = await api.admin.tickets.get(id);
+  const { data: ticket } = await api.admin.tickets.get(id);
   renderTicket();
   
   showSuccess();
@@ -32,20 +32,8 @@ if (!user.logged_in || user.role == 2) {
 
   function toggle_active() {
     if(ticket.active)
-        editTicket({ active: false }, "Билет успешно деактивиран.");
-      else
-        editTicket({ active: true }, "Билет успешно активиран.");
-  }
-
-  async function editTicket(json, message) {
-    const res = await api.admin.tickets.edit(id, json);
-    if (res.success) {
-      localStorage.setItem("success_message", message);
-      window.location.reload();
-    } else {
-      localStorage.setItem("error_message", res.error || "Възникна грешка.");
-      window.location.reload();
-    }
-    window.location.reload();
+      editItem(api.admin.tickets.edit, id, { active: false });
+    else
+      editItem(api.admin.tickets.edit, id, { active: true });
   }
 }

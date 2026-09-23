@@ -1,12 +1,12 @@
 import { api } from "../core/api.js";
-import { $, showError, showSuccess, toDate } from "../core/dom.js";
+import { $, showError, showSuccess, toDate, editItem } from "../core/dom.js";
 import { header } from "../components/header.js";
 import { input, editSection, activateToggles } from "../components/form.js";
 import { venueCard } from "../components/adminCards.js";
 
 header();
 
-const user = await api.auth.getUser();
+const { data: user } = await api.auth.getUser();
 if (!user.logged_in || user.role == 2) {
   $("#main").innerHTML = `<section class="section">
         <div class="container has-text-centered">
@@ -16,7 +16,7 @@ if (!user.logged_in || user.role == 2) {
     </section>`;
 } else {
   const id = window.location.pathname.split("/").pop();
-  const venue = await api.venues.get(id);
+  const { data: venue } = await api.venues.get(id);
   renderVenue();
   renderEvents();
   
@@ -38,11 +38,21 @@ if (!user.logged_in || user.role == 2) {
     // Редактиране на данни за събитие
     if(e.target.matches("#change-name-btn")) {
       const venue_name = $("#new-name").value;
-      editVenue({ venue_name }, "Името е сменено успешно.");
+      if(venue_name)
+        editItem(api.admin.venues.edit, id, { venue_name });
+      else {
+        localStorage.setItem("error_message", "Моля, въведете ново име на залата.");
+        window.location.reload();
+      }
     }
     if(e.target.matches("#change-address-btn")) {
       const address = $("#new-address").value;
-      editVenue({ address }, "Адресът е сменен успешно.");
+      if(address)
+        editItem(api.admin.venues.edit, id, { address });
+      else {
+        localStorage.setItem("error_message", "Моля, въведете нов адрес.");
+        showError();
+      }
     }
   });
 
@@ -105,21 +115,10 @@ if (!user.logged_in || user.role == 2) {
 
   function set_active() {
     if(venue.active) {
-        editVenue({ active: false }, "Залата е успешно деактивирана.");
+        editItem(api.admin.venues.edit, id, { active: false });
     }
     else {
-        editVenue({ active: true }, "Залата е успешно активирана.");
+       editItem(api.admin.venues.edit, id, { active: true });
     }
-  }
-  
-  async function editVenue(json, message) {
-    const res = await api.admin.venues.edit(id, json);
-    if (res.success) {
-      localStorage.setItem("success_message", message);
-    } 
-    else {
-      localStorage.setItem("error_message", res.error || "Възникна грешка.");
-    }
-      window.location.reload();
   }
 }

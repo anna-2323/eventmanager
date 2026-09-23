@@ -4,8 +4,8 @@ import { checkProfile } from "./auth.js";
 import { search } from "./search.js";
 
 export async function header() {
-    const cities = await api.cities.list();
-    const categories = await api.categories.list();
+    const { data: cities } = await api.cities.list();
+    const { data: categories } = await api.categories.list();
   $("#header").innerHTML = `
     <nav class="navbar" role="navigation" aria-label="main navigation">
 

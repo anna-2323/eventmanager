@@ -1,5 +1,18 @@
 #include "controller.h"
 
+const char* status_text(int status) {
+    switch (status) {
+        case 200: return "OK";
+        case 201: return "Created";
+        case 400: return "Bad Request";
+        case 401: return "Unauthorized";
+        case 403: return "Forbidden";
+        case 404: return "Not Found";
+        case 500: return "Internal Server Error";
+        default:  return "Unknown";
+    }
+}
+
 // Помощна функция, обобщаваща действията при получаване на JSON
 json_t* get_json(struct mg_connection* conn) {
     char body[1024] = "";
@@ -15,21 +28,6 @@ json_t* get_json(struct mg_connection* conn) {
     return req;
 }
 
-// Помощна функция, обобщаваща действията при изпращане на JSON
-int send_json(struct mg_connection* conn, json_t* json) {
-    if (!json) {
-        mg_send_http_error(conn, 404, "Not found");
-        return 404;
-    }
-
-    char* json_str = json_dumps(json, JSON_COMPACT);
-    mg_send_http_ok(conn, "application/json", strlen(json_str));
-    mg_write(conn, json_str, strlen(json_str));
-    free(json_str);
-    json_decref(json);
-    return 1;
-}
-
 int check_role(struct mg_connection* conn, int role) {
     Session* s = get_session(conn);
     if (s && s->role == role)
@@ -37,16 +35,94 @@ int check_role(struct mg_connection* conn, int role) {
     return 0;
 }
 
-void set_result(json_t* res, int result)
-{
-    if (result >= 1) {
-        json_object_set_new(res, "success", json_true());
+// Помощна функция, обобщаваща действията при изпращане на JSON
+int send_result(struct mg_connection* conn, int result,
+    int status, const char* message, json_t* data) {
+    
+    json_t* response = json_object();
+
+    json_object_set_new(response, "success", json_boolean(result));
+
+    // Успех
+    if (result) {
+        if(message)
+            json_object_set_new(response, "message",
+                json_string(message ? message : "Успех"));
     }
+    // Грешка
     else {
-        json_object_set_new(res, "success", json_false());
-        json_object_set_new(res, "error", 
-            json_string("Възникна грешка."));
+        json_object_set_new(response, "message",
+            json_string(message ? message : "Възникна грешка."));
     }
+
+    if (data) {
+        json_object_set(response, "data", data);
+    }
+
+    char* json = json_dumps(response, JSON_COMPACT);
+
+    mg_printf(conn,
+        "HTTP/1.1 %d %s\r\n"
+        "Content-Type: application/json\r\n"
+        "Content-Length: %zu\r\n"
+        "\r\n"
+        "%s",
+        status,
+        status_text(status),
+        strlen(json),
+        json
+    );
+
+    free(json);
+    json_decref(response);
+
+    return 1;
+}
+
+int is_valid_email(const char* email) {
+    // Няма @ или започва с @
+    const char* at = strchr(email, '@');
+    if (!at || at == email) return 0;
+
+    // Няма . след @
+    const char* dot = strrchr(at, '.');
+    if (!dot || dot == at + 1) return 0;
+
+    // Домейнът е повече от 2 символа
+    size_t tld_len = strlen(dot + 1);
+    if (tld_len < 2) return 0;
+
+    // Празни места
+    for (const char* c = email; *c; c++) {
+        if (isspace((unsigned char)*c)) return 0;
+    }
+
+    return 1;
+}
+
+int is_valid_phone(const char* phone) {
+    size_t len = strlen(phone);
+    // Нормално количество символи
+    if (len < 7 || len > 15) return 0;
+
+    int digit_count = 0;
+    for (size_t i = 0; i < len; i++) {
+        char c = phone[i];
+        if (isdigit((unsigned char)c)) {
+            digit_count++;
+        }
+        // Разрешени символи
+        else if (c != '+' && c != ' ' && c != '-' && c != '(' && c != ')') {
+            return 0;
+        }
+    }
+    // Достатъчно цифри
+    return digit_count >= 7;
+}
+
+int is_valid_password(const char* password) {
+    if (!password) return 0;
+    return strlen(password) >= 8;
 }
 
 json_t* event_to_json(Event* e) {

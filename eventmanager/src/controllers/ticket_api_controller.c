@@ -16,8 +16,7 @@ int api_purchase_ticket(struct mg_connection* conn, void* data) {
         int event_id = atoi(id_str);
 
         if (event_id <= 0) {
-            mg_send_http_error(conn, 404, "Not found");
-            return 404;
+            return send_result(conn, 0, 400, "Невалидно ID на събитие", NULL);
         }
 
         json_t* req = get_json(conn);
@@ -42,26 +41,28 @@ int api_purchase_ticket(struct mg_connection* conn, void* data) {
             json_string_value(json_object_get(req, "email")), sizeof(ticket.email) - 1);
         strncpy(ticket.phone,
             json_string_value(json_object_get(req, "phone")), sizeof(ticket.phone) - 1);
+        if (!ticket.first_name || ticket.first_name[0] == '\0' ||
+            !ticket.last_name || ticket.last_name[0] == '\0' ||
+            !is_valid_email(ticket.email) || !is_valid_phone(ticket.phone)) {
+            json_decref(req);
+            return send_result(conn, 0, 400, "Невалидни данни.", NULL);
+        }
+        json_decref(req);
 
         int ticket_id;
         int result = purchase_ticket(db, &ticket, &ticket_id);
 
-        json_t* res = json_object();
         if (result == 1) {
-            json_object_set_new(res, "success", json_true());
+            json_t* res = json_object();
             json_object_set_new(res, "ticket_id", json_integer(ticket_id));
+            return send_result(conn, 1, 200, "", res);
         }
         else if (result == -1) {
-            json_object_set_new(res, "success", json_false());
-            json_object_set_new(res, "error", json_string("Няма свободни места."));
+            return send_result(conn, 0, 500, "Няма свободни места.", NULL);
         }
         else {
-            json_object_set_new(res, "success", json_false());
-            json_object_set_new(res, "error", json_string("Възникна грешка."));
+            return send_result(conn, 0, 500, "Възникна грешка.", NULL);
         }
-
-        json_decref(req);
-        return send_json(conn, res);
     }
     else {
         mg_send_http_error(conn, 405, "Method Not Allowed");
@@ -80,14 +81,12 @@ int api_confirm_ticket(struct mg_connection* conn, void* data) {
     if (strcmp(info->request_method, "GET") == 0) {
         int ticket_id = atoi(info->local_uri + strlen("/api/confirmation/"));
         if (ticket_id <= 0) {
-            mg_send_http_error(conn, 404, "Not found");
-            return 404;
+            return send_result(conn, 0, 404, "Невалидно ID на билет.", NULL);
         }
 
         TicketView ticket;
         if (!get_ticket(db, ticket_id, &ticket)) {
-            mg_send_http_error(conn, 404, "Not found");
-            return 404;
+            return send_result(conn, 0, 404, "Билетът не съществува.", NULL);
         }
 
         char pdf_path[128];
@@ -101,21 +100,18 @@ int api_confirm_ticket(struct mg_connection* conn, void* data) {
         else {
             char qr_path[128];
             if (!generate_ticket_qr(ticket.token, qr_path, sizeof(qr_path))) {
-                mg_send_http_error(conn, 500, "Failed to generate QR");
-                return 500;
+                return send_result(conn, 0, 500, "Грешка при създаване на билет", NULL);
             }
 
             char html_path[128];
 
             if (generate_ticket_html(db, config, &ticket, qr_path, html_path, sizeof(html_path)) != 0) {
-                mg_send_http_error(conn, 404, "Ticket not found");
                 remove(html_path);
-                return 404;
+                return send_result(conn, 0, 404, "Грешка при създаване на билет", NULL);
             }
             if (start_pdf_process(ticket.token, config) != 0) {
-                mg_send_http_error(conn, 500, "Failed to generate PDF");
                 remove(html_path);
-                return 500;
+                return send_result(conn, 0, 500, "Грешка при създаване на билет", NULL);
             }
 
             char buf[128];
@@ -127,7 +123,7 @@ int api_confirm_ticket(struct mg_connection* conn, void* data) {
             remove(html_path);
         }
         json_t* res = ticket_to_json(&ticket);
-        return send_json(conn, res);
+        return send_result(conn, 1, 200, "", res);
     }
     else {
         mg_send_http_error(conn, 405, "Method Not Allowed");
@@ -138,8 +134,7 @@ int api_confirm_ticket(struct mg_connection* conn, void* data) {
 // GET, PATCH /api/admin/tickets/{id}
 int api_admin_tickets(struct mg_connection* conn, void* data) {
     if (check_role(conn, ROLE_USER)) {
-        mg_send_http_error(conn, 403, "Forbidden");
-        return 403;
+        return send_result(conn, 0, 403, "Нямате права за това действие", NULL);
     }
 
     PGconn* db = (PGconn*)data;
@@ -159,7 +154,7 @@ int api_admin_tickets(struct mg_connection* conn, void* data) {
                 json_array_append_new(json, ticket_to_json(&tickets[i]));
             }
 
-            return send_json(conn, json);
+            return send_result(conn, 1, 200, "", json);
         }
         else {
             mg_send_http_error(conn, 405, "Method Not Allowed");
@@ -171,14 +166,13 @@ int api_admin_tickets(struct mg_connection* conn, void* data) {
     int id = atoi(id_str);
 
     if (id <= 0) {
-        mg_send_http_error(conn, 404, "Not found");
-        return 404;
+        return send_result(conn, 0, 404, "Невалидно ID за билет.", NULL);
     }
 
     if (strcmp(info->request_method, "GET") == 0) {
         TicketView t;
         if (get_ticket(db, id, &t))
-            return send_json(conn, ticket_to_json(&t));
+            return send_result(conn, 1, 200, "", ticket_to_json(&t));
     }
     if (strcmp(info->request_method, "PATCH") == 0) {
         json_t* req = get_json(conn);
@@ -189,25 +183,28 @@ int api_admin_tickets(struct mg_connection* conn, void* data) {
         int result = 0;
 
         json_t* active_json = json_object_get(req, "active");
+        json_decref(req);
 
         if (active_json) {
             if (!json_is_boolean(active_json)) {
                 result = 0;
             }
             else if (!check_role(conn, ROLE_ADMIN)) {
-                mg_send_http_error(conn, 403, "Forbidden");
-                json_decref(req);
-                return 403;
+                return send_result(conn, 0, 403, "Нямате права за това действие", NULL);
             }
             else {
                 result = set_ticket_active(db, id, json_boolean_value(active_json));
+                if (json_boolean_value(active_json)) {
+                    return send_result(conn, 1, 200, "Билетът е успешно възстановен", NULL);
+                }
+                else {
+                    return send_result(conn, 1, 200, "Билетът е успешно отменен", NULL);
+                }
             }
         }
 
-        set_result(res, result);
-
-        json_decref(req);
-        return send_json(conn, res);
+        else
+            return 500;
     }
 
     else {
@@ -221,8 +218,7 @@ int api_user_tickets(struct mg_connection* conn, void* data) {
     Session* s = get_session(conn);
     // Гости не могат да преглеждат билети
     if (!s) {
-        mg_send_http_error(conn, 401, "Unauthorized");
-        return 401;
+        return send_result(conn, 0, 401, "Нямате права за това действие", NULL);
     }
 
     const struct mg_request_info* info = mg_get_request_info(conn);
@@ -230,12 +226,11 @@ int api_user_tickets(struct mg_connection* conn, void* data) {
         const char* id_str = info->local_uri + strlen("/api/users/");
         int user_id = atoi(id_str);
         if (user_id <= 0) {
-            return 400;
+            return send_result(conn, 0, 400, "Невалидно ID на потребител", NULL);
         }
 
         if (!check_role(conn, ROLE_ADMIN) && user_id != s->user_id) {
-            mg_send_http_error(conn, 403, "Forbidden");
-            return 403;
+            return send_result(conn, 0, 403, "Нямате права за това действие", NULL);
         }
 
         PGconn* db = (PGconn*)data;
@@ -247,7 +242,7 @@ int api_user_tickets(struct mg_connection* conn, void* data) {
             json_array_append_new(json, ticket_to_json(&tickets[i]));
         }
         free(tickets);
-        return send_json(conn, json);
+        return send_result(conn, 1, 200, "", json);
     }
 
     mg_send_http_error(conn, 405, "Method Not Allowed");
@@ -260,8 +255,7 @@ int api_tickets(struct mg_connection* conn, void* data) {
     Session* s = get_session(conn);
 
     if (!s) {
-        mg_send_http_error(conn, 401, "Unauthorized");
-        return 401;
+        return send_result(conn, 0, 401, "Нямате права за това действие", NULL);
     }
 
     PGconn* db = (PGconn*)data;
@@ -274,16 +268,14 @@ int api_tickets(struct mg_connection* conn, void* data) {
         // Число ли е
         if (path[0] == '\0' || end == path ||
             *end != '\0' || id <= 0 || id > INT_MAX) {
-            mg_send_http_error(conn, 404, "Not found");
-            return 404;
+            return send_result(conn, 0, 400, "Невалидно ID на билет", NULL);
         }
 
         int ticket_id = (int)id;
 
         // Принадлежи ли на потребителя
         if (!ticket_id_belongs_to_user(db, s->user_id, ticket_id)) {
-            mg_send_http_error(conn, 404, "Not found");
-            return 404;
+            return send_result(conn, 0, 400, "Невалидно ID на билет", NULL);
         }
 
         json_t* req = get_json(conn);
@@ -301,12 +293,16 @@ int api_tickets(struct mg_connection* conn, void* data) {
             }
             else {
                 result = set_ticket_active(db, id, json_boolean_value(active_json));
+                if (json_boolean_value(active_json))
+                    return send_result(conn, 1, 200, "Билетът е успешно възстановен.", NULL);
+                else
+                    return send_result(conn, 1, 200, "Билетът е успешно отменен.", NULL);
             }
         }
-        
-        set_result(res, result);
-        return send_json(conn, res);
     }
+
+    mg_send_http_error(conn, 405, "Method Not Allowed");
+    return 405;
 }
 
 // GET /tickets/ticket_{uuid}.pdf
@@ -315,8 +311,7 @@ int api_ticket_file(struct mg_connection* conn, void* data) {
     Session* s = get_session(conn);
 
     if (!s) {
-        mg_send_http_error(conn, 401, "Unauthorized");
-        return 401;
+        return send_result(conn, 0, 401, "Нямате права за това действие", NULL);
     }
 
     PGconn* db = (PGconn*)data;
@@ -327,14 +322,12 @@ int api_ticket_file(struct mg_connection* conn, void* data) {
 
         // UUID ли е
         if (sscanf(filename, "ticket_%36[0-9a-fA-F-].pdf", ticket_uuid) != 1) {
-            mg_send_http_error(conn, 404, "Not found");
-            return 404;
+            return send_result(conn, 0, 404, "Билетът не е намерен", NULL);
         }
 
         // Принадлежи ли на потребителя
         if (!ticket_uuid_belongs_to_user(db, s->user_id, ticket_uuid)) {
-            mg_send_http_error(conn, 404, "Not found");
-            return 404;
+            return send_result(conn, 0, 404, "Билетът не е намерен", NULL);
         }
 
         char path[512];

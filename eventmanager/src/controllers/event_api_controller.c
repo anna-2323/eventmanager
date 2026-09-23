@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <bcrypt.h>
 #pragma comment(lib, "bcrypt.lib")
+#include <time.h>
 
 static int create_event_field_found(const char* key,
     const char* filename,
@@ -21,6 +22,8 @@ static int create_event_field_store(const char* path,
 static int make_image_filename(const char* filename,
     char* path,
     size_t pathlen);
+
+static int is_upcoming(const char* begins_at);
 
 // GET /api/events
 int api_events(struct mg_connection* conn, void* data) {
@@ -95,7 +98,7 @@ int api_events(struct mg_connection* conn, void* data) {
                 json_array_append_new(json, event_to_json(&events[i]));
             }
             free(events);
-            return send_json(conn, json);
+            return send_result(conn, 1, 200, "", json);
         }
         // /api/events/{id}
         else {
@@ -103,18 +106,16 @@ int api_events(struct mg_connection* conn, void* data) {
             int event_id = atoi(id_str);
 
             if (event_id <= 0) {
-                mg_send_http_error(conn, 404, "Not found");
-                return 404;
+                return send_result(conn, 0, 400, "Невалидно ID на събитие.", NULL);
             }
 
             Event e;
             if (get_event((PGconn*)data, event_id, &e)) {
                 json_t* json = event_to_json(&e);
-                return send_json(conn, json);
+                return send_result(conn, 1, 200, "", json);
             }
             else {
-                mg_send_http_error(conn, 404, "Not found");
-                return 404;
+                return send_result(conn, 0, 404, "Събитието не съществува.", NULL);
             }
         }
     }
@@ -129,8 +130,7 @@ int api_user_events(struct mg_connection* conn, void* data) {
     Session* s = get_session(conn);
     // Само администратори и организатори имат достъп до качени събития
     if (!s || check_role(conn, ROLE_USER)) {
-        mg_send_http_error(conn, 401, "Unauthorized");
-        return 401;
+        return send_result(conn, 0, 403, "Нямате права за това действие.", NULL);
     }
 
     const struct mg_request_info* info = mg_get_request_info(conn);
@@ -138,12 +138,11 @@ int api_user_events(struct mg_connection* conn, void* data) {
         const char* id_str = info->local_uri + strlen("/api/users/");
         int user_id = atoi(id_str);
         if (user_id <= 0) {
-            return 400;
+            return send_result(conn, 0, 400, "Потребителят не съществува.", NULL);
         }
 
         if (!check_role(conn, ROLE_ADMIN) && user_id != s->user_id) {
-            mg_send_http_error(conn, 403, "Forbidden");
-            return 403;
+            return send_result(conn, 0, 403, "Нямате права за това действие.", NULL);
         }
 
         PGconn* db = (PGconn*)data;
@@ -155,14 +154,12 @@ int api_user_events(struct mg_connection* conn, void* data) {
             json_array_append_new(json, event_to_json(&events[i]));
         }
         free(events);
-        return send_json(conn, json);
+        return send_result(conn, 1, 200, "", json);
     }
 
     mg_send_http_error(conn, 405, "Method Not Allowed");
     return 405;
 }
-
-
 
 // GET /api/categories
 int api_categories(struct mg_connection* conn, void* data) {
@@ -175,7 +172,7 @@ int api_categories(struct mg_connection* conn, void* data) {
         json_object_set_new(c, "title", json_string(categories[i].title));
         json_array_append_new(res, c);
     }
-    return send_json(conn, res);
+    return send_result(conn, 1, 200, "", res);
 }
 
 // GET /api/events/seatmap/{id}
@@ -188,8 +185,7 @@ int api_event_seatmap(struct mg_connection* conn, void* data) {
         int event_id = atoi(id_str);
 
         if (event_id <= 0) {
-            mg_send_http_error(conn, 404, "Not found");
-            return 404;
+            return send_result(conn, 0, 401, "Събитието не съществува.", NULL);
         }
 
         SeatMap* seatMap = NULL;
@@ -219,7 +215,7 @@ int api_event_seatmap(struct mg_connection* conn, void* data) {
                 json_object_set_new(res, "no_sector_id", json_integer(seatMap->sectors[0].id));
                 json_object_set_new(res, "sectors", json_null());
             }
-            return send_json(conn, res);
+            return send_result(conn, 1, 200, "", res);
         }
     }
     else {
@@ -231,8 +227,7 @@ int api_event_seatmap(struct mg_connection* conn, void* data) {
 // GET, POST, PATCH /api/admin/events
 int api_admin_events(struct mg_connection* conn, void* data) {
     if (!check_role(conn, ROLE_ADMIN) && !check_role(conn, ROLE_ORGANIZATOR)) {
-        mg_send_http_error(conn, 403, "Forbidden");
-        return 403;
+        return send_result(conn, 0, 403, "Нямате права за това действие.", NULL);
     }
 
     PGconn* db = (PGconn*)data;
@@ -249,10 +244,6 @@ int api_admin_events(struct mg_connection* conn, void* data) {
                 filters.upcoming = 0;
                 filters.active = 0;
 
-                char search[256] = "";
-                char city[128] = "";
-                char category[32] = "";
-
                 count = get_events((PGconn*)data, &filters, &events);
             }
             else if (s->role == 1) {
@@ -264,7 +255,7 @@ int api_admin_events(struct mg_connection* conn, void* data) {
             }
 
             free(events);
-            return send_json(conn, json);
+            return send_result(conn, 1, 200, "", json);
         }
         if (strcmp(info->request_method, "POST") == 0) {
             CreateEventForm form = { 0 };
@@ -279,8 +270,7 @@ int api_admin_events(struct mg_connection* conn, void* data) {
             int result = mg_handle_form_request(conn, &fdh);
 
             if (result < 0) {
-                mg_send_http_error(conn, 400, "Invalid form data");
-                return 400;
+                return send_result(conn, 0, 400, "Невалидни данни", NULL);
             }
 
             if (!form.venue_id[0] || !form.title[0] ||
@@ -290,8 +280,7 @@ int api_admin_events(struct mg_connection* conn, void* data) {
                 if (form.image_uploaded)
                     remove(form.image_disk_path);
 
-                mg_send_http_error(conn, 400, "Missing required fields");
-                return 400;
+                return send_result(conn, 0, 400, "Липсват задължителни полета.", NULL);
             }
 
             EventData data = { 0 };
@@ -301,8 +290,17 @@ int api_admin_events(struct mg_connection* conn, void* data) {
             snprintf(data.title, sizeof(data.title), "%s", form.title);
             snprintf(data.description, sizeof(data.description), "%s", form.description);
             snprintf(data.begins_at, sizeof(data.begins_at), "%s", form.begins_at);
+
+            if (!is_upcoming(data.begins_at)) {
+                return send_result(conn, 0, 400, "Датата трябва да е предстояща.", NULL);
+            }
+
             data.price = strtof(form.price, NULL);
             data.capacity = atoi(form.capacity);
+            if (data.price <= 0)
+                return send_result(conn, 0, 400, "Цената трябва да е по-голяма от 0", NULL);
+            if (data.capacity <= 0)
+                return send_result(conn, 0, 400, "Капацитетът трябва да е по-голям от 0", NULL);
 
             if (form.image_uploaded) {
                 snprintf(data.img_path, sizeof(data.img_path), "%s", form.image_path);
@@ -315,16 +313,10 @@ int api_admin_events(struct mg_connection* conn, void* data) {
             if (!event_id) {
                 if (form.image_uploaded)
                     remove(form.image_path);
-
-                json_t* res = json_object();
-                set_result(res, 0);
-                return send_json(conn, res);
+                return 500;
             }
 
-            json_t* res = json_object();
-            set_result(res, event_id);
-
-            return send_json(conn, res);
+            return send_result(conn, 1, 201, "Успешно добавено събитие.", NULL);
         }
     }
     // /api/admin/events/{id}
@@ -332,17 +324,15 @@ int api_admin_events(struct mg_connection* conn, void* data) {
     int id = atoi(id_str);
 
     if (id <= 0) {
-        mg_send_http_error(conn, 404, "Not found");
-        return 404;
+        return send_result(conn, 0, 400, "Събитието не е намерено.", NULL);
     }
 
     if (strcmp(info->request_method, "GET") == 0) {
         Event e;
         if(get_event(db, id, &e))
-            return send_json(conn, event_to_json(&e));
+            return send_result(conn, 1, 200, "", event_to_json(&e));
         else {
-            mg_send_http_error(conn, 404, "Not found");
-            return 404;
+            return send_result(conn, 0, 404, "Събитието не е намерено.", NULL);
         }
     }
 
@@ -365,29 +355,23 @@ int api_admin_events(struct mg_connection* conn, void* data) {
             int result = mg_handle_form_request(conn, &fdh);
 
             if (result < 0) {
-                mg_send_http_error(conn, 400, "Invalid form data");
-                return 400;
+                return send_result(conn, 0, 400, "Невалидни данни.", NULL);
             }
             if (!form.image_uploaded) {
-                mg_send_http_error(conn, 400, "No image uploaded");
-                return 400;
+                return send_result(conn, 0, 400, "Изображението не е валидно.", NULL);
             }
 
             // Търсене на старото изображение
             char old_image[256] = { 0 };
             if (!get_event_image_path(db, id, old_image, sizeof(old_image))) {
                 remove(form.image_disk_path);
-                mg_send_http_error(conn, 404, "Event not found");
-                return 404;
             }
 
             // Смяна с новото изображение
             result = admin_update_image(db, id, form.image_path);
             if (!result) {
                 remove(form.image_disk_path);
-                json_t* res = json_object();
-                set_result(res, 0);
-                return send_json(conn, res);
+                return send_result(conn, 0, 500, "Грешка при смяна на изображение.", NULL);
             }
 
             // Ако старото изображение не е default1.png, да се изтрие
@@ -397,9 +381,7 @@ int api_admin_events(struct mg_connection* conn, void* data) {
                 remove(old_disk_path);
             }
 
-            json_t* res = json_object();
-            set_result(res, 1);
-            return send_json(conn, res);
+            return send_result(conn, 1, 200, "Успешна смяна на изображение.", NULL);
         }
         // Редактиране на заглавие, дата на започване
         else {
@@ -412,6 +394,11 @@ int api_admin_events(struct mg_connection* conn, void* data) {
 
             const char* title = json_string_value(json_object_get(req, "title"));
             const char* begins_at = json_string_value(json_object_get(req, "begins_at"));
+
+            if (begins_at && !is_upcoming(begins_at)) {
+                return send_result(conn, 0, 400, "Датата трябва да е предстояща.", NULL);
+            }
+
             const char* description = json_string_value(json_object_get(req, "description"));
             json_t* active_json = json_object_get(req, "active");
 
@@ -420,27 +407,50 @@ int api_admin_events(struct mg_connection* conn, void* data) {
                     result = 0;
                 }
                 else if (!check_role(conn, ROLE_ADMIN)) {
-                    mg_send_http_error(conn, 403, "Forbidden");
                     json_decref(req);
-                    return 403;
+                    return send_result(conn, 0, 403, "Нямате права за това действие.", NULL);
                 }
                 else {
                     result = set_event_active(db, id, json_boolean_value(active_json));
+                    if (result) {
+                        if (json_boolean_value(active_json)) {
+                            json_decref(req);
+                            return send_result(conn, 1, 200, "Събитието е активирано.", NULL);
+                        }
+                        else {
+                            json_decref(req);
+                            return send_result(conn, 1, 200, "Събитието е деактивирано.", NULL);
+                        }
+                    }
+                    else return 500;
                 }
             }
             else {
-                if (title)
+                if (title && title[0] != '\0') {
                     result = admin_update_title(db, id, title);
-                if (begins_at)
+                    json_decref(req);
+                    if(result)
+                        return send_result(conn, 1, 200, "Успешно сменено име на събитие.", NULL);
+                    else return 500;
+                }
+                if (begins_at) {
                     result = admin_update_begins_at(db, id, begins_at);
-                if (description)
+                    json_decref(req);
+                    if (result)
+                        return send_result(conn, 1, 200, "Успешно сменено време на започване.", NULL);
+                    else return 500;
+                }
+                if (description) {
                     result = admin_update_description(db, id, description);
+                    json_decref(req);
+                    if (result)
+                        return send_result(conn, 1, 200, "Успешно сменено описание.", NULL);
+                    else return 500;
+                }
+                else {
+                    return send_result(conn, 0, 400, "Невалидни данни за редактиране на събитие.", NULL);
+                }
             }
-
-            set_result(res, result);
-
-            json_decref(req);
-            return send_json(conn, res);
         }
     }
 
@@ -572,4 +582,35 @@ static int make_image_filename(const char* filename, char* path, size_t pathlen)
 
     snprintf(path, pathlen, "%s%s", hex_str, ext);
     return 1;
+}
+
+static int is_upcoming(const char* begins_at) {
+    struct tm event_time = { 0 };
+
+    // валидна дата ли е
+    if (sscanf(begins_at, "%d-%d-%dT%d:%d",
+        &event_time.tm_year,
+        &event_time.tm_mon,
+        &event_time.tm_mday,
+        &event_time.tm_hour,
+        &event_time.tm_min) != 5) {
+        return 0;
+    }
+
+    // очаква се година след 1900
+    event_time.tm_year -= 1900;
+    // месеци: 0-11
+    event_time.tm_mon -= 1;
+    event_time.tm_sec = 0;
+    // dst - daylight time savings
+    event_time.tm_isdst = -1;
+
+    time_t event_timestamp = mktime(&event_time);
+    time_t now = time(NULL);
+
+    if (event_timestamp == (time_t)-1) {
+        return 0;
+    }
+
+    return event_timestamp > now;
 }

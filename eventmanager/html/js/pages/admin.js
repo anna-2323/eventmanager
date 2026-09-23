@@ -5,7 +5,7 @@ import { createMultiLineChart, createBarChart } from "../components/graph.js";
 
 header();
 
-const user = await api.auth.getUser();
+const { data: user } = await api.auth.getUser();
 if (!user.logged_in || user.role == 2) {
   $("#main").innerHTML = `<section class="section">
         <div class="container has-text-centered">
@@ -14,11 +14,11 @@ if (!user.logged_in || user.role == 2) {
         </div>
     </section>`;
 } else {
-  const monthlyStats = await api.stats.monthly();
-  const dailyStats = await api.stats.daily();
-  const totals = await api.stats.totals();
-  const monthlyRev = await api.stats.revenue.monthly();
-  const venueRev = await api.stats.revenue.byVenues();
+  const { data: monthlyStats } = await api.stats.monthly();
+  const { data: dailyStats } = await api.stats.daily();
+  const { data: totals } = await api.stats.totals();
+  const { data: monthlyRev } = await api.stats.revenue.monthly();
+  const { data: venueRev } = await api.stats.revenue.byVenues();
 
   const monthNames = [
     "Яну",

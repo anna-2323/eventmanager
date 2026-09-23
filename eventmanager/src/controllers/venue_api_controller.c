@@ -12,7 +12,7 @@ int api_cities(struct mg_connection* conn, void* data) {
 	}
 	
 	free(cities);
-	return send_json(conn, res);
+	return send_result(conn, 1, 200, "", res);
 }
 
 // GET /api/venues
@@ -30,22 +30,21 @@ int api_venues(struct mg_connection* conn, void* data) {
 				json_array_append(res, venue_to_json(&venues[i]));
 			}
 			free(venues);
-			return send_json(conn, res);
+			return send_result(conn, 1, 200, "", res);
 		}
 		else {
 			mg_send_http_error(conn, 405, "Method Not Allowed");
 			return 405;
 		}
 	}
-	
-	const char* id_str = info->local_uri + strlen("/api/venues/");
-	char* end;
-	long id = strtol(id_str, &end, 10);
 
 	json_t* res = json_object();
 
+	const char* id_str = info->local_uri + strlen("/api/venues/");
+	int venue_id = atoi(id_str);
+
 	// GET /api/venues/{id}/events
-	if (strcmp(end, "/events") == 0) {
+	if (strcmp(info->local_uri, "/api/venues") == 0) {
 
 		if (strcmp(info->request_method, "GET") != 0) {
 			mg_send_http_error(conn, 405, "Method Not Allowed");
@@ -53,25 +52,25 @@ int api_venues(struct mg_connection* conn, void* data) {
 		}
 
 		Event* events = NULL;
-		int count = get_events_in_venue(db, id, &events);
+		int count = get_events_in_venue(db, venue_id, &events);
 		json_t* res = json_array();
 		for (int i = 0; i < count; i++) {
 			json_array_append(res, event_to_json(&events[i]));
 		}
 		free(events);
-		return send_json(conn, res);
+		return send_result(conn, 1, 200, "", res);
 	}
 
-	if (*end != '\0') {
-		mg_send_http_error(conn, 404, "Not found");
-		return 404;
-	}
+	if (venue_id <= 0)
+		return send_result(conn, 0, 404, "Невалидно ID на зала.", NULL);
 
 	// GET /api/venues/{id}
 	if (strcmp(info->request_method, "GET") == 0) {
 		Venue venue;
-		if(get_venue(db, id, &venue))
-			return send_json(conn, venue_to_json(&venue));
+		if(get_venue(db, venue_id, &venue))
+			return send_result(conn, 1, 200, "", venue_to_json(&venue));
+		else
+			return send_result(conn, 0, 404, "Залата не съществува.", NULL);
 	}
 	
 	mg_send_http_error(conn, 405, "Method Not Allowed");
@@ -81,8 +80,7 @@ int api_venues(struct mg_connection* conn, void* data) {
 // POST, PATCH /api/admin/venues
 int api_admin_venues(struct mg_connection* conn, void* data) {
 	if (!check_role(conn, ROLE_ADMIN) && !check_role(conn, ROLE_ORGANIZATOR)) {
-		mg_send_http_error(conn, 403, "Forbidden");
-		return 403;
+		return send_result(conn, 0, 403, "Нямате права за това действие", NULL);
 	}
 
 	PGconn* db = (PGconn*)data;
@@ -98,27 +96,23 @@ int api_admin_venues(struct mg_connection* conn, void* data) {
 				json_array_append(res, venue_to_json(&venues[i]));
 			}
 			free(venues);
-			return send_json(conn, res);
+			return send_result(conn, 1, 200, "", res);
 		}
 		if (strcmp(info->request_method, "POST") == 0) {
-			if (check_role(conn, ROLE_USER)) {
-				mg_send_http_error(conn, 403, "Forbidden");
-				return 403;
-			}
 			json_t* req = get_json(conn);
 			if (!req) return 400;
-
-			json_t* res = json_object();
 
 			Venue v;
 			snprintf(v.city, sizeof(v.city), "%s", json_string_value(json_object_get(req, "city")));
 			snprintf(v.address, sizeof(v.address), "%s", json_string_value(json_object_get(req, "address")));
 			snprintf(v.venue_name, sizeof(v.venue_name), "%s", json_string_value(json_object_get(req, "venue_name")));
+			if (!v.city || !v.address || !v.venue_name)
+				return send_result(conn, 0, 400, "Моля, попълнете всички полета", NULL);
+
 			int result = add_venue(db, &v);
 
-			set_result(res, result);
 			json_decref(req);
-			return send_json(conn, res);
+			return send_result(conn, 1, 201, "Залата е добавена успешно.", NULL);
 		}
 		else {
 			mg_send_http_error(conn, 405, "Method Not Allowed");
@@ -135,7 +129,8 @@ int api_admin_venues(struct mg_connection* conn, void* data) {
 	// PATCH /api/venues/{id}
 	if (strcmp(info->request_method, "PATCH") == 0) {
 		json_t* req = get_json(conn);
-		if (!req) return 400;
+		if (!req)
+			return 400;
 
 		int result = 0;
 
@@ -148,26 +143,41 @@ int api_admin_venues(struct mg_connection* conn, void* data) {
 				result = 0;
 			}
 			else if (!check_role(conn, ROLE_ADMIN)) {
-				mg_send_http_error(conn, 403, "Forbidden");
+				send_result(conn, 0, 403, "Нямате права за това действие", NULL);
 				json_decref(req);
-				return 403;
+				return 1;
 			}
 			else {
 				result = set_venue_active(db, id, json_boolean_value(active_json));
+				json_decref(req);
+				if (result) {
+					if (json_boolean_value(active_json)) {
+						return send_result(conn, 1, 200, "Залата е успешно активирана.", NULL);
+					}
+					else {
+						return send_result(conn, 1, 200, "Залата е успешно деактивирана.", NULL);
+					}
+				}
+				else return 500;
 			}
+		}
+		else if (venue_name && venue_name[0] != '\0') {
+			result = update_venue_name(db, id, venue_name);
+			json_decref(req);
+			if (result)
+				return send_result(conn, 1, 200, "Успешно променено име на залата.", NULL);
+			else return 500;
+		}
+		else if (address && address[0] != '\0') {
+			result = update_venue_address(db, id, address);
+			json_decref(req);
+			if (result)
+				return send_result(conn, 1, 200, "Успешно променен адрес на залата.", NULL);
+			else return 500;
 		}
 		else {
-			if (venue_name) {
-				result = update_venue_name(db, id, venue_name);
-			}
-			if (address) {
-				result = update_venue_address(db, id, address);
-			}
+			return send_result(conn, 0, 400, "Невалидни данни за редактиране на зала.", NULL);
 		}
-
-		set_result(res, result);
-		json_decref(req);
-		return send_json(conn, res);
 	}
 	else {
 		mg_send_http_error(conn, 405, "Method Not Allowed");

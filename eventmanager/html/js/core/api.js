@@ -6,8 +6,13 @@ async function request(path = {}, options = {}) {
     ...options,
     credentials: 'include',
   });
-  if (!res.ok) throw new Error(`${await res.text()}`);
-  return res.status === 204 ? null : res.json();
+  const data = await res.json();
+
+    if (!res.ok) {
+        throw data;
+    }
+
+    return data;
 }
 
 async function create(path, data, method) {

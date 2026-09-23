@@ -4,7 +4,7 @@ import { header } from "../components/header.js";
 
 header();
 
-const user = await api.auth.getUser();
+const { data: user } = await api.auth.getUser();
 if (!user.logged_in || user.role == 2) {
   $("#main").innerHTML = `<section class="section">
         <div class="container has-text-centered">
@@ -15,7 +15,7 @@ if (!user.logged_in || user.role == 2) {
 }
 else {
     // Запълване на менюто за избор на град
-    const cities = await api.cities.list();
+    const { data: cities } = await api.cities.list();
     $("#cities").innerHTML =
         `${cities.map((c) =>
             `<option value="${c}"></option>`
@@ -42,15 +42,15 @@ else {
       });
 
       if (res.success) {
+        localStorage.setItem("success_message", res.message);
         window.location.href = "/admin/venues";
       } else {
-        $("#error").textContent =
-          res.error || "Възникна грешка.";
+        $("#error").textContent = res.message || "Възникна грешка.";
         $("#error").style.display = "block";
       }
     } catch (err) {
       console.error(err);
-      $("#error").textContent = "Възникна грешка при добавянето.";
+      $("#error").textContent = err.message || "Възникна грешка.";
       $("#error").style.display = "block";
     }
   });

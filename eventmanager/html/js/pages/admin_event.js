@@ -1,5 +1,5 @@
 import { api } from "../core/api.js";
-import { $, showSuccess, showError } from "../core/dom.js";
+import { $, showSuccess, showError, editItem } from "../core/dom.js";
 import { header } from "../components/header.js";
 import { input, editSection, activateToggles } from "../components/form.js";
 import { eventCard } from "../components/adminCards.js";
@@ -7,7 +7,7 @@ import { loadSeatMap } from "../components/seatMap.js";
 
 header();
 
-const user = await api.auth.getUser();
+const { data: user } = await api.auth.getUser();
 if (!user.logged_in || user.role == 2) {
   $("#main").innerHTML = `<section class="section">
         <div class="container has-text-centered">
@@ -17,7 +17,7 @@ if (!user.logged_in || user.role == 2) {
     </section>`;
 } else {
   const id = window.location.pathname.split("/").pop();
-  const event = await api.admin.events.get(id);
+  const { data: event } = await api.admin.events.get(id);
   renderEvent();
   renderLayout();
 
@@ -41,15 +41,25 @@ if (!user.logged_in || user.role == 2) {
     // Редактиране на данни за събитие
     if(e.target.matches("#change-title-btn")) {
       const title = $("#new-title").value;
-      editEvent({ title }, "Името е сменено успешно.");
+      if(title)
+        editItem(api.admin.events.edit, id, { title });
+      else {
+        localStorage.setItem("error_message", "Моля, въведете ново име на събитието.");
+        window.location.reload();
+      }
     }
     if(e.target.matches("#change-begins-at-btn")) {
       const begins_at = $("#new-begins-at").value;
-      editEvent({ begins_at }, "Времето е сменено успешно.");
+      if(begins_at)
+        editItem(api.admin.events.edit, id, { begins_at });
+      else {
+        localStorage.setItem("error_message", "Моля, въведете ново време на започване.");
+        window.location.reload();
+      }
     }
     if(e.target.matches("#change-description-btn")) {
       const description = $("#new-description").value;
-      editEvent({ description }, "Описанието е сменено успешно.");
+      editItem(api.admin.events.edit, id, { description });
     }
     if(e.target.matches("#change-image-btn")) {
       const image = $("#new-image").files[0];
@@ -119,40 +129,23 @@ if (!user.logged_in || user.role == 2) {
   }
 
   function toggle_active() {
-    if(event.active) {
-        editEvent(({ active: false }), "Събитието е успешно деактивирано.");
-    }
-    else {
-        editEvent(({ active: true }), "Събитието е успешно активирано.");
-    }
-  }
-  
-  async function editEvent(json, message) {
-    const res = await api.admin.events.edit(id, json);
-    if (res.success) {
-      localStorage.setItem("success_message", message);
-      window.location.reload();
-    } else {
-      localStorage.setItem("error_message", res.error || "Възникна грешка.");
-      window.location.reload();
-    }
-    window.location.reload();
+    if(event.active)
+      editItem(api.admin.events.edit, id, { active: false });
+    else
+      editItem(api.admin.events.edit, id, { active: true });
   }
 
-  async function editEventImage(data, message) {
+  async function editEventImage(data) {
     try {
         const res = await api.admin.events.editImage(id, data);
-        if (res.success) {
-          localStorage.setItem("success_message", message);
-          window.location.reload();
-        } else {
-          $("#error").textContent = res.error || "Възникна грешка.";
-          $("#error").style.display = "block";
-        }
+        if (res.success)
+          localStorage.setItem("success_message", res.message);
+        else
+          localStorage.setItem("error_message", res.message);
       } catch (err) {
-        console.error(err);
-        $("#error").textContent = "Възникна грешка.";
-        $("#error").style.display = "block";
+        localStorage.setItem("error_message", err.message);
+      } finally {
+        window.location.reload();
       }
   }
 }
